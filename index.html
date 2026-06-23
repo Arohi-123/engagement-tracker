@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neovation · Client Engagement Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#11203A;
+    --ink-soft:#4B5A72;
+    --ink-faint:#8693A6;
+    --paper:#F4F3EE;
+    --paper-raised:#FFFFFF;
+    --sky:#2F7DC0;
+    --sky-deep:#154C7A;
+    --sky-pale:#E4EFF8;
+    --amber:#D98E2B;
+    --amber-pale:#FBF0DD;
+    --green:#1F8F62;
+    --green-pale:#E1F3EA;
+    --coral:#C8543D;
+    --coral-pale:#FBE6E1;
+    --line:#DEDBD0;
+    --line-soft:#EAE8DF;
+    --shadow:0 1px 2px rgba(17,32,58,0.06), 0 8px 24px -12px rgba(17,32,58,0.18);
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,h4{
+    font-family:'Space Grotesk',sans-serif;
+    margin:0;
+    color:var(--ink);
+    letter-spacing:-0.01em;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;}
+  button{font-family:inherit;}
+  ::selection{background:var(--sky-pale);}
+
+  /* ---------- horizon divider, the signature motif ---------- */
+  .horizon{
+    height:3px;
+    width:100%;
+    background:linear-gradient(90deg, var(--ink) 0%, var(--sky-deep) 35%, var(--sky) 65%, var(--amber) 100%);
+    border-radius:2px;
+  }
+
+  /* ---------- LOGIN ---------- */
+  #login-screen{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:
+      radial-gradient(ellipse 1200px 700px at 50% 120%, rgba(47,125,192,0.55), transparent 60%),
+      linear-gradient(180deg, #0A1730 0%, #122A4D 38%, #1E4A75 68%, #2F7DC0 100%);
+    overflow:hidden;
+  }
+  #login-screen::before{
+    content:"";
+    position:absolute; left:0; right:0; bottom:0; height:42%;
+    background:linear-gradient(180deg, transparent 0%, rgba(244,243,238,0.06) 100%);
+    border-top:1px solid rgba(255,255,255,0.18);
+  }
+  .login-card{
+    position:relative; z-index:2;
+    width:min(380px, 90vw);
+    background:rgba(20,32,54,0.55);
+    backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,0.16);
+    border-radius:16px;
+    padding:36px 32px 30px;
+    color:#fff;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.5);
+  }
+  .login-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:#9FC3E3;
+    margin-bottom:6px;
+  }
+  .login-card h1{
+    color:#fff; font-size:26px; margin-bottom:4px;
+  }
+  .login-sub{color:#B9CCE0; font-size:13.5px; margin-bottom:26px;}
+  .field{margin-bottom:16px;}
+  .field label{
+    display:block; font-size:12px; color:#B9CCE0; margin-bottom:6px;
+    font-weight:500; letter-spacing:0.01em;
+  }
+  .field input, .field select, .field textarea{
+    width:100%; padding:11px 12px; border-radius:8px;
+    border:1px solid rgba(255,255,255,0.22);
+    background:rgba(255,255,255,0.08);
+    color:#fff; font-size:14px; font-family:inherit;
+    outline:none; transition:border-color .15s, background .15s;
+  }
+  .field input::placeholder{color:rgba(255,255,255,0.4);}
+  .field input:focus, .field select:focus, .field textarea:focus{
+    border-color:#9FC3E3; background:rgba(255,255,255,0.13);
+  }
+  .login-btn{
+    width:100%; padding:12px; border-radius:8px; border:none;
+    background:linear-gradient(90deg, var(--amber), #E8A33D);
+    color:#21160A; font-weight:600; font-size:14.5px; cursor:pointer;
+    margin-top:6px; transition:transform .12s, box-shadow .12s;
+  }
+  .login-btn:hover{transform:translateY(-1px); box-shadow:0 8px 18px -6px rgba(0,0,0,0.4);}
+  .login-error{
+    color:#FFD9CE; background:rgba(200,84,61,0.35); border:1px solid rgba(200,84,61,0.5);
+    padding:8px 10px; border-radius:8px; font-size:12.5px; margin-bottom:14px; display:none;
+  }
+  .login-foot{
+    margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.14);
+    font-size:11.5px; color:#90A8C4; line-height:1.5;
+  }
+
+  /* ---------- APP SHELL ---------- */
+  #app[hidden]{display:none;}
+  #app{display:flex; min-height:100vh;}
+  .sidebar{
+    width:230px; flex-shrink:0;
+    background:var(--ink); color:#fff;
+    display:flex; flex-direction:column;
+    position:sticky; top:0; height:100vh;
+  }
+  .brand{
+    padding:22px 20px 16px;
+    border-bottom:1px solid rgba(255,255,255,0.1);
+  }
+  .brand-eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
+    text-transform:uppercase; color:#7FA9CE; margin-bottom:4px;
+  }
+  .brand h1{color:#fff; font-size:17px; line-height:1.25;}
+  .nav{flex:1; padding:14px 12px; display:flex; flex-direction:column; gap:2px;}
+  .nav-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:8px; cursor:pointer;
+    color:#C3CEDD; font-size:13.5px; font-weight:500;
+    border:none; background:none; text-align:left; width:100%;
+    transition:background .12s, color .12s;
+  }
+  .nav-item .dot{width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; flex-shrink:0;}
+  .nav-item:hover{background:rgba(255,255,255,0.06); color:#fff;}
+  .nav-item.active{background:var(--sky-deep); color:#fff;}
+  .nav-item.active .dot{background:var(--amber); opacity:1;}
+  .sidebar-foot{
+    padding:16px 20px 20px; border-top:1px solid rgba(255,255,255,0.1);
+    font-size:11.5px; color:#7C8BA3; line-height:1.6;
+  }
+
+  .main{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 28px; background:var(--paper-raised); border-bottom:1px solid var(--line);
+    position:sticky; top:0; z-index:5;
+  }
+  .topbar-title{font-size:19px;}
+  .topbar-sub{color:var(--ink-soft); font-size:12.5px; margin-top:2px;}
+  .topbar-right{display:flex; align-items:center; gap:14px;}
+  .user-pill{
+    display:flex; align-items:center; gap:8px;
+    padding:6px 12px 6px 6px; border-radius:999px; background:var(--paper);
+    border:1px solid var(--line); font-size:12.5px; color:var(--ink-soft);
+  }
+  .user-avatar{
+    width:24px; height:24px; border-radius:50%; background:var(--sky);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; font-family:'Space Grotesk',sans-serif;
+  }
+  .role-badge{
+    font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.06em;
+    text-transform:uppercase; padding:2px 7px; border-radius:5px;
+    background:var(--sky-pale); color:var(--sky-deep);
+  }
+  .logout-btn{
+    border:1px solid var(--line); background:#fff; color:var(--ink-soft);
+    padding:7px 13px; border-radius:7px; font-size:12.5px; cursor:pointer;
+    transition:border-color .12s, color .12s;
+  }
+  .logout-btn:hover{border-color:var(--coral); color:var(--coral);}
+
+  .view{padding:24px 28px 60px; display:none;}
+  .view.active{display:block;}
+
+  .view-head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; gap:16px; flex-wrap:wrap;}
+  .view-head h2{font-size:21px;}
+  .view-head p{color:var(--ink-soft); font-size:13px; margin-top:4px;}
+
+  .btn{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:9px 15px; border-radius:8px; font-size:13px; font-weight:600;
+    border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer;
+    transition:border-color .12s, background .12s, color .12s;
+  }
+  .btn:hover{border-color:var(--sky); color:var(--sky-deep);}
+  .btn-primary{
+    background:var(--ink); color:#fff; border-color:var(--ink);
+  }
+  .btn-primary:hover{background:var(--sky-deep); border-color:var(--sky-deep); color:#fff;}
+  .btn-sm{padding:6px 11px; font-size:12px;}
+  .btn[disabled]{opacity:.45; cursor:not-allowed;}
+
+  /* KPI cards */
+  .kpi-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr));
+    gap:12px; margin-bottom:22px;
+  }
+  .kpi-card{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px 16px 14px; box-shadow:var(--shadow);
+  }
+  .kpi-label{font-size:11.5px; color:var(--ink-soft); font-weight:500; letter-spacing:.01em;}
+  .kpi-value{font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:600; margin-top:6px; color:var(--ink);}
+  .kpi-sub{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); margin-top:4px;}
+  .kpi-card.accent-amber .kpi-value{color:var(--amber);}
+  .kpi-card.accent-green .kpi-value{color:var(--green);}
+  .kpi-card.accent-coral .kpi-value{color:var(--coral);}
+  .kpi-card.accent-sky .kpi-value{color:var(--sky-deep);}
+
+  /* Panels / cards */
+  .panel{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); margin-bottom:20px; overflow:hidden;
+  }
+  .panel-head{
+    padding:15px 18px; border-bottom:1px solid var(--line-soft);
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  .panel-head h3{font-size:14.5px;}
+  .panel-head p{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .panel-body{padding:18px;}
+  .grid-2{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
+  @media (max-width:980px){ .grid-2{grid-template-columns:1fr;} }
+
+  /* Funnel / flight-level bars (signature element) */
+  .funnel{display:flex; flex-direction:column; gap:8px;}
+  .funnel-row{display:grid; grid-template-columns:150px 1fr 70px; align-items:center; gap:10px;}
+  .funnel-label{font-size:12px; color:var(--ink-soft); font-weight:500;}
+  .funnel-track{height:18px; background:var(--paper); border-radius:5px; overflow:hidden; border:1px solid var(--line-soft);}
+  .funnel-fill{height:100%; border-radius:5px 0 0 5px; transition:width .4s ease;}
+  .funnel-val{font-family:'IBM Plex Mono',monospace; font-size:12px; text-align:right; color:var(--ink);}
+
+  /* Tables */
+  .table-wrap{overflow-x:auto;}
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  thead th{
+    text-align:left; padding:9px 12px; background:var(--paper); color:var(--ink-soft);
+    font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+    border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0;
+  }
+  tbody td{padding:10px 12px; border-bottom:1px solid var(--line-soft); color:var(--ink); vertical-align:top;}
+  tbody tr:hover{background:var(--paper);}
+  .num{font-family:'IBM Plex Mono',monospace; text-align:right;}
+  .tag{
+    display:inline-block; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:600;
+    white-space:nowrap; letter-spacing:.01em;
+  }
+  .tag-green{background:var(--green-pale); color:var(--green);}
+  .tag-amber{background:var(--amber-pale); color:var(--amber);}
+  .tag-coral{background:var(--coral-pale); color:var(--coral);}
+  .tag-sky{background:var(--sky-pale); color:var(--sky-deep);}
+  .tag-grey{background:var(--paper); color:var(--ink-soft); border:1px solid var(--line);}
+
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center;}
+  .toolbar input[type=search], .toolbar select{
+    padding:8px 11px; border-radius:7px; border:1px solid var(--line); font-size:12.5px;
+    background:#fff; color:var(--ink); font-family:inherit;
+  }
+  .toolbar input[type=search]{min-width:200px;}
+  .toolbar .spacer{flex:1;}
+
+  .empty-state{
+    padding:40px 20px; text-align:center; color:var(--ink-soft); font-size:13px;
+  }
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(17,32,58,0.45); backdrop-filter:blur(2px);
+    display:flex; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .modal{
+    background:#fff; border-radius:14px; width:min(560px,100%); max-height:88vh; overflow-y:auto;
+    box-shadow:0 30px 70px -20px rgba(0,0,0,0.4);
+  }
+  .modal-head{padding:18px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between;}
+  .modal-head h3{font-size:16px;}
+  .modal-close{background:none; border:none; cursor:pointer; color:var(--ink-soft); font-size:20px; line-height:1; padding:4px;}
+  .modal-body{padding:20px 22px;}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .form-grid .full{grid-column:1/-1;}
+  .form-field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
+  .form-field input, .form-field select, .form-field textarea{
+    width:100%; padding:9px 11px; border-radius:7px; border:1px solid var(--line);
+    font-size:13px; font-family:inherit; color:var(--ink); background:#fdfdfb;
+  }
+  .form-field textarea{resize:vertical; min-height:60px;}
+  .modal-foot{padding:16px 22px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:10px;}
+
+  .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
+  .pill{
+    padding:6px 13px; border-radius:999px; border:1px solid var(--line); background:#fff;
+    font-size:12px; color:var(--ink-soft); cursor:pointer; font-weight:500;
+  }
+  .pill.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+
+  .config-banner{
+    background:var(--coral-pale); border:1px solid var(--coral); color:#7A2E1D;
+    padding:12px 16px; border-radius:10px; font-size:12.5px; margin:0 28px 0; display:none;
+  }
+  .config-banner code{background:rgba(0,0,0,0.06); padding:1px 5px; border-radius:4px;}
+
+  .chart-box{position:relative; height:260px;}
+  .chart-box.tall{height:320px;}
+
+  @media (max-width:880px){
+    .sidebar{position:fixed; left:-230px; transition:left .2s; z-index:40;}
+    .sidebar.open{left:0;}
+    .topbar{padding:14px 16px;}
+    .view{padding:18px 16px 50px;}
+    .form-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-eyebrow">Neovation · Internal</div>
+    <h1>Client Engagement Tracker</h1>
+    <div class="login-sub">FY 2026–27 · Sign in with your Microsoft 365 account</div>
+    <div class="login-error" id="login-error">Sign-in failed.</div>
+    <button class="login-btn" id="login-submit">
+      <svg width="16" height="16" viewBox="0 0 21 21" style="vertical-align:-3px; margin-right:8px;"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Sign in with Microsoft
+    </button>
+    <div class="login-foot">Anyone with a company Microsoft 365 account can view the dashboards. Adding or editing records is limited to admins — ask your administrator to add your email if you need that access.</div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" hidden>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-eyebrow">Neovation · FY 2026–27</div>
+      <h1>Client Engagement Tracker</h1>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="overview"><span class="dot"></span>Overview</button>
+      <button class="nav-item" data-view="clients"><span class="dot"></span>Client Database</button>
+      <button class="nav-item" data-view="opportunities"><span class="dot"></span>Opportunity Tracker</button>
+      <button class="nav-item" data-view="engagements"><span class="dot"></span>Engagement Log</button>
+      <button class="nav-item" data-view="companies"><span class="dot"></span>Companies</button>
+    </nav>
+    <div class="sidebar-foot">Data lives in SharePoint, shared live with everyone signed in.</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Overview</div>
+        <div class="topbar-sub" id="topbar-sub">Holistic view across all sheets</div>
+      </div>
+      <div class="topbar-right">
+        <div class="user-pill">
+          <span class="user-avatar" id="user-avatar">A</span>
+          <span id="user-name">Admin</span>
+          <span class="role-badge" id="user-role">ADMIN</span>
+        </div>
+        <button class="logout-btn" id="logout-btn">Sign out</button>
+      </div>
+    </div>
+
+    <div class="config-banner" id="config-banner">
+      <strong>Setup needed:</strong> this page isn't connected to SharePoint yet. Open <code>index.html</code> and fill in the values near the top of the <code>&lt;script&gt;</code> section (<code>MSAL_CLIENT_ID</code>, <code>MSAL_TENANT_ID</code>, <code>SHAREPOINT_SITE_ID</code>, <code>LIST_IDS</code>), then reload. See SHAREPOINT_SETUP_GUIDE.md.
+    </div>
+
+    <!-- ===== OVERVIEW ===== -->
+    <section class="view active" id="view-overview">
+      <div class="view-head">
+        <div>
+          <h2>Holistic overview</h2>
+          <p>Pulled live from Client Database, Opportunity Tracker and Engagement Log.</p>
+        </div>
+      </div>
+      <div class="kpi-grid" id="ov-kpis"></div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Pipeline funnel</h3><p>Opportunities by stage, by count</p></div>
+          </div>
+          <div class="panel-body"><div class="funnel" id="ov-funnel"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Engagements per week</h3><p>Last 10 weeks of logged touchpoints</p></div>
+          </div>
+          <div class="panel-body"><div class="chart-box"><canvas id="ov-weekly-chart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Blue sky opportunities</h3><p>Earliest-stage opportunities worth watching</p></div>
+          </div>
+          <div class="table-wrap"><table id="ov-bluesky-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Client status mix</h3><p>Across the full client database</p></div>
+          </div>
+          <div class="panel-body"><div class="chart-box"><canvas id="ov-status-chart"></canvas></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== CLIENTS ===== -->
+    <section class="view" id="view-clients">
+      <div class="view-head">
+        <div>
+          <h2>Client database</h2>
+          <p>Every stakeholder contact across all client companies.</p>
+        </div>
+        <button class="btn btn-primary" id="add-client-btn">+ Add client</button>
+      </div>
+      <div class="kpi-grid" id="cl-kpis"></div>
+      <div class="panel">
+        <div class="panel-body" style="padding-bottom:0;">
+          <div class="toolbar">
+            <input type="search" id="cl-search" placeholder="Search name, company, email...">
+            <select id="cl-filter-status"><option value="">All statuses</option></select>
+            <select id="cl-filter-company"><option value="">All companies</option></select>
+            <span class="spacer"></span>
+            <span class="kpi-sub" id="cl-count"></span>
+          </div>
+        </div>
+        <div class="table-wrap"><table id="cl-table"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== OPPORTUNITIES ===== -->
+    <section class="view" id="view-opportunities">
+      <div class="view-head">
+        <div>
+          <h2>Opportunity tracker</h2>
+          <p>Blue sky ideas through to won and lost RFPs.</p>
+        </div>
+        <button class="btn btn-primary" id="add-opp-btn">+ Add opportunity</button>
+      </div>
+      <div class="kpi-grid" id="op-kpis"></div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>By stage</h3><p>Count and probability-weighted value</p></div></div>
+        <div class="panel-body"><div class="chart-box"><canvas id="op-stage-chart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-body" style="padding-bottom:0;">
+          <div class="toolbar">
+            <input type="search" id="op-search" placeholder="Search opportunity, client, company...">
+            <select id="op-filter-status"><option value="">All stages</option></select>
+            <select id="op-filter-bd"><option value="">All BD owners</option></select>
+            <span class="spacer"></span>
+            <span class="kpi-sub" id="op-count"></span>
+          </div>
+        </div>
+        <div class="table-wrap"><table id="op-table"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== ENGAGEMENTS ===== -->
+    <section class="view" id="view-engagements">
+      <div class="view-head">
+        <div>
+          <h2>Engagement log</h2>
+          <p>Every touchpoint — meetings, calls, emails — by week.</p>
+        </div>
+        <button class="btn btn-primary" id="add-eng-btn">+ Log engagement</button>
+      </div>
+      <div class="kpi-grid" id="eg-kpis"></div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>Weekly activity</h3><p>Engagements logged per week</p></div></div>
+        <div class="panel-body"><div class="chart-box tall"><canvas id="eg-weekly-chart"></canvas></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-body" style="padding-bottom:0;">
+          <div class="toolbar">
+            <input type="search" id="eg-search" placeholder="Search client, company, notes...">
+            <select id="eg-filter-type"><option value="">All engagement types</option></select>
+            <select id="eg-filter-followup"><option value="">Follow-up: any</option><option value="yes">Follow-up done</option><option value="no">Follow-up pending</option></select>
+            <span class="spacer"></span>
+            <span class="kpi-sub" id="eg-count"></span>
+          </div>
+        </div>
+        <div class="table-wrap"><table id="eg-table"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ===== COMPANIES ===== -->
+    <section class="view" id="view-companies">
+      <div class="view-head">
+        <div>
+          <h2>Company performance</h2>
+          <p>Roll-up of clients, engagement and pipeline value per company.</p>
+        </div>
+        <button class="btn btn-primary" id="add-company-btn">+ Add company</button>
+      </div>
+      <div class="kpi-grid" id="co-kpis"></div>
+      <div class="panel">
+        <div class="panel-body" style="padding-bottom:0;">
+          <div class="toolbar">
+            <input type="search" id="co-search" placeholder="Search company...">
+            <span class="spacer"></span>
+            <span class="kpi-sub" id="co-count"></span>
+          </div>
+        </div>
+        <div class="table-wrap"><table id="co-table"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+/* ============================================================
+   Neovation Client Engagement Tracker — Application Logic
+   (SharePoint / Microsoft Graph backend)
+   ============================================================ */
+
+/* ---------- 1. CONFIG — fill these in, see SHAREPOINT_SETUP_GUIDE.md ---------- */
+const MSAL_CLIENT_ID = '997ad661-b120-4f9e-bc6f-f672a0339206';      // from your Azure AD app registration
+const MSAL_TENANT_ID = 'e1a8eec3-eb6b-4aba-bbca-c2512937361f';          // your Microsoft 365 tenant ID (or domain, e.g. contoso.onmicrosoft.com)
+const SHAREPOINT_SITE_ID = 'neovationsg.sharepoint.com,31e6c0b5-79a5-4ab7-9a3d-d81b111fd9fb,370ce563-c0f0-4788-8152-5dac7fb721e5';        // from Graph Explorer, see setup guide
+const LIST_IDS = {
+  clients:       'ea38938c-a1bf-45fa-b011-41e7ce2e35f9',
+  opportunities: '8ffc2b36-fc95-47b1-9412-c2383a1d935d',
+  engagements:   'bc18a9fa-155c-45ff-98b1-c87cedb823b',
+  companies:     '6aa2ab20-ad4c-4dcd-b931-c2b9eeda4585'
+};
+// Anyone signed in can view dashboards. Only these email addresses (UPNs) can add
+// records. Use lower case. Add/remove people freely, no other setup needed.
+const ADMIN_EMAILS = [
+  'arohi.jain@neovation.sg', 'hasnain.patel@neovation.sg'
+];
+
+const GRAPH_SCOPES = ['User.Read', 'Sites.ReadWrite.All'];
+
+/* ---------- 2. LOOKUP LISTS (mirrors your Excel "Lookups" tab) ---------- */
+const LOOKUPS = {
+  therapyAreas: ["Oncology","CNS","Cardiology","Infectious Disease","Rare Disease","Immunology","Gastroenterology","Dermatology","Endocrinology","Respiratory","Rheumatology","HEOR","Across TAs","Other"],
+  departments: ["Medical","Market Access/ HEOR","Marketing/ Commercial","Procurement","Digital","Others"],
+  regions: ["UAE","KSA","Qatar","Kuwait","Bahrain","Oman","Egypt","Jordan","Lebanon","Gulf","MENA","Global/ International","Intercontinental","MEAR","GCC","META","GEM & Levant","Others"],
+  clientStatus: ["Inactive","Prospect","Active engagement","Active business"],
+  priority: ["Low","Medium","High"],
+  opportunityStatus: ["01 Blue Sky Opportunity","02 Identified Opportunity","03 Concept pitch preparation","04 Proposal preparation","05 Proposal submitted","06 To Win","07 Win","08 Loss","09 Client not interested","10 Missed to discuss"],
+  engagementTypes: ["In-Person Meeting","Virtual Meeting","Phone Call/ Whatsapp","Email","Conference/Event","Others"],
+  stakeholderType: ["Existing Stakeholder Engagement","Procurement Engagement","New Stakeholder Development"],
+  engagementObjective: ["Blue sky opportunity discussion","Identified opportunity discussion","Discussion on new RFP","Follow up on ongoing RFP","Capability presentation","Request for referral","Intelligence gathering","Relationship building","Other discussion"],
+  engagementOutcome: ["New opportunities discovered","Led to RFP","Progress on ongoing RFP","Led to referral","Others (Mentioned in notes)"],
+  followUp: ["Yes","No"]
+};
+
+/* ---------- 3. STATE ---------- */
+let msalInstance = null;
+let currentAccount = null;
+let currentUser = null; // {username, name, role}
+let DATA = { clients: [], opportunities: [], engagements: [], companies: [] };
+let CHARTS = {}; // keep Chart.js instances so we can destroy before re-render
+
+/* ---------- 4. UTILITIES ---------- */
+function escapeHtml(str){
+  if(str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function fmtDate(d){
+  if(!d) return '—';
+  const dt = new Date(d);
+  if(isNaN(dt)) return '—';
+  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+function fmtMoney(n){
+  if(n === null || n === undefined || n === '') return '—';
+  const num = Number(n);
+  if(isNaN(num)) return '—';
+  return '$' + num.toLocaleString('en-US', { maximumFractionDigits:0 });
+}
+function fmtNum(n){
+  if(n === null || n === undefined || n === '') return '—';
+  return Number(n).toLocaleString('en-US');
+}
+function debounce(fn, ms){
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
+}
+function isoWeek(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr);
+  if(isNaN(d)) return null;
+  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (dt.getUTCDay() + 6) % 7;
+  dt.setUTCDate(dt.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(dt.getUTCFullYear(),0,4));
+  const week = 1 + Math.round(((dt - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+  return `${dt.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+function weekRangeLabel(dateStr){
+  const d = new Date(dateStr);
+  if(isNaN(d)) return '';
+  const day = (d.getDay()+6)%7;
+  const monday = new Date(d); monday.setDate(d.getDate()-day);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  const opts = {day:'numeric', month:'short'};
+  return `${monday.toLocaleDateString('en-GB',opts)} – ${sunday.toLocaleDateString('en-GB',opts)}`;
+}
+function statusTagClass(status){
+  if(!status) return 'tag-grey';
+  const s = String(status).toLowerCase();
+  if(s.includes('win') || s === 'active business' || s.includes('onboarded') || s.includes('msa')) return 'tag-green';
+  if(s.includes('loss') || s.includes('inactive') || s.includes('not interested') || s.includes('missed')) return 'tag-coral';
+  if(s.includes('blue sky') || s.includes('identified') || s.includes('prospect') || s.includes('concept') || s.includes('proposal') || s.includes('to win') || s.includes('active engagement')) return 'tag-amber';
+  return 'tag-sky';
+}
+function initials(name){
+  return (name||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+}
+
+/* ---------- 5. AUTH (Microsoft Entra ID via MSAL) ---------- */
+function initMsal(){
+  if(msalInstance) return msalInstance;
+  msalInstance = new msal.PublicClientApplication({
+    auth: {
+      clientId: MSAL_CLIENT_ID,
+      authority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
+      redirectUri: window.location.origin + window.location.pathname
+    },
+    cache: {
+      // Kept in memory only (not sessionStorage/localStorage): signing in again
+      // after a page refresh is expected behaviour for this tool.
+      cacheLocation: 'memoryStorage'
+    }
+  });
+  return msalInstance;
+}
+
+async function doLogin(){
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(MSAL_CLIENT_ID.includes('YOUR_') || MSAL_TENANT_ID.includes('YOUR_')){
+    errEl.textContent = 'This dashboard is not connected to Microsoft 365 yet. See SHAREPOINT_SETUP_GUIDE.md.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try{
+    initMsal();
+    await msalInstance.initialize();
+    const result = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
+    currentAccount = result.account;
+    msalInstance.setActiveAccount(currentAccount);
+    const email = (currentAccount.username || '').toLowerCase();
+    const role = ADMIN_EMAILS.map(e=>e.toLowerCase()).includes(email) ? 'admin' : 'viewer';
+    currentUser = { username: email, name: currentAccount.name || email, role };
+
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').hidden = false;
+    document.getElementById('user-name').textContent = currentUser.name;
+    document.getElementById('user-role').textContent = currentUser.role.toUpperCase();
+    document.getElementById('user-avatar').textContent = initials(currentUser.name);
+    applyRolePermissions();
+    await boot();
+  } catch(err){
+    console.error(err);
+    errEl.textContent = 'Sign-in failed or was cancelled: ' + (err.errorMessage || err.message || err);
+    errEl.style.display = 'block';
+  }
+}
+
+function doLogout(){
+  currentUser = null;
+  currentAccount = null;
+  document.getElementById('app').hidden = true;
+  document.getElementById('login-screen').style.display = 'flex';
+  if(msalInstance && msalInstance.getActiveAccount()){
+    msalInstance.logoutPopup().catch(()=>{});
+  }
+}
+
+async function getGraphToken(){
+  initMsal();
+  try{
+    const result = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: currentAccount });
+    return result.accessToken;
+  } catch(err){
+    const result = await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES });
+    return result.accessToken;
+  }
+}
+
+function applyRolePermissions(){
+  const isViewer = currentUser.role === 'viewer';
+  ['add-client-btn','add-opp-btn','add-eng-btn','add-company-btn'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = isViewer ? 'none' : 'inline-flex';
+  });
+}
+
+/* ---------- 6. NAV ---------- */
+const VIEW_META = {
+  overview:      { title: 'Overview',            sub: 'Holistic view across all sheets' },
+  clients:       { title: 'Client Database',     sub: 'Every stakeholder contact across all client companies' },
+  opportunities: { title: 'Opportunity Tracker',  sub: 'Blue sky ideas through to won and lost RFPs' },
+  engagements:   { title: 'Engagement Log',       sub: 'Every touchpoint, by week' },
+  companies:     { title: 'Company Performance',  sub: 'Roll-up of clients, engagement and pipeline value per company' }
+};
+function switchView(view){
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+  document.getElementById('topbar-title').textContent = VIEW_META[view].title;
+  document.getElementById('topbar-sub').textContent = VIEW_META[view].sub;
+  document.querySelectorAll('.sidebar').forEach(s=>s.classList.remove('open'));
+}
+
+/* ---------- 7. DATA LAYER (Microsoft Graph / SharePoint Lists) ---------- */
+const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+
+async function graphGetAllPages(url){
+  const token = await getGraphToken();
+  let items = [];
+  let next = url;
+  while(next){
+    const res = await fetch(next, { headers: { Authorization: `Bearer ${token}` } });
+    if(!res.ok){
+      const body = await res.text();
+      throw new Error(`Graph GET failed (${res.status}): ${body}`);
+    }
+    const json = await res.json();
+    items = items.concat(json.value || []);
+    next = json['@odata.nextLink'] || null;
+  }
+  return items;
+}
+
+async function graphPost(url, body){
+  const token = await getGraphToken();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    const errBody = await res.text();
+    throw new Error(`Graph POST failed (${res.status}): ${errBody}`);
+  }
+  return res.json();
+}
+
+// Map between our internal snake_case field names and each SharePoint list's
+// column internal names (see SHAREPOINT_SETUP_GUIDE.md for the exact columns
+// to create). "Title" is SharePoint's built-in column.
+const FIELD_MAP = {
+  clients: {
+    client_name:'Title', company:'Company', designation:'Designation', department:'Department',
+    therapy_area:'TherapyArea', region:'Region', email:'Email', phone:'Phone',
+    linkedin_url:'LinkedInURL', status:'Status', priority:'Priority', assigned_bd:'AssignedBD', notes:'Notes'
+  },
+  opportunities: {
+    opportunity:'Title', rfp_id:'RFPID', company:'Company', client_name:'ClientName',
+    opportunity_status:'OpportunityStatus', discussion_date:'DiscussionDate', pitch_date:'PitchDate',
+    proposal_submission_date:'ProposalSubmissionDate', expected_close_date:'ExpectedCloseDate',
+    bd_owner:'BDOwner', technical_lead:'TechnicalLead', estimated_value_usd:'EstimatedValueUSD',
+    probability_pct:'ProbabilityPct', probability_weighted_value:'ProbabilityWeightedValue', notes:'Notes'
+  },
+  engagements: {
+    client_name:'Title', eng_month:'EngMonth', eng_date:'EngDate', designation:'Designation', company:'Company',
+    bd_pm:'BDPM', engagement_type:'EngagementType', platform_venue:'PlatformVenue', stakeholder_type:'StakeholderType',
+    engagement_objective:'EngagementObjective', engagement_outcome:'EngagementOutcome',
+    discussion_points:'DiscussionPoints', cta_next_step:'CTANextStep', cta_due_date:'CTADueDate',
+    cta_owner:'CTAOwner', follow_up_done:'FollowUpDone'
+  },
+  companies: { company:'Title', onboarding_status:'OnboardingStatus', notes:'Notes' }
+};
+const DATE_FIELDS = {
+  clients: [],
+  opportunities: ['discussion_date','pitch_date','proposal_submission_date','expected_close_date'],
+  engagements: ['eng_month','eng_date','cta_due_date'],
+  companies: []
+};
+
+function spItemToRecord(kind, item){
+  const map = FIELD_MAP[kind];
+  const f = item.fields || {};
+  const rec = { id: item.id };
+  Object.entries(map).forEach(([ourKey, spKey]) => {
+    let v = f[spKey];
+    if(v !== undefined && v !== null && DATE_FIELDS[kind].includes(ourKey)){
+      v = String(v).split('T')[0];
+    }
+    rec[ourKey] = v ?? null;
+  });
+  return rec;
+}
+
+function recordToSpFields(kind, payload){
+  const map = FIELD_MAP[kind];
+  const fields = {};
+  Object.entries(payload).forEach(([ourKey, v]) => {
+    const spKey = map[ourKey];
+    if(!spKey) return;
+    if(v !== null && v !== undefined && DATE_FIELDS[kind].includes(ourKey)){
+      v = new Date(v).toISOString();
+    }
+    fields[spKey] = v;
+  });
+  return fields;
+}
+
+async function fetchAll(){
+  const [clientsRaw, oppsRaw, engsRaw, companiesRaw] = await Promise.all([
+    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.clients}/items?expand=fields&$top=200`),
+    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.opportunities}/items?expand=fields&$top=200`),
+    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.engagements}/items?expand=fields&$top=200`),
+    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.companies}/items?expand=fields&$top=200`)
+  ]);
+  DATA.clients = clientsRaw.map(i => spItemToRecord('clients', i));
+  DATA.opportunities = oppsRaw.map(i => spItemToRecord('opportunities', i));
+  DATA.engagements = engsRaw.map(i => spItemToRecord('engagements', i));
+  DATA.companies = companiesRaw.map(i => spItemToRecord('companies', i));
+}
+
+async function insertRecord(kind, payload){
+  try{
+    const fields = recordToSpFields(kind, payload);
+    const json = await graphPost(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS[kind]}/items`, { fields });
+    return spItemToRecord(kind, json);
+  } catch(err){
+    console.error(err);
+    alert('Could not save: ' + err.message);
+    return null;
+  }
+}
+
+async function refreshAndRenderAll(){
+  await fetchAll();
+  renderOverview();
+  renderClients();
+  renderOpportunities();
+  renderEngagements();
+  renderCompanies();
+}
+/* ---------- 8. COLOR TOKENS (mirrors CSS vars, for Chart.js) ---------- */
+const COLORS = {
+  ink:'#11203A', sky:'#2F7DC0', skyDeep:'#154C7A', skyPale:'#E4EFF8',
+  amber:'#D98E2B', amberPale:'#FBF0DD', green:'#1F8F62', greenPale:'#E1F3EA',
+  coral:'#C8543D', coralPale:'#FBE6E1', inkSoft:'#4B5A72', line:'#DEDBD0'
+};
+const STAGE_COLORS = [COLORS.skyPale, COLORS.sky, COLORS.amber, COLORS.amber, COLORS.amber, COLORS.amber, COLORS.green, COLORS.coral, COLORS.coral, COLORS.coral];
+
+function destroyChart(key){
+  if(CHARTS[key]){ CHARTS[key].destroy(); delete CHARTS[key]; }
+}
+
+/* ---------- 9. COMPUTATIONS ---------- */
+function isOpenStage(status){
+  if(!status) return false;
+  const closed = ['07 win','08 loss','09 client not interested','10 missed to discuss'];
+  return !closed.includes(String(status).toLowerCase().trim());
+}
+function isWinStage(status){ return String(status||'').toLowerCase().trim() === '07 win'; }
+function isLossStage(status){
+  const s = String(status||'').toLowerCase().trim();
+  return s === '08 loss' || s === '09 client not interested';
+}
+
+function computeOverviewKpis(){
+  const totalClients = DATA.clients.length;
+  const activeClients = DATA.clients.filter(c => ['active business','active engagement'].includes(String(c.status||'').toLowerCase())).length;
+  const blueSky = DATA.opportunities.filter(o => String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
+  const openOpps = DATA.opportunities.filter(o => isOpenStage(o.opportunity_status));
+  const pipelineValue = openOpps.reduce((s,o)=> s + (Number(o.estimated_value_usd)||0), 0);
+  const weightedValue = openOpps.reduce((s,o)=> s + (Number(o.probability_weighted_value)||0), 0);
+  const wins = DATA.opportunities.filter(o=>isWinStage(o.opportunity_status)).length;
+  const losses = DATA.opportunities.filter(o=>isLossStage(o.opportunity_status)).length;
+  const winRate = (wins+losses) > 0 ? Math.round((wins/(wins+losses))*100) : null;
+  const thisWeek = isoWeek(new Date().toISOString());
+  const engThisWeek = DATA.engagements.filter(e => isoWeek(e.eng_date) === thisWeek).length;
+
+  return [
+    { label:'Total clients', value: fmtNum(totalClients), sub: `${activeClients} active`, accent:'sky' },
+    { label:'Blue sky opportunities', value: fmtNum(blueSky.length), sub: fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), accent:'amber' },
+    { label:'Open pipeline value', value: fmtMoney(pipelineValue), sub: `${openOpps.length} open opportunities`, accent:'sky' },
+    { label:'Probability-weighted', value: fmtMoney(weightedValue), sub:'across open pipeline', accent:'sky' },
+    { label:'Win rate', value: winRate===null ? '—' : winRate+'%', sub: `${wins} won · ${losses} lost`, accent:'green' },
+    { label:'Engagements this week', value: fmtNum(engThisWeek), sub: `${DATA.engagements.length} logged total`, accent:'amber' }
+  ];
+}
+
+function renderKpiCards(containerId, cards){
+  const el = document.getElementById(containerId);
+  el.innerHTML = cards.map(c => `
+    <div class="kpi-card accent-${c.accent||'sky'}">
+      <div class="kpi-label">${escapeHtml(c.label)}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-sub">${escapeHtml(c.sub||'')}</div>
+    </div>
+  `).join('');
+}
+
+/* ---------- 10. RENDER: OVERVIEW ---------- */
+function renderOverview(){
+  renderKpiCards('ov-kpis', computeOverviewKpis());
+
+  // Funnel
+  const stages = LOOKUPS.opportunityStatus;
+  const counts = stages.map(s => DATA.opportunities.filter(o => o.opportunity_status === s).length);
+  const maxCount = Math.max(1, ...counts);
+  const funnelEl = document.getElementById('ov-funnel');
+  funnelEl.innerHTML = stages.map((s,i) => `
+    <div class="funnel-row">
+      <div class="funnel-label">${escapeHtml(s.replace(/^\d+\s/,''))}</div>
+      <div class="funnel-track"><div class="funnel-fill" style="width:${(counts[i]/maxCount*100).toFixed(0)}%; background:${STAGE_COLORS[i]||COLORS.sky};"></div></div>
+      <div class="funnel-val">${counts[i]}</div>
+    </div>
+  `).join('');
+
+  // Weekly engagement trend (last 10 weeks)
+  const weekMap = {};
+  DATA.engagements.forEach(e => {
+    const wk = isoWeek(e.eng_date);
+    if(!wk) return;
+    weekMap[wk] = (weekMap[wk]||0) + 1;
+  });
+  const sortedWeeks = Object.keys(weekMap).sort();
+  const last10 = sortedWeeks.slice(-10);
+  destroyChart('ovWeekly');
+  const ctx1 = document.getElementById('ov-weekly-chart').getContext('2d');
+  CHARTS.ovWeekly = new Chart(ctx1, {
+    type:'line',
+    data:{ labels: last10, datasets:[{
+      label:'Engagements', data: last10.map(w=>weekMap[w]),
+      borderColor: COLORS.sky, backgroundColor: COLORS.skyPale, fill:true, tension:0.35, pointRadius:3, pointBackgroundColor: COLORS.skyDeep
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ y:{ beginAtZero:true, ticks:{precision:0} }, x:{ grid:{display:false} } }
+    }
+  });
+
+  // Blue sky table
+  const blueSky = DATA.opportunities.filter(o => String(o.opportunity_status||'').toLowerCase().includes('blue sky'))
+    .sort((a,b)=> (Number(b.estimated_value_usd)||0) - (Number(a.estimated_value_usd)||0)).slice(0,8);
+  const bsTable = document.getElementById('ov-bluesky-table');
+  bsTable.querySelector('thead').innerHTML = `<tr><th>Opportunity</th><th>Company</th><th>BD owner</th><th class="num">Est. value</th></tr>`;
+  bsTable.querySelector('tbody').innerHTML = blueSky.length ? blueSky.map(o => `
+    <tr>
+      <td>${escapeHtml(o.opportunity||'—')}</td>
+      <td>${escapeHtml(o.company||'—')}</td>
+      <td>${escapeHtml(o.bd_owner||'—')}</td>
+      <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="4" class="empty-state">No blue sky opportunities logged yet.</td></tr>`;
+
+  // Client status mix
+  const statusCounts = {};
+  DATA.clients.forEach(c => { const s = c.status || 'Unspecified'; statusCounts[s] = (statusCounts[s]||0)+1; });
+  destroyChart('ovStatus');
+  const ctx2 = document.getElementById('ov-status-chart').getContext('2d');
+  const statusLabels = Object.keys(statusCounts);
+  const statusColorMap = { 'Active business': COLORS.green, 'Active engagement': COLORS.sky, 'Prospect': COLORS.amber, 'Inactive': COLORS.coral, 'Unspecified': COLORS.line };
+  CHARTS.ovStatus = new Chart(ctx2, {
+    type:'doughnut',
+    data:{ labels: statusLabels, datasets:[{ data: statusLabels.map(l=>statusCounts[l]), backgroundColor: statusLabels.map(l=>statusColorMap[l]||COLORS.skyPale), borderWidth:2, borderColor:'#fff' }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11} } } } }
+  });
+}
+
+/* ---------- 11. RENDER: CLIENTS ---------- */
+let clientFilters = { search:'', status:'', company:'' };
+
+function populateClientFilterOptions(){
+  const statusSel = document.getElementById('cl-filter-status');
+  const companySel = document.getElementById('cl-filter-company');
+  const statuses = [...new Set(DATA.clients.map(c=>c.status).filter(Boolean))].sort();
+  const companies = [...new Set(DATA.clients.map(c=>c.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  statusSel.innerHTML = '<option value="">All statuses</option>' + statuses.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  companySel.innerHTML = '<option value="">All companies</option>' + companies.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+}
+
+function renderClients(){
+  const totalActive = DATA.clients.filter(c=>c.status==='Active business').length;
+  const totalEngaged = DATA.clients.filter(c=>c.status==='Active engagement').length;
+  const totalProspect = DATA.clients.filter(c=>c.status==='Prospect').length;
+  const totalInactive = DATA.clients.filter(c=>c.status==='Inactive').length;
+  renderKpiCards('cl-kpis', [
+    { label:'Total stakeholders', value: fmtNum(DATA.clients.length), sub: `${[...new Set(DATA.clients.map(c=>c.company))].length} companies`, accent:'sky' },
+    { label:'Active business', value: fmtNum(totalActive), sub:'signed projects this year', accent:'green' },
+    { label:'Active engagement', value: fmtNum(totalEngaged), sub:'touchpoint in last 3 months', accent:'sky' },
+    { label:'Prospects', value: fmtNum(totalProspect), sub:'potential, not yet engaged', accent:'amber' },
+    { label:'Inactive', value: fmtNum(totalInactive), sub:'no recent engagement', accent:'coral' }
+  ]);
+
+  populateClientFilterOptions();
+  document.getElementById('cl-filter-status').value = clientFilters.status;
+  document.getElementById('cl-filter-company').value = clientFilters.company;
+
+  const rows = DATA.clients.filter(c => {
+    if(clientFilters.status && c.status !== clientFilters.status) return false;
+    if(clientFilters.company && c.company !== clientFilters.company) return false;
+    if(clientFilters.search){
+      const hay = `${c.client_name||''} ${c.company||''} ${c.email||''} ${c.designation||''}`.toLowerCase();
+      if(!hay.includes(clientFilters.search.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const table = document.getElementById('cl-table');
+  table.querySelector('thead').innerHTML = `<tr>
+    <th>Company</th><th>Client name</th><th>Designation</th><th>Department</th><th>Therapy area</th><th>Region</th><th>Status</th><th>Priority</th><th>Assigned BD</th><th>Contact</th>
+  </tr>`;
+  table.querySelector('tbody').innerHTML = rows.length ? rows.map(c => `
+    <tr>
+      <td>${escapeHtml(c.company)}</td>
+      <td>${escapeHtml(c.client_name)}</td>
+      <td>${escapeHtml(c.designation||'—')}</td>
+      <td>${escapeHtml(c.department||'—')}</td>
+      <td>${escapeHtml(c.therapy_area||'—')}</td>
+      <td>${escapeHtml(c.region||'—')}</td>
+      <td><span class="tag ${statusTagClass(c.status)}">${escapeHtml(c.status||'—')}</span></td>
+      <td><span class="tag ${c.priority==='High'?'tag-coral':c.priority==='Medium'?'tag-amber':'tag-grey'}">${escapeHtml(c.priority||'—')}</span></td>
+      <td>${escapeHtml(c.assigned_bd||'—')}</td>
+      <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--sky-deep)">${escapeHtml(c.email)}</a>` : '—'}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="10" class="empty-state">No clients match these filters.</td></tr>`;
+  document.getElementById('cl-count').textContent = `${rows.length} of ${DATA.clients.length} shown`;
+}
+
+/* ---------- 12. RENDER: OPPORTUNITIES ---------- */
+let oppFilters = { search:'', status:'', bd:'' };
+
+function populateOppFilterOptions(){
+  const statusSel = document.getElementById('op-filter-status');
+  const bdSel = document.getElementById('op-filter-bd');
+  const statuses = [...new Set(DATA.opportunities.map(o=>o.opportunity_status).filter(Boolean))].sort();
+  const bds = [...new Set(DATA.opportunities.map(o=>o.bd_owner).filter(Boolean))].sort();
+  statusSel.innerHTML = '<option value="">All stages</option>' + statuses.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  bdSel.innerHTML = '<option value="">All BD owners</option>' + bds.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+}
+
+function renderOpportunities(){
+  const open = DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
+  const blueSky = DATA.opportunities.filter(o => String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
+  const wins = DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
+  const losses = DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
+  const winRate = (wins.length+losses.length) > 0 ? Math.round((wins.length/(wins.length+losses.length))*100) : null;
+
+  renderKpiCards('op-kpis', [
+    { label:'Total opportunities', value: fmtNum(DATA.opportunities.length), sub: `${open.length} currently open`, accent:'sky' },
+    { label:'Blue sky', value: fmtNum(blueSky.length), sub: fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), accent:'amber' },
+    { label:'Open pipeline value', value: fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), sub:'estimated, USD', accent:'sky' },
+    { label:'Probability-weighted', value: fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)), sub:'open pipeline only', accent:'sky' },
+    { label:'Won', value: fmtNum(wins.length), sub: fmtMoney(wins.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), accent:'green' },
+    { label:'Win rate', value: winRate===null?'—':winRate+'%', sub: `${wins.length} won · ${losses.length} lost`, accent: winRate>=50?'green':'coral' }
+  ]);
+
+  // Stage chart: count (bar, left axis) + weighted value (bar, right axis)
+  const stages = LOOKUPS.opportunityStatus;
+  const counts = stages.map(s => DATA.opportunities.filter(o=>o.opportunity_status===s).length);
+  const values = stages.map(s => DATA.opportunities.filter(o=>o.opportunity_status===s).reduce((sum,o)=>sum+(Number(o.probability_weighted_value)||0),0));
+  destroyChart('opStage');
+  const ctx = document.getElementById('op-stage-chart').getContext('2d');
+  CHARTS.opStage = new Chart(ctx, {
+    data:{
+      labels: stages.map(s=>s.replace(/^\d+\s/,'')),
+      datasets:[
+        { type:'bar', label:'Count', data:counts, backgroundColor: COLORS.sky, yAxisID:'yCount', borderRadius:4, maxBarThickness:34 },
+        { type:'line', label:'Weighted value (USD)', data:values, borderColor: COLORS.amber, backgroundColor: COLORS.amber, yAxisID:'yValue', tension:0.3, pointRadius:3 }
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      scales:{
+        x:{ ticks:{ font:{size:10}, maxRotation:40, minRotation:40 }, grid:{display:false} },
+        yCount:{ position:'left', beginAtZero:true, ticks:{precision:0}, title:{display:true,text:'Count'} },
+        yValue:{ position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, title:{display:true,text:'USD'} }
+      },
+      plugins:{ legend:{ position:'bottom', labels:{boxWidth:10,font:{size:11}} } }
+    }
+  });
+
+  populateOppFilterOptions();
+  document.getElementById('op-filter-status').value = oppFilters.status;
+  document.getElementById('op-filter-bd').value = oppFilters.bd;
+
+  const rows = DATA.opportunities.filter(o => {
+    if(oppFilters.status && o.opportunity_status !== oppFilters.status) return false;
+    if(oppFilters.bd && o.bd_owner !== oppFilters.bd) return false;
+    if(oppFilters.search){
+      const hay = `${o.opportunity||''} ${o.company||''} ${o.client_name||''} ${o.rfp_id||''}`.toLowerCase();
+      if(!hay.includes(oppFilters.search.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const table = document.getElementById('op-table');
+  table.querySelector('thead').innerHTML = `<tr>
+    <th>RFP ID</th><th>Company</th><th>Client</th><th>Opportunity</th><th>Stage</th><th>BD owner</th><th class="num">Est. value</th><th class="num">Prob.</th><th class="num">Weighted</th><th>Expected close</th>
+  </tr>`;
+  table.querySelector('tbody').innerHTML = rows.length ? rows.map(o => `
+    <tr>
+      <td>${escapeHtml(o.rfp_id||'—')}</td>
+      <td>${escapeHtml(o.company||'—')}</td>
+      <td>${escapeHtml(o.client_name||'—')}</td>
+      <td>${escapeHtml(o.opportunity||'—')}</td>
+      <td><span class="tag ${statusTagClass(o.opportunity_status)}">${escapeHtml((o.opportunity_status||'—').replace(/^\d+\s/,''))}</span></td>
+      <td>${escapeHtml(o.bd_owner||'—')}</td>
+      <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
+      <td class="num">${o.probability_pct!=null ? Math.round(o.probability_pct*100)+'%' : '—'}</td>
+      <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
+      <td>${fmtDate(o.expected_close_date)}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="10" class="empty-state">No opportunities match these filters.</td></tr>`;
+  document.getElementById('op-count').textContent = `${rows.length} of ${DATA.opportunities.length} shown`;
+}
+
+/* ---------- 13. RENDER: ENGAGEMENTS ---------- */
+let engFilters = { search:'', type:'', followup:'' };
+
+function populateEngFilterOptions(){
+  const typeSel = document.getElementById('eg-filter-type');
+  const types = [...new Set(DATA.engagements.map(e=>e.engagement_type).filter(Boolean))].sort();
+  typeSel.innerHTML = '<option value="">All engagement types</option>' + types.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+}
+
+function renderEngagements(){
+  const thisWeek = isoWeek(new Date().toISOString());
+  const engThisWeek = DATA.engagements.filter(e => isoWeek(e.eng_date) === thisWeek).length;
+  const pending = DATA.engagements.filter(e => String(e.follow_up_done||'').toLowerCase() !== 'yes').length;
+  const ledToRfp = DATA.engagements.filter(e => String(e.engagement_outcome||'').toLowerCase().includes('led to rfp')).length;
+
+  renderKpiCards('eg-kpis', [
+    { label:'Total engagements', value: fmtNum(DATA.engagements.length), sub:'logged touchpoints', accent:'sky' },
+    { label:'This week', value: fmtNum(engThisWeek), sub: weekRangeLabel(new Date()), accent:'amber' },
+    { label:'Follow-up pending', value: fmtNum(pending), sub:'needs a next step', accent:'coral' },
+    { label:'Led to RFP', value: fmtNum(ledToRfp), sub:'of all logged engagements', accent:'green' }
+  ]);
+
+  // Weekly bar chart, last 12 weeks
+  const weekMap = {};
+  DATA.engagements.forEach(e => { const wk = isoWeek(e.eng_date); if(wk) weekMap[wk]=(weekMap[wk]||0)+1; });
+  const weeks = Object.keys(weekMap).sort().slice(-12);
+  destroyChart('egWeekly');
+  const ctx = document.getElementById('eg-weekly-chart').getContext('2d');
+  CHARTS.egWeekly = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: weeks, datasets:[{ label:'Engagements', data: weeks.map(w=>weekMap[w]), backgroundColor: COLORS.sky, borderRadius:5, maxBarThickness:38 }]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{precision:0}}, x:{grid:{display:false}} } }
+  });
+
+  populateEngFilterOptions();
+  document.getElementById('eg-filter-type').value = engFilters.type;
+  document.getElementById('eg-filter-followup').value = engFilters.followup;
+
+  const rows = DATA.engagements.filter(e => {
+    if(engFilters.type && e.engagement_type !== engFilters.type) return false;
+    if(engFilters.followup === 'yes' && String(e.follow_up_done||'').toLowerCase() !== 'yes') return false;
+    if(engFilters.followup === 'no' && String(e.follow_up_done||'').toLowerCase() === 'yes') return false;
+    if(engFilters.search){
+      const hay = `${e.client_name||''} ${e.company||''} ${e.discussion_points||''} ${e.cta_next_step||''}`.toLowerCase();
+      if(!hay.includes(engFilters.search.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const table = document.getElementById('eg-table');
+  table.querySelector('thead').innerHTML = `<tr>
+    <th>Date</th><th>Client</th><th>Company</th><th>BD / PM</th><th>Type</th><th>Objective</th><th>Outcome</th><th>Next step</th><th>Follow-up</th>
+  </tr>`;
+  table.querySelector('tbody').innerHTML = rows.length ? rows.map(e => `
+    <tr>
+      <td>${fmtDate(e.eng_date)}</td>
+      <td>${escapeHtml(e.client_name||'—')}</td>
+      <td>${escapeHtml(e.company||'—')}</td>
+      <td>${escapeHtml(e.bd_pm||'—')}</td>
+      <td><span class="tag tag-sky">${escapeHtml(e.engagement_type||'—')}</span></td>
+      <td>${escapeHtml(e.engagement_objective||'—')}</td>
+      <td>${escapeHtml(e.engagement_outcome||'—')}</td>
+      <td>${escapeHtml(e.cta_next_step||'—')}</td>
+      <td><span class="tag ${String(e.follow_up_done||'').toLowerCase()==='yes' ? 'tag-green' : 'tag-amber'}">${escapeHtml(e.follow_up_done||'No')}</span></td>
+    </tr>
+  `).join('') : `<tr><td colspan="9" class="empty-state">No engagements match these filters.</td></tr>`;
+  document.getElementById('eg-count').textContent = `${rows.length} of ${DATA.engagements.length} shown`;
+}
+
+/* ---------- 14. RENDER: COMPANIES ---------- */
+let companySearch = '';
+
+function normCompany(name){ return (name||'').trim().toLowerCase(); }
+
+function computeCompanyRollup(){
+  const map = {}; // normName -> row
+  function ensure(name){
+    const norm = normCompany(name);
+    if(!norm) return null;
+    if(!map[norm]) map[norm] = { company: name.trim(), onboarding_status:null, totalClients:0, activeClients:0, openOpps:0, pipelineValue:0, weightedValue:0, wins:0, engagements:0, lastEngagement:null };
+    return map[norm];
+  }
+  DATA.companies.forEach(c => { const r = ensure(c.company); if(r) r.onboarding_status = c.onboarding_status; });
+  DATA.clients.forEach(c => {
+    const r = ensure(c.company); if(!r) return;
+    r.totalClients++;
+    if(['active business','active engagement'].includes(String(c.status||'').toLowerCase())) r.activeClients++;
+  });
+  DATA.opportunities.forEach(o => {
+    const r = ensure(o.company); if(!r) return;
+    if(isOpenStage(o.opportunity_status)){
+      r.openOpps++;
+      r.pipelineValue += Number(o.estimated_value_usd)||0;
+      r.weightedValue += Number(o.probability_weighted_value)||0;
+    }
+    if(isWinStage(o.opportunity_status)) r.wins++;
+  });
+  DATA.engagements.forEach(e => {
+    const r = ensure(e.company); if(!r) return;
+    r.engagements++;
+    if(!r.lastEngagement || new Date(e.eng_date) > new Date(r.lastEngagement)) r.lastEngagement = e.eng_date;
+  });
+  return Object.values(map).sort((a,b)=> b.pipelineValue - a.pipelineValue);
+}
+
+function renderCompanies(){
+  const rollup = computeCompanyRollup();
+  const withActiveBusiness = rollup.filter(r=>r.activeClients>0).length;
+  const totalPipeline = rollup.reduce((s,r)=>s+r.pipelineValue,0);
+  const totalWins = rollup.reduce((s,r)=>s+r.wins,0);
+
+  renderKpiCards('co-kpis', [
+    { label:'Companies tracked', value: fmtNum(rollup.length), sub: `${withActiveBusiness} with active business`, accent:'sky' },
+    { label:'Combined open pipeline', value: fmtMoney(totalPipeline), sub:'across all companies', accent:'sky' },
+    { label:'Total wins', value: fmtNum(totalWins), sub:'opportunities won', accent:'green' },
+    { label:'Onboarding on file', value: fmtNum(DATA.companies.filter(c=>c.onboarding_status).length), sub: `of ${DATA.companies.length} listed companies`, accent:'amber' }
+  ]);
+
+  const rows = companySearch
+    ? rollup.filter(r => r.company.toLowerCase().includes(companySearch.toLowerCase()))
+    : rollup;
+
+  const table = document.getElementById('co-table');
+  table.querySelector('thead').innerHTML = `<tr>
+    <th>Company</th><th>Onboarding</th><th class="num">Clients</th><th class="num">Active</th><th class="num">Open opps</th><th class="num">Pipeline value</th><th class="num">Weighted value</th><th class="num">Wins</th><th class="num">Engagements</th><th>Last engagement</th>
+  </tr>`;
+  table.querySelector('tbody').innerHTML = rows.length ? rows.map(r => `
+    <tr>
+      <td><strong>${escapeHtml(r.company)}</strong></td>
+      <td>${r.onboarding_status ? `<span class="tag tag-green">${escapeHtml(r.onboarding_status)}</span>` : `<span class="tag tag-grey">Not on file</span>`}</td>
+      <td class="num">${fmtNum(r.totalClients)}</td>
+      <td class="num">${fmtNum(r.activeClients)}</td>
+      <td class="num">${fmtNum(r.openOpps)}</td>
+      <td class="num">${fmtMoney(r.pipelineValue)}</td>
+      <td class="num">${fmtMoney(r.weightedValue)}</td>
+      <td class="num">${fmtNum(r.wins)}</td>
+      <td class="num">${fmtNum(r.engagements)}</td>
+      <td>${r.lastEngagement ? fmtDate(r.lastEngagement) : '—'}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="10" class="empty-state">No companies match this search.</td></tr>`;
+  document.getElementById('co-count').textContent = `${rows.length} of ${rollup.length} shown`;
+}
+
+/* ---------- 15. MODAL / ADD-RECORD FORMS ---------- */
+const FORM_CONFIGS = {
+  client: {
+    title: 'Add client',
+    table: 'clients',
+    fields: [
+      { name:'company', label:'Company', type:'text', required:true },
+      { name:'client_name', label:'Client name', type:'text', required:true },
+      { name:'designation', label:'Designation', type:'text' },
+      { name:'department', label:'Department', type:'select', options:LOOKUPS.departments },
+      { name:'therapy_area', label:'Therapy area', type:'select', options:LOOKUPS.therapyAreas },
+      { name:'region', label:'Region', type:'select', options:LOOKUPS.regions },
+      { name:'email', label:'Email', type:'text' },
+      { name:'phone', label:'Phone', type:'text' },
+      { name:'linkedin_url', label:'LinkedIn URL', type:'text' },
+      { name:'status', label:'Status', type:'select', options:LOOKUPS.clientStatus },
+      { name:'priority', label:'Priority', type:'select', options:LOOKUPS.priority },
+      { name:'assigned_bd', label:'Assigned BD', type:'text' },
+      { name:'notes', label:'Notes', type:'textarea', full:true }
+    ]
+  },
+  opportunity: {
+    title: 'Add opportunity',
+    table: 'opportunities',
+    fields: [
+      { name:'rfp_id', label:'RFP ID', type:'text' },
+      { name:'company', label:'Company', type:'text', required:true },
+      { name:'client_name', label:'Client name', type:'text' },
+      { name:'opportunity', label:'Opportunity', type:'text', required:true, full:true },
+      { name:'opportunity_status', label:'Stage', type:'select', options:LOOKUPS.opportunityStatus, required:true },
+      { name:'bd_owner', label:'BD owner', type:'text' },
+      { name:'technical_lead', label:'Technical lead', type:'text' },
+      { name:'estimated_value_usd', label:'Estimated value (USD)', type:'number' },
+      { name:'probability_pct', label:'Probability (%)', type:'number', min:0, max:100 },
+      { name:'discussion_date', label:'Discussion date', type:'date' },
+      { name:'pitch_date', label:'Pitch presentation date', type:'date' },
+      { name:'proposal_submission_date', label:'Proposal submission date', type:'date' },
+      { name:'expected_close_date', label:'Expected close date', type:'date' },
+      { name:'notes', label:'Notes', type:'textarea', full:true }
+    ]
+  },
+  engagement: {
+    title: 'Log engagement',
+    table: 'engagements',
+    fields: [
+      { name:'eng_date', label:'Date', type:'date', required:true },
+      { name:'client_name', label:'Client name', type:'text', required:true },
+      { name:'designation', label:'Designation', type:'text' },
+      { name:'company', label:'Company', type:'text', required:true },
+      { name:'bd_pm', label:'Neovation BD / PM', type:'text' },
+      { name:'engagement_type', label:'Engagement type', type:'select', options:LOOKUPS.engagementTypes },
+      { name:'platform_venue', label:'Platform / venue', type:'text' },
+      { name:'stakeholder_type', label:'Stakeholder type', type:'select', options:LOOKUPS.stakeholderType },
+      { name:'engagement_objective', label:'Engagement objective', type:'select', options:LOOKUPS.engagementObjective },
+      { name:'engagement_outcome', label:'Engagement outcome', type:'select', options:LOOKUPS.engagementOutcome },
+      { name:'discussion_points', label:'Discussion points', type:'textarea', full:true },
+      { name:'cta_next_step', label:'CTA / next step', type:'textarea', full:true },
+      { name:'cta_due_date', label:'CTA due date', type:'date' },
+      { name:'cta_owner', label:'CTA owner', type:'text' },
+      { name:'follow_up_done', label:'Follow-up done?', type:'select', options:LOOKUPS.followUp }
+    ]
+  },
+  company: {
+    title: 'Add company',
+    table: 'companies',
+    fields: [
+      { name:'company', label:'Company', type:'text', required:true },
+      { name:'onboarding_status', label:'Onboarding status', type:'text' },
+      { name:'notes', label:'Notes', type:'textarea', full:true }
+    ]
+  }
+};
+
+function fieldHtml(f){
+  const wrap = f.full ? 'full' : '';
+  let input;
+  if(f.type === 'select'){
+    input = `<select name="${f.name}" ${f.required?'required':''}><option value="">—</option>${f.options.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}</select>`;
+  } else if(f.type === 'textarea'){
+    input = `<textarea name="${f.name}" ${f.required?'required':''}></textarea>`;
+  } else {
+    const extra = f.type==='number' ? `min="${f.min??''}" max="${f.max??''}" step="any"` : '';
+    input = `<input type="${f.type}" name="${f.name}" ${extra} ${f.required?'required':''}>`;
+  }
+  return `<div class="form-field ${wrap}"><label>${escapeHtml(f.label)}${f.required?' *':''}</label>${input}</div>`;
+}
+
+function openAddModal(kind){
+  const cfg = FORM_CONFIGS[kind];
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-backdrop" id="modal-backdrop">
+      <div class="modal">
+        <div class="modal-head"><h3>${escapeHtml(cfg.title)}</h3><button class="modal-close" id="modal-close">&times;</button></div>
+        <form id="modal-form">
+          <div class="modal-body">
+            <div class="form-grid">${cfg.fields.map(fieldHtml).join('')}</div>
+          </div>
+          <div class="modal-foot">
+            <button type="button" class="btn" id="modal-cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="modal-save">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  const close = () => { root.innerHTML = ''; };
+  document.getElementById('modal-close').onclick = close;
+  document.getElementById('modal-cancel').onclick = close;
+  document.getElementById('modal-backdrop').addEventListener('click', e => { if(e.target.id === 'modal-backdrop') close(); });
+
+  document.getElementById('modal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const saveBtn = document.getElementById('modal-save');
+    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+    const formData = new FormData(e.target);
+    const payload = {};
+    cfg.fields.forEach(f => {
+      let v = formData.get(f.name);
+      if(v === '') v = null;
+      if(f.type === 'number' && v !== null) v = Number(v);
+      payload[f.name] = v;
+    });
+    if(kind === 'opportunity'){
+      const pct = payload.probability_pct;
+      payload.probability_pct = pct !== null ? pct/100 : null;
+      payload.probability_weighted_value = (pct !== null && payload.estimated_value_usd != null)
+        ? Number(payload.estimated_value_usd) * (pct/100) : null;
+    }
+    if(kind === 'engagement' && payload.eng_date){
+      const d = new Date(payload.eng_date);
+      payload.eng_month = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
+    }
+    const result = await insertRecord(cfg.table, payload);
+    saveBtn.disabled = false; saveBtn.textContent = 'Save';
+    if(result){
+      close();
+      await refreshAndRenderAll();
+    }
+  });
+}
+
+
+/* ---------- 16. BOOT ---------- */
+async function boot(){
+  const placeholders = [MSAL_CLIENT_ID, MSAL_TENANT_ID, SHAREPOINT_SITE_ID, ...Object.values(LIST_IDS)];
+  if(placeholders.some(v => v.includes('YOUR_'))){
+    document.getElementById('config-banner').style.display = 'block';
+    return;
+  }
+  document.getElementById('config-banner').style.display = 'none';
+  try{
+    await refreshAndRenderAll();
+  } catch(err){
+    console.error(err);
+    alert('Could not load data from SharePoint: ' + err.message + '\n\nCheck that the Site ID and List IDs in index.html are correct, and that this account has access to the SharePoint site.');
+  }
+}
+
+function wireEvents(){
+  document.getElementById('login-submit').addEventListener('click', doLogin);
+  document.getElementById('logout-btn').addEventListener('click', doLogout);
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+
+  document.getElementById('add-client-btn').addEventListener('click', () => openAddModal('client'));
+  document.getElementById('add-opp-btn').addEventListener('click', () => openAddModal('opportunity'));
+  document.getElementById('add-eng-btn').addEventListener('click', () => openAddModal('engagement'));
+  document.getElementById('add-company-btn').addEventListener('click', () => openAddModal('company'));
+
+  document.getElementById('cl-search').addEventListener('input', debounce(e => { clientFilters.search = e.target.value; renderClients(); }, 200));
+  document.getElementById('cl-filter-status').addEventListener('change', e => { clientFilters.status = e.target.value; renderClients(); });
+  document.getElementById('cl-filter-company').addEventListener('change', e => { clientFilters.company = e.target.value; renderClients(); });
+
+  document.getElementById('op-search').addEventListener('input', debounce(e => { oppFilters.search = e.target.value; renderOpportunities(); }, 200));
+  document.getElementById('op-filter-status').addEventListener('change', e => { oppFilters.status = e.target.value; renderOpportunities(); });
+  document.getElementById('op-filter-bd').addEventListener('change', e => { oppFilters.bd = e.target.value; renderOpportunities(); });
+
+  document.getElementById('eg-search').addEventListener('input', debounce(e => { engFilters.search = e.target.value; renderEngagements(); }, 200));
+  document.getElementById('eg-filter-type').addEventListener('change', e => { engFilters.type = e.target.value; renderEngagements(); });
+  document.getElementById('eg-filter-followup').addEventListener('change', e => { engFilters.followup = e.target.value; renderEngagements(); });
+
+  document.getElementById('co-search').addEventListener('input', debounce(e => { companySearch = e.target.value; renderCompanies(); }, 200));
+}
+
+document.addEventListener('DOMContentLoaded', wireEvents);
+
+</script>
+</body>
+</html>
