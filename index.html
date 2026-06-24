@@ -785,21 +785,73 @@ const FIELD_MAP = {
   priority:'field_10',
   assigned_bd:'field_11'
 },
-  opportunities: {
-    opportunity:'Title', rfp_id:'RFPID', company:'Company', client_name:'ClientName',
-    opportunity_status:'OpportunityStatus', discussion_date:'DiscussionDate', pitch_date:'PitchDate',
-    proposal_submission_date:'ProposalSubmissionDate', expected_close_date:'ExpectedCloseDate',
-    bd_owner:'BDOwner', technical_lead:'TechnicalLead', estimated_value_usd:'EstimatedValueUSD',
-    probability_pct:'ProbabilityPct', probability_weighted_value:'ProbabilityWeightedValue', notes:'Notes'
-  },
-  engagements: {
-    client_name:'Title', eng_month:'EngMonth', eng_date:'EngDate', designation:'Designation', company:'Company',
-    bd_pm:'BDPM', engagement_type:'EngagementType', platform_venue:'PlatformVenue', stakeholder_type:'StakeholderType',
-    engagement_objective:'EngagementObjective', engagement_outcome:'EngagementOutcome',
-    discussion_points:'DiscussionPoints', cta_next_step:'CTANextStep', cta_due_date:'CTADueDate',
-    cta_owner:'CTAOwner', follow_up_done:'FollowUpDone'
-  },
-  companies: { company:'Title', onboarding_status:'OnboardingStatus', notes:'Notes' }
+
+opportunities: {
+  opportunity:'Title',
+  rfp_id:'field_1',
+  company:'field_2',
+  client_name:'field_3',
+  opportunity_status:'field_4',
+
+  discussion_date:'field_5',
+  pitch_date:'field_6',
+  proposal_submission_date:'field_7',
+  expected_close_date:'field_8',
+
+  bd_owner:'field_9',
+  technical_lead:'field_10',
+
+  estimated_value_usd:'field_11',
+  probability_pct:'field_12',
+  probability_weighted_value:'field_13',
+
+  notes:'field_14'
+},
+
+engagements: {
+  client_name:'Title',
+
+  eng_month:'field_1',
+  eng_date:'field_2',
+
+  designation:'field_3',
+  company:'field_4',
+  bd_pm:'field_5',
+
+  engagement_type:'field_6',
+  platform_venue:'field_7',
+  stakeholder_type:'field_8',
+
+  engagement_objective:'field_9',
+  engagement_outcome:'field_10',
+  discussion_points:'field_11',
+
+  cta_next_step:'field_12',
+  cta_due_date:'field_13',
+  cta_owner:'field_14',
+  follow_up_done:'field_15'
+},
+
+companies: {
+  company:'Title',
+  onboarding_status:'field_1',
+  notes:'field_2'
+}
+  // opportunities: {
+  //   opportunity:'Title', rfp_id:'RFPID', company:'Company', client_name:'ClientName',
+  //   opportunity_status:'OpportunityStatus', discussion_date:'DiscussionDate', pitch_date:'PitchDate',
+  //   proposal_submission_date:'ProposalSubmissionDate', expected_close_date:'ExpectedCloseDate',
+  //   bd_owner:'BDOwner', technical_lead:'TechnicalLead', estimated_value_usd:'EstimatedValueUSD',
+  //   probability_pct:'ProbabilityPct', probability_weighted_value:'ProbabilityWeightedValue', notes:'Notes'
+  // },
+  // engagements: {
+  //   client_name:'Title', eng_month:'EngMonth', eng_date:'EngDate', designation:'Designation', company:'Company',
+  //   bd_pm:'BDPM', engagement_type:'EngagementType', platform_venue:'PlatformVenue', stakeholder_type:'StakeholderType',
+  //   engagement_objective:'EngagementObjective', engagement_outcome:'EngagementOutcome',
+  //   discussion_points:'DiscussionPoints', cta_next_step:'CTANextStep', cta_due_date:'CTADueDate',
+  //   cta_owner:'CTAOwner', follow_up_done:'FollowUpDone'
+  // },
+  // companies: { company:'Title', onboarding_status:'OnboardingStatus', notes:'Notes' }
 };
 const DATE_FIELDS = {
   clients: [],
