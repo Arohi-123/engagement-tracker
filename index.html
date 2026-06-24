@@ -772,10 +772,19 @@ async function graphPost(url, body){
 // to create). "Title" is SharePoint's built-in column.
 const FIELD_MAP = {
   clients: {
-    client_name:'Title', company:'Company', designation:'Designation', department:'Department',
-    therapy_area:'TherapyArea', region:'Region', email:'Email', phone:'Phone',
-    linkedin_url:'LinkedInURL', status:'Status', priority:'Priority', assigned_bd:'AssignedBD', notes:'Notes'
-  },
+  client_name:'Title',
+  company:'field_1',
+  designation:'field_2',
+  department:'field_3',
+  therapy_area:'field_4',
+  region:'field_5',
+  email:'field_6',
+  phone:'field_7',
+  linkedin_url:'field_8',
+  status:'field_9',
+  priority:'field_10',
+  assigned_bd:'field_11'
+},
   opportunities: {
     opportunity:'Title', rfp_id:'RFPID', company:'Company', client_name:'ClientName',
     opportunity_status:'OpportunityStatus', discussion_date:'DiscussionDate', pitch_date:'PitchDate',
