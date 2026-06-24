@@ -808,17 +808,37 @@ const DATE_FIELDS = {
   companies: []
 };
 
+// function spItemToRecord(kind, item){
+//   const map = FIELD_MAP[kind];
+//   const f = item.fields || {};
+//   const rec = { id: item.id };
+//   Object.entries(map).forEach(([ourKey, spKey]) => {
+//     let v = f[spKey];
+//     if(v !== undefined && v !== null && DATE_FIELDS[kind].includes(ourKey)){
+//       v = String(v).split('T')[0];
+//     }
+//     rec[ourKey] = v ?? null;
+//   });
+//   return rec;
+// }
+
 function spItemToRecord(kind, item){
+  console.log('ITEM FIELDS:', item.fields);
+
   const map = FIELD_MAP[kind];
   const f = item.fields || {};
   const rec = { id: item.id };
+
   Object.entries(map).forEach(([ourKey, spKey]) => {
     let v = f[spKey];
+
     if(v !== undefined && v !== null && DATE_FIELDS[kind].includes(ourKey)){
       v = String(v).split('T')[0];
     }
+
     rec[ourKey] = v ?? null;
   });
+
   return rec;
 }
 
