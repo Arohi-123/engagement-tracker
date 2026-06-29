@@ -1368,24 +1368,80 @@ function renderEngagements(){
     return true;
   });
 
+  // 
+  
   const table = document.getElementById('eg-table');
-  table.querySelector('thead').innerHTML = `<tr>
-    <th>Date</th><th>Client</th><th>Company</th><th>BD / PM</th><th>Type</th><th>Objective</th><th>Outcome</th><th>Next step</th><th>Follow-up</th>
-  </tr>`;
-  table.querySelector('tbody').innerHTML = rows.length ? rows.map(e => `
-    <tr>
-      <td>${fmtDate(e.eng_date)}</td>
-      <td>${escapeHtml(e.client_name||'—')}</td>
-      <td>${escapeHtml(e.company||'—')}</td>
-      <td>${escapeHtml(e.bd_pm||'—')}</td>
-      <td><span class="tag tag-sky">${escapeHtml(e.engagement_type||'—')}</span></td>
-      <td>${escapeHtml(e.engagement_objective||'—')}</td>
-      <td>${escapeHtml(e.engagement_outcome||'—')}</td>
-      <td>${escapeHtml(e.cta_next_step||'—')}</td>
-      <td><span class="tag ${String(e.follow_up_done||'').toLowerCase()==='yes' ? 'tag-green' : 'tag-amber'}">${escapeHtml(e.follow_up_done||'No')}</span></td>
-    </tr>
-  `).join('') : `<tr><td colspan="9" class="empty-state">No engagements match these filters.</td></tr>`;
-  document.getElementById('eg-count').textContent = `${rows.length} of ${DATA.engagements.length} shown`;
+
+table.querySelector('thead').innerHTML = `<tr>
+  <th>Month</th>
+  <th>Date</th>
+  <th>Client</th>
+  <th>Company</th>
+  <th>Designation</th>
+  <th>BD / PM</th>
+  <th>Type</th>
+  <th>Platform / Venue</th>
+  <th>Stakeholder Type</th>
+  <th>Objective</th>
+  <th>Discussion Points</th>
+  <th>Outcome</th>
+  <th>Next Step</th>
+  <th>CTA Due</th>
+  <th>CTA Owner</th>
+  <th>Follow-up</th>
+</tr>`;
+
+table.querySelector('tbody').innerHTML = rows.length ? rows.map(e => `
+  <tr>
+    <td>${fmtDate(e.eng_month)}</td>
+    <td>${fmtDate(e.eng_date)}</td>
+    <td>${escapeHtml(e.client_name || '—')}</td>
+    <td>${escapeHtml(e.company || '—')}</td>
+    <td>${escapeHtml(e.designation || '—')}</td>
+    <td>${escapeHtml(e.bd_pm || '—')}</td>
+
+    <td><span class="tag tag-sky">${escapeHtml(e.engagement_type || '—')}</span></td>
+
+    <td>${escapeHtml(
+      e.platform_venue === 0
+        ? 'Virtual'
+        : e.platform_venue === 1
+        ? 'In Person'
+        : e.platform_venue || '—'
+    )}</td>
+
+    <td>${escapeHtml(e.stakeholder_type || '—')}</td>
+
+    <td>${escapeHtml(e.engagement_objective || '—')}</td>
+
+    <td>${escapeHtml(e.discussion_points || '—')}</td>
+
+    <td>${escapeHtml(e.engagement_outcome || '—')}</td>
+
+    <td>${escapeHtml(e.cta_next_step || '—')}</td>
+
+    <td>${fmtDate(e.cta_due_date)}</td>
+
+    <td>${escapeHtml(e.cta_owner || '—')}</td>
+
+    <td>
+      <span class="tag ${
+        String(e.follow_up_done || '').toLowerCase() === 'yes'
+          ? 'tag-green'
+          : 'tag-amber'
+      }">
+        ${escapeHtml(e.follow_up_done || 'No')}
+      </span>
+    </td>
+  </tr>
+`).join('') : `
+  <tr>
+    <td colspan="16" class="empty-state">No engagements match these filters.</td>
+  </tr>
+`;
+
+document.getElementById('eg-count').textContent =
+  `${rows.length} of ${DATA.engagements.length} shown`;
 }
 
 /* ---------- 14. RENDER: COMPANIES ---------- */
