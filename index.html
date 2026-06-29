@@ -788,7 +788,8 @@ const FIELD_MAP = {
   linkedin_url:'field_8',
   status:'field_9',
   priority:'field_10',
-  assigned_bd:'field_11'
+  assigned_bd:'field_11',
+  notes:'field_12'
 },
 
 opportunities: {
@@ -1111,25 +1112,67 @@ function renderClients(){
     return true;
   });
 
+  // const table = document.getElementById('cl-table');
+  // table.querySelector('thead').innerHTML = `<tr>
+  //   <th>Company</th><th>Client name</th><th>Designation</th><th>Department</th><th>Therapy area</th><th>Region</th><th>Status</th><th>Priority</th><th>Assigned BD</th><th>Contact</th>
+  // </tr>`;
+  // table.querySelector('tbody').innerHTML = rows.length ? rows.map(c => `
+  //   <tr>
+  //     <td>${escapeHtml(c.company)}</td>
+  //     <td>${escapeHtml(c.client_name)}</td>
+  //     <td>${escapeHtml(c.designation||'—')}</td>
+  //     <td>${escapeHtml(c.department||'—')}</td>
+  //     <td>${escapeHtml(c.therapy_area||'—')}</td>
+  //     <td>${escapeHtml(c.region||'—')}</td>
+  //     <td><span class="tag ${statusTagClass(c.status)}">${escapeHtml(c.status||'—')}</span></td>
+  //     <td><span class="tag ${c.priority==='High'?'tag-coral':c.priority==='Medium'?'tag-amber':'tag-grey'}">${escapeHtml(c.priority||'—')}</span></td>
+  //     <td>${escapeHtml(c.assigned_bd||'—')}</td>
+  //     <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--sky-deep)">${escapeHtml(c.email)}</a>` : '—'}</td>
+  //   </tr>
+  // `).join('') : `<tr><td colspan="10" class="empty-state">No clients match these filters.</td></tr>`;
+  // document.getElementById('cl-count').textContent = `${rows.length} of ${DATA.clients.length} shown`;
+
   const table = document.getElementById('cl-table');
-  table.querySelector('thead').innerHTML = `<tr>
-    <th>Company</th><th>Client name</th><th>Designation</th><th>Department</th><th>Therapy area</th><th>Region</th><th>Status</th><th>Priority</th><th>Assigned BD</th><th>Contact</th>
-  </tr>`;
-  table.querySelector('tbody').innerHTML = rows.length ? rows.map(c => `
-    <tr>
-      <td>${escapeHtml(c.company)}</td>
-      <td>${escapeHtml(c.client_name)}</td>
-      <td>${escapeHtml(c.designation||'—')}</td>
-      <td>${escapeHtml(c.department||'—')}</td>
-      <td>${escapeHtml(c.therapy_area||'—')}</td>
-      <td>${escapeHtml(c.region||'—')}</td>
-      <td><span class="tag ${statusTagClass(c.status)}">${escapeHtml(c.status||'—')}</span></td>
-      <td><span class="tag ${c.priority==='High'?'tag-coral':c.priority==='Medium'?'tag-amber':'tag-grey'}">${escapeHtml(c.priority||'—')}</span></td>
-      <td>${escapeHtml(c.assigned_bd||'—')}</td>
-      <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--sky-deep)">${escapeHtml(c.email)}</a>` : '—'}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="10" class="empty-state">No clients match these filters.</td></tr>`;
-  document.getElementById('cl-count').textContent = `${rows.length} of ${DATA.clients.length} shown`;
+
+table.querySelector('thead').innerHTML = `<tr>
+  <th>Company</th>
+  <th>Client name</th>
+  <th>Designation</th>
+  <th>Department</th>
+  <th>Therapy area</th>
+  <th>Region</th>
+  <th>Status</th>
+  <th>Priority</th>
+  <th>Assigned BD</th>
+  <th>Email</th>
+  <th>Phone</th>
+  <th>LinkedIn</th>
+  <th>Notes</th>
+</tr>`;
+
+table.querySelector('tbody').innerHTML = rows.length ? rows.map(c => `
+<tr>
+  <td>${escapeHtml(c.company)}</td>
+  <td>${escapeHtml(c.client_name)}</td>
+  <td>${escapeHtml(c.designation || '—')}</td>
+  <td>${escapeHtml(c.department || '—')}</td>
+  <td>${escapeHtml(c.therapy_area || '—')}</td>
+  <td>${escapeHtml(c.region || '—')}</td>
+  <td><span class="tag ${statusTagClass(c.status)}">${escapeHtml(c.status || '—')}</span></td>
+  <td><span class="tag ${c.priority==='High'?'tag-coral':c.priority==='Medium'?'tag-amber':'tag-grey'}">${escapeHtml(c.priority || '—')}</span></td>
+  <td>${escapeHtml(c.assigned_bd || '—')}</td>
+
+  <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>` : '—'}</td>
+
+  <td>${escapeHtml(c.phone || '—')}</td>
+
+  <td>${c.linkedin_url ? `<a href="${escapeHtml(c.linkedin_url)}" target="_blank">View Profile</a>` : '—'}</td>
+
+  <td>${escapeHtml(c.notes || '—')}</td>
+</tr>
+`).join('') : `<tr><td colspan="13" class="empty-state">No clients match these filters.</td></tr>`;
+
+document.getElementById('cl-count').textContent = `${rows.length} of ${DATA.clients.length} shown`;
 }
 
 /* ---------- 12. RENDER: OPPORTUNITIES ---------- */
