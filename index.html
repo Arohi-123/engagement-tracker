@@ -1243,25 +1243,80 @@ function renderOpportunities(){
     return true;
   });
 
+  // const table = document.getElementById('op-table');
+  // table.querySelector('thead').innerHTML = `<tr>
+  //   <th>RFP ID</th><th>Company</th><th>Client</th><th>Opportunity</th><th>Stage</th><th>BD owner</th><th class="num">Est. value</th><th class="num">Prob.</th><th class="num">Weighted</th><th>Expected close</th>
+  // </tr>`;
+  // table.querySelector('tbody').innerHTML = rows.length ? rows.map(o => `
+  //   <tr>
+  //     <td>${escapeHtml(o.rfp_id||'—')}</td>
+  //     <td>${escapeHtml(o.company||'—')}</td>
+  //     <td>${escapeHtml(o.client_name||'—')}</td>
+  //     <td>${escapeHtml(o.opportunity||'—')}</td>
+  //     <td><span class="tag ${statusTagClass(o.opportunity_status)}">${escapeHtml((o.opportunity_status||'—').replace(/^\d+\s/,''))}</span></td>
+  //     <td>${escapeHtml(o.bd_owner||'—')}</td>
+  //     <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
+  //     <td class="num">${o.probability_pct!=null ? Math.round(o.probability_pct*100)+'%' : '—'}</td>
+  //     <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
+  //     <td>${fmtDate(o.expected_close_date)}</td>
+  //   </tr>
+  // `).join('') : `<tr><td colspan="10" class="empty-state">No opportunities match these filters.</td></tr>`;
+  // document.getElementById('op-count').textContent = `${rows.length} of ${DATA.opportunities.length} shown`;
+
   const table = document.getElementById('op-table');
-  table.querySelector('thead').innerHTML = `<tr>
-    <th>RFP ID</th><th>Company</th><th>Client</th><th>Opportunity</th><th>Stage</th><th>BD owner</th><th class="num">Est. value</th><th class="num">Prob.</th><th class="num">Weighted</th><th>Expected close</th>
-  </tr>`;
-  table.querySelector('tbody').innerHTML = rows.length ? rows.map(o => `
-    <tr>
-      <td>${escapeHtml(o.rfp_id||'—')}</td>
-      <td>${escapeHtml(o.company||'—')}</td>
-      <td>${escapeHtml(o.client_name||'—')}</td>
-      <td>${escapeHtml(o.opportunity||'—')}</td>
-      <td><span class="tag ${statusTagClass(o.opportunity_status)}">${escapeHtml((o.opportunity_status||'—').replace(/^\d+\s/,''))}</span></td>
-      <td>${escapeHtml(o.bd_owner||'—')}</td>
-      <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
-      <td class="num">${o.probability_pct!=null ? Math.round(o.probability_pct*100)+'%' : '—'}</td>
-      <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
-      <td>${fmtDate(o.expected_close_date)}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="10" class="empty-state">No opportunities match these filters.</td></tr>`;
-  document.getElementById('op-count').textContent = `${rows.length} of ${DATA.opportunities.length} shown`;
+
+table.querySelector('thead').innerHTML = `<tr>
+  <th>RFP ID</th>
+  <th>Company</th>
+  <th>Client</th>
+  <th>Opportunity</th>
+  <th>Stage</th>
+  <th>Discussion Date</th>
+  <th>Pitch Date</th>
+  <th>Proposal Submission</th>
+  <th>Expected Close</th>
+  <th>BD Owner</th>
+  <th>Technical Lead</th>
+  <th class="num">Est. Value</th>
+  <th class="num">Probability</th>
+  <th class="num">Weighted Value</th>
+  <th>Notes</th>
+</tr>`;
+
+table.querySelector('tbody').innerHTML = rows.length ? rows.map(o => `
+  <tr>
+    <td>${escapeHtml(o.rfp_id || '—')}</td>
+    <td>${escapeHtml(o.company || '—')}</td>
+    <td>${escapeHtml(o.client_name || '—')}</td>
+    <td>${escapeHtml(o.opportunity || '—')}</td>
+
+    <td>
+      <span class="tag ${statusTagClass(o.opportunity_status)}">
+        ${escapeHtml((o.opportunity_status || '—').replace(/^\d+\s/, ''))}
+      </span>
+    </td>
+
+    <td>${fmtDate(o.discussion_date)}</td>
+    <td>${fmtDate(o.pitch_date)}</td>
+    <td>${fmtDate(o.proposal_submission_date)}</td>
+    <td>${fmtDate(o.expected_close_date)}</td>
+
+    <td>${escapeHtml(o.bd_owner || '—')}</td>
+    <td>${escapeHtml(o.technical_lead || '—')}</td>
+
+    <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
+    <td class="num">${o.probability_pct != null ? Math.round(o.probability_pct * 100) + '%' : '—'}</td>
+    <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
+
+    <td>${escapeHtml(o.notes || '—')}</td>
+  </tr>
+`).join('') : `
+  <tr>
+    <td colspan="15" class="empty-state">No opportunities match these filters.</td>
+  </tr>
+`;
+
+document.getElementById('op-count').textContent = `${rows.length} of ${DATA.opportunities.length} shown`;
 }
 
 /* ---------- 13. RENDER: ENGAGEMENTS ---------- */
