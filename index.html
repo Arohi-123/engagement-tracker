@@ -10,335 +10,348 @@
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
-  :root{
-    --ink:#11203A;
-    --ink-soft:#4B5A72;
-    --ink-faint:#8693A6;
-    --paper:#F4F3EE;
-    --paper-raised:#FFFFFF;
-    --sky:#2F7DC0;
-    --sky-deep:#154C7A;
-    --sky-pale:#E4EFF8;
-    --amber:#D98E2B;
-    --amber-pale:#FBF0DD;
-    --green:#1F8F62;
-    --green-pale:#E1F3EA;
-    --coral:#C8543D;
-    --coral-pale:#FBE6E1;
-    --line:#DEDBD0;
-    --line-soft:#EAE8DF;
-    --shadow:0 1px 2px rgba(17,32,58,0.06), 0 8px 24px -12px rgba(17,32,58,0.18);
-    --radius:10px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Inter',system-ui,sans-serif;
-    -webkit-font-smoothing:antialiased;
-    min-height:100vh;
-  }
-  h1,h2,h3,h4{
-    font-family:'Space Grotesk',sans-serif;
-    margin:0;
-    color:var(--ink);
-    letter-spacing:-0.01em;
-  }
-  .mono{font-family:'IBM Plex Mono',monospace;}
-  a{color:inherit;}
-  button{font-family:inherit;}
-  ::selection{background:var(--sky-pale);}
+:root{
+  --ink:#11203A; --ink-soft:#4B5A72; --ink-faint:#8693A6;
+  --paper:#F4F3EE; --paper-raised:#FFFFFF;
+  --sky:#2F7DC0; --sky-deep:#154C7A; --sky-pale:#E4EFF8;
+  --amber:#D98E2B; --amber-pale:#FBF0DD;
+  --green:#1F8F62; --green-pale:#E1F3EA;
+  --coral:#C8543D; --coral-pale:#FBE6E1;
+  --line:#DEDBD0; --line-soft:#EAE8DF;
+  --shadow:0 1px 2px rgba(17,32,58,0.06), 0 8px 24px -12px rgba(17,32,58,0.18);
+  --radius:10px;
+  /* Stage colours */
+  --stage-01:#2F7DC0; --stage-01-pale:#E4EFF8;
+  --stage-02:#00897B; --stage-02-pale:#E0F2F1;
+  --stage-03:#F57C00; --stage-03-pale:#FFF3E0;
+  --stage-04:#7B1FA2; --stage-04-pale:#F3E5F5;
+  --stage-05:#3949AB; --stage-05-pale:#E8EAF6;
+  --stage-06:#AFB42B; --stage-06-pale:#F9FBE7;
+  --stage-07:#1F8F62; --stage-07-pale:#E1F3EA;
+  --stage-08:#C8543D; --stage-08-pale:#FBE6E1;
+  --stage-09:#8D6E63; --stage-09-pale:#EFEBE9;
+  --stage-10:#546E7A; --stage-10-pale:#ECEFF1;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;}
+h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;margin:0;color:var(--ink);letter-spacing:-0.01em;}
+a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-pale);}
 
-  /* ---------- horizon divider, the signature motif ---------- */
-  .horizon{
-    height:3px;
-    width:100%;
-    background:linear-gradient(90deg, var(--ink) 0%, var(--sky-deep) 35%, var(--sky) 65%, var(--amber) 100%);
-    border-radius:2px;
-  }
+/* ---- LOGIN ---- */
+#login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse 1200px 700px at 50% 120%,rgba(47,125,192,.55),transparent 60%),
+  linear-gradient(180deg,#0A1730 0%,#122A4D 38%,#1E4A75 68%,#2F7DC0 100%);overflow:hidden;}
+#login-screen::before{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;
+  background:linear-gradient(180deg,transparent 0%,rgba(244,243,238,.06) 100%);border-top:1px solid rgba(255,255,255,.18);}
+.login-card{position:relative;z-index:2;width:min(380px,90vw);background:rgba(20,32,54,.55);
+  backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.16);border-radius:16px;
+  padding:36px 32px 30px;color:#fff;box-shadow:0 30px 60px -20px rgba(0,0,0,.5);}
+.login-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9FC3E3;margin-bottom:6px;}
+.login-card h1{color:#fff;font-size:26px;margin-bottom:4px;}
+.login-sub{color:#B9CCE0;font-size:13.5px;margin-bottom:26px;}
+.login-btn{width:100%;padding:12px;border-radius:8px;border:none;
+  background:linear-gradient(90deg,var(--amber),#E8A33D);color:#21160A;font-weight:600;font-size:14.5px;
+  cursor:pointer;margin-top:6px;transition:transform .12s,box-shadow .12s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px -6px rgba(0,0,0,.4);}
+.login-error{color:#FFD9CE;background:rgba(200,84,61,.35);border:1px solid rgba(200,84,61,.5);
+  padding:8px 10px;border-radius:8px;font-size:12.5px;margin-bottom:14px;display:none;}
+.login-foot{margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.14);font-size:11.5px;color:#90A8C4;line-height:1.5;}
 
-  /* ---------- LOGIN ---------- */
-  #login-screen{
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
-    background:
-      radial-gradient(ellipse 1200px 700px at 50% 120%, rgba(47,125,192,0.55), transparent 60%),
-      linear-gradient(180deg, #0A1730 0%, #122A4D 38%, #1E4A75 68%, #2F7DC0 100%);
-    overflow:hidden;
-  }
-  #login-screen::before{
-    content:"";
-    position:absolute; left:0; right:0; bottom:0; height:42%;
-    background:linear-gradient(180deg, transparent 0%, rgba(244,243,238,0.06) 100%);
-    border-top:1px solid rgba(255,255,255,0.18);
-  }
-  .login-card{
-    position:relative; z-index:2;
-    width:min(380px, 90vw);
-    background:rgba(20,32,54,0.55);
-    backdrop-filter:blur(14px);
-    border:1px solid rgba(255,255,255,0.16);
-    border-radius:16px;
-    padding:36px 32px 30px;
-    color:#fff;
-    box-shadow:0 30px 60px -20px rgba(0,0,0,0.5);
-  }
-  .login-eyebrow{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:11px;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:#9FC3E3;
-    margin-bottom:6px;
-  }
-  .login-card h1{
-    color:#fff; font-size:26px; margin-bottom:4px;
-  }
-  .login-sub{color:#B9CCE0; font-size:13.5px; margin-bottom:26px;}
-  .field{margin-bottom:16px;}
-  .field label{
-    display:block; font-size:12px; color:#B9CCE0; margin-bottom:6px;
-    font-weight:500; letter-spacing:0.01em;
-  }
-  .field input, .field select, .field textarea{
-    width:100%; padding:11px 12px; border-radius:8px;
-    border:1px solid rgba(255,255,255,0.22);
-    background:rgba(255,255,255,0.08);
-    color:#fff; font-size:14px; font-family:inherit;
-    outline:none; transition:border-color .15s, background .15s;
-  }
-  .field input::placeholder{color:rgba(255,255,255,0.4);}
-  .field input:focus, .field select:focus, .field textarea:focus{
-    border-color:#9FC3E3; background:rgba(255,255,255,0.13);
-  }
-  .login-btn{
-    width:100%; padding:12px; border-radius:8px; border:none;
-    background:linear-gradient(90deg, var(--amber), #E8A33D);
-    color:#21160A; font-weight:600; font-size:14.5px; cursor:pointer;
-    margin-top:6px; transition:transform .12s, box-shadow .12s;
-  }
-  .login-btn:hover{transform:translateY(-1px); box-shadow:0 8px 18px -6px rgba(0,0,0,0.4);}
-  .login-error{
-    color:#FFD9CE; background:rgba(200,84,61,0.35); border:1px solid rgba(200,84,61,0.5);
-    padding:8px 10px; border-radius:8px; font-size:12.5px; margin-bottom:14px; display:none;
-  }
-  .login-foot{
-    margin-top:20px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.14);
-    font-size:11.5px; color:#90A8C4; line-height:1.5;
-  }
+/* ---- APP SHELL ---- */
+#app[hidden]{display:none;} #app{display:flex;min-height:100vh;}
+.sidebar{width:230px;flex-shrink:0;background:var(--ink);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.brand{padding:18px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1);}
+.brand img{width:130px;height:auto;display:block;margin-bottom:14px;}
+.brand-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7FA9CE;margin-bottom:4px;}
+.brand h1{color:#fff;font-size:16px;line-height:1.25;}
+.nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;
+  color:#C3CEDD;font-size:13px;font-weight:500;border:none;background:none;text-align:left;width:100%;transition:background .12s,color .12s;}
+.nav-item .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.5;flex-shrink:0;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-item.active{background:var(--sky-deep);color:#fff;}
+.nav-item.active .dot{background:var(--amber);opacity:1;}
+.sidebar-foot{padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:#7C8BA3;line-height:1.6;}
 
-  /* ---------- APP SHELL ---------- */
-  #app[hidden]{display:none;}
-  #app{display:flex; min-height:100vh;}
-  .sidebar{
-    width:230px; flex-shrink:0;
-    background:var(--ink); color:#fff;
-    display:flex; flex-direction:column;
-    position:sticky; top:0; height:100vh;
-  }
-  .brand{
-    padding:22px 20px 16px;
-    border-bottom:1px solid rgba(255,255,255,0.1);
-  }
-  .brand-eyebrow{
-    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em;
-    text-transform:uppercase; color:#7FA9CE; margin-bottom:4px;
-  }
-  .brand h1{color:#fff; font-size:17px; line-height:1.25;}
-  .nav{flex:1; padding:14px 12px; display:flex; flex-direction:column; gap:2px;}
-  .nav-item{
-    display:flex; align-items:center; gap:10px;
-    padding:10px 12px; border-radius:8px; cursor:pointer;
-    color:#C3CEDD; font-size:13.5px; font-weight:500;
-    border:none; background:none; text-align:left; width:100%;
-    transition:background .12s, color .12s;
-  }
-  .nav-item .dot{width:6px; height:6px; border-radius:50%; background:currentColor; opacity:.5; flex-shrink:0;}
-  .nav-item:hover{background:rgba(255,255,255,0.06); color:#fff;}
-  .nav-item.active{background:var(--sky-deep); color:#fff;}
-  .nav-item.active .dot{background:var(--amber); opacity:1;}
-  .sidebar-foot{
-    padding:16px 20px 20px; border-top:1px solid rgba(255,255,255,0.1);
-    font-size:11.5px; color:#7C8BA3; line-height:1.6;
-  }
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;
+  background:var(--paper-raised);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;gap:12px;}
+.topbar-left{min-width:0;}
+.topbar-title{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;color:var(--ink);}
+.topbar-sub{color:var(--ink-soft);font-size:12px;margin-top:1px;}
+.topbar-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.user-pill{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:999px;
+  background:var(--paper);border:1px solid var(--line);font-size:12px;color:var(--ink-soft);}
+.user-avatar{width:24px;height:24px;border-radius:50%;background:var(--sky);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Space Grotesk',sans-serif;}
+.role-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 7px;border-radius:5px;background:var(--sky-pale);color:var(--sky-deep);}
+.logout-btn{border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:6px 12px;
+  border-radius:7px;font-size:12px;cursor:pointer;transition:border-color .12s,color .12s;}
+.logout-btn:hover{border-color:var(--coral);color:var(--coral);}
+.refresh-btn{border:1px solid var(--line);background:#fff;color:var(--ink-soft);padding:6px 12px;
+  border-radius:7px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+.refresh-btn:hover{border-color:var(--sky);color:var(--sky-deep);}
+.refresh-btn.spinning svg{animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-  .main{flex:1; min-width:0; display:flex; flex-direction:column;}
-  .topbar{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:16px 28px; background:var(--paper-raised); border-bottom:1px solid var(--line);
-    position:sticky; top:0; z-index:5;
-  }
-  .topbar-title{font-size:19px;}
-  .topbar-sub{color:var(--ink-soft); font-size:12.5px; margin-top:2px;}
-  .topbar-right{display:flex; align-items:center; gap:14px;}
-  .user-pill{
-    display:flex; align-items:center; gap:8px;
-    padding:6px 12px 6px 6px; border-radius:999px; background:var(--paper);
-    border:1px solid var(--line); font-size:12.5px; color:var(--ink-soft);
-  }
-  .user-avatar{
-    width:24px; height:24px; border-radius:50%; background:var(--sky);
-    color:#fff; display:flex; align-items:center; justify-content:center;
-    font-size:11px; font-weight:700; font-family:'Space Grotesk',sans-serif;
-  }
-  .role-badge{
-    font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.06em;
-    text-transform:uppercase; padding:2px 7px; border-radius:5px;
-    background:var(--sky-pale); color:var(--sky-deep);
-  }
-  .logout-btn{
-    border:1px solid var(--line); background:#fff; color:var(--ink-soft);
-    padding:7px 13px; border-radius:7px; font-size:12.5px; cursor:pointer;
-    transition:border-color .12s, color .12s;
-  }
-  .logout-btn:hover{border-color:var(--coral); color:var(--coral);}
+.view{padding:22px 28px 60px;display:none;}
+.view.active{display:block;}
+.view-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap;}
+.view-head h2{font-size:20px;}
+.view-head p{color:var(--ink-soft);font-size:12.5px;margin-top:3px;}
+.view-head-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
 
-  .view{padding:24px 28px 60px; display:none;}
-  .view.active{display:block;}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12.5px;
+  font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;
+  transition:border-color .12s,background .12s,color .12s;white-space:nowrap;}
+.btn:hover{border-color:var(--sky);color:var(--sky-deep);}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink);}
+.btn-primary:hover{background:var(--sky-deep);border-color:var(--sky-deep);color:#fff;}
+.btn-sm{padding:5px 10px;font-size:11.5px;}
+.btn-edit{background:var(--sky-pale);color:var(--sky-deep);border-color:transparent;}
+.btn-edit:hover{background:var(--sky);color:#fff;border-color:var(--sky);}
+.btn[disabled]{opacity:.45;cursor:not-allowed;}
 
-  .view-head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px; gap:16px; flex-wrap:wrap;}
-  .view-head h2{font-size:21px;}
-  .view-head p{color:var(--ink-soft); font-size:13px; margin-top:4px;}
+/* KPI Grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;}
+.kpi-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 15px 12px;box-shadow:var(--shadow);}
+.kpi-label{font-size:11px;color:var(--ink-soft);font-weight:600;letter-spacing:.01em;text-transform:uppercase;}
+.kpi-value{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;margin-top:5px;color:var(--ink);}
+.kpi-sub{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-faint);margin-top:3px;}
+.kpi-card.accent-amber .kpi-value{color:var(--amber);}
+.kpi-card.accent-green .kpi-value{color:var(--green);}
+.kpi-card.accent-coral .kpi-value{color:var(--coral);}
+.kpi-card.accent-sky .kpi-value{color:var(--sky-deep);}
 
-  .btn{
-    display:inline-flex; align-items:center; gap:7px;
-    padding:9px 15px; border-radius:8px; font-size:13px; font-weight:600;
-    border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer;
-    transition:border-color .12s, background .12s, color .12s;
-  }
-  .btn:hover{border-color:var(--sky); color:var(--sky-deep);}
-  .btn-primary{
-    background:var(--ink); color:#fff; border-color:var(--ink);
-  }
-  .btn-primary:hover{background:var(--sky-deep); border-color:var(--sky-deep); color:#fff;}
-  .btn-sm{padding:6px 11px; font-size:12px;}
-  .btn[disabled]{opacity:.45; cursor:not-allowed;}
+/* Panels */
+.panel{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+.panel-head{padding:13px 18px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.panel-head h3{font-size:14px;}
+.panel-head p{font-size:11px;color:var(--ink-soft);margin-top:2px;}
+.panel-body{padding:16px;}
+.grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+@media(max-width:980px){.grid-2{grid-template-columns:1fr;}}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:1100px){.grid-3{grid-template-columns:1fr 1fr;}}
+@media(max-width:700px){.grid-3{grid-template-columns:1fr;}}
 
-  /* KPI cards */
-  .kpi-grid{
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr));
-    gap:12px; margin-bottom:22px;
-  }
-  .kpi-card{
-    background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius);
-    padding:16px 16px 14px; box-shadow:var(--shadow);
-  }
-  .kpi-label{font-size:11.5px; color:var(--ink-soft); font-weight:500; letter-spacing:.01em;}
-  .kpi-value{font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:600; margin-top:6px; color:var(--ink);}
-  .kpi-sub{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-faint); margin-top:4px;}
-  .kpi-card.accent-amber .kpi-value{color:var(--amber);}
-  .kpi-card.accent-green .kpi-value{color:var(--green);}
-  .kpi-card.accent-coral .kpi-value{color:var(--coral);}
-  .kpi-card.accent-sky .kpi-value{color:var(--sky-deep);}
+/* Funnel */
+.funnel{display:flex;flex-direction:column;gap:6px;}
+.funnel-row{display:grid;grid-template-columns:160px 1fr 60px;align-items:center;gap:8px;}
+.funnel-label{font-size:11.5px;color:var(--ink-soft);font-weight:500;}
+.funnel-track{height:16px;background:var(--paper);border-radius:4px;overflow:hidden;border:1px solid var(--line-soft);}
+.funnel-fill{height:100%;border-radius:4px 0 0 4px;transition:width .4s ease;}
+.funnel-val{font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;color:var(--ink);}
 
-  /* Panels / cards */
-  .panel{
-    background:var(--paper-raised); border:1px solid var(--line); border-radius:var(--radius);
-    box-shadow:var(--shadow); margin-bottom:20px; overflow:hidden;
-  }
-  .panel-head{
-    padding:15px 18px; border-bottom:1px solid var(--line-soft);
-    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-  }
-  .panel-head h3{font-size:14.5px;}
-  .panel-head p{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
-  .panel-body{padding:18px;}
-  .grid-2{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
-  @media (max-width:980px){ .grid-2{grid-template-columns:1fr;} }
+/* Tables */
+.table-wrap{overflow-x:auto;max-height:520px;overflow-y:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{text-align:left;padding:8px 12px;background:var(--ink);color:#fff;
+  font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+  border-bottom:2px solid var(--sky-deep);white-space:nowrap;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none;}
+thead th:hover{background:var(--sky-deep);}
+thead th .sort-icon{opacity:.5;margin-left:4px;font-size:10px;}
+thead th.sort-asc .sort-icon::after{content:" ▲";}
+thead th.sort-desc .sort-icon::after{content:" ▼";}
+thead th:not(.sort-asc):not(.sort-desc) .sort-icon::after{content:" ⇅";}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line-soft);color:var(--ink);vertical-align:middle;}
+tbody tr:nth-child(even){background:rgba(244,243,238,.5);}
+tbody tr:hover{background:var(--sky-pale);}
+.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
+.td-actions{white-space:nowrap;}
 
-  /* Funnel / flight-level bars (signature element) */
-  .funnel{display:flex; flex-direction:column; gap:8px;}
-  .funnel-row{display:grid; grid-template-columns:150px 1fr 70px; align-items:center; gap:10px;}
-  .funnel-label{font-size:12px; color:var(--ink-soft); font-weight:500;}
-  .funnel-track{height:18px; background:var(--paper); border-radius:5px; overflow:hidden; border:1px solid var(--line-soft);}
-  .funnel-fill{height:100%; border-radius:5px 0 0 5px; transition:width .4s ease;}
-  .funnel-val{font-family:'IBM Plex Mono',monospace; font-size:12px; text-align:right; color:var(--ink);}
+/* Tags */
+.tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;letter-spacing:.01em;}
+.tag-green{background:var(--green-pale);color:var(--green);}
+.tag-amber{background:var(--amber-pale);color:var(--amber);}
+.tag-coral{background:var(--coral-pale);color:var(--coral);}
+.tag-sky{background:var(--sky-pale);color:var(--sky-deep);}
+.tag-grey{background:var(--paper);color:var(--ink-soft);border:1px solid var(--line);}
+.tag-purple{background:#F3E5F5;color:#7B1FA2;}
+.tag-teal{background:#E0F2F1;color:#00897B;}
+.tag-indigo{background:#E8EAF6;color:#3949AB;}
+.tag-lime{background:#F9FBE7;color:#7A8300;}
+.tag-brown{background:#EFEBE9;color:#8D6E63;}
+.tag-bluegrey{background:#ECEFF1;color:#546E7A;}
+.tag-orange{background:#FFF3E0;color:#F57C00;}
 
-  /* Tables */
-  .table-wrap{overflow-x:auto;}
-  table{width:100%; border-collapse:collapse; font-size:12.5px;}
-  thead th{
-    text-align:left; padding:9px 12px; background:var(--paper); color:var(--ink-soft);
-    font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.04em;
-    border-bottom:1px solid var(--line); white-space:nowrap; position:sticky; top:0;
-  }
-  tbody td{padding:10px 12px; border-bottom:1px solid var(--line-soft); color:var(--ink); vertical-align:top;}
-  tbody tr:hover{background:var(--paper);}
-  .num{font-family:'IBM Plex Mono',monospace; text-align:right;}
-  .tag{
-    display:inline-block; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:600;
-    white-space:nowrap; letter-spacing:.01em;
-  }
-  .tag-green{background:var(--green-pale); color:var(--green);}
-  .tag-amber{background:var(--amber-pale); color:var(--amber);}
-  .tag-coral{background:var(--coral-pale); color:var(--coral);}
-  .tag-sky{background:var(--sky-pale); color:var(--sky-deep);}
-  .tag-grey{background:var(--paper); color:var(--ink-soft); border:1px solid var(--line);}
+/* Stage tags with specific colours */
+.stage-01{background:var(--stage-01-pale);color:var(--stage-01);}
+.stage-02{background:var(--stage-02-pale);color:var(--stage-02);}
+.stage-03{background:var(--stage-03-pale);color:var(--stage-03);}
+.stage-04{background:var(--stage-04-pale);color:var(--stage-04);}
+.stage-05{background:var(--stage-05-pale);color:var(--stage-05);}
+.stage-06{background:var(--stage-06-pale);color:var(--stage-06);}
+.stage-07{background:var(--stage-07-pale);color:var(--stage-07);}
+.stage-08{background:var(--stage-08-pale);color:var(--stage-08);}
+.stage-09{background:var(--stage-09-pale);color:var(--stage-09);}
+.stage-10{background:var(--stage-10-pale);color:var(--stage-10);}
 
-  .toolbar{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center;}
-  .toolbar input[type=search], .toolbar select{
-    padding:8px 11px; border-radius:7px; border:1px solid var(--line); font-size:12.5px;
-    background:#fff; color:var(--ink); font-family:inherit;
-  }
-  .toolbar input[type=search]{min-width:200px;}
-  .toolbar .spacer{flex:1;}
+/* Toolbar */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+.toolbar input[type=search],.toolbar select{padding:7px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;color:var(--ink);font-family:inherit;}
+.toolbar input[type=search]{min-width:190px;}
+.toolbar .spacer{flex:1;}
+.clear-filters{font-size:11.5px;color:var(--coral);cursor:pointer;background:none;border:none;padding:4px 6px;border-radius:5px;}
+.clear-filters:hover{background:var(--coral-pale);}
 
-  .empty-state{
-    padding:40px 20px; text-align:center; color:var(--ink-soft); font-size:13px;
-  }
+/* Insight cards for overview */
+.insight-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
+.insight-card h4{font-size:12.5px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+.insight-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line-soft);}
+.insight-row:last-child{border-bottom:none;}
+.insight-row .label{font-size:12px;color:var(--ink);}
+.insight-row .val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--sky-deep);}
+.alert-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-soft);}
+.alert-row:last-child{border-bottom:none;}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.alert-text{font-size:12px;color:var(--ink);}
+.alert-meta{font-size:11px;color:var(--ink-faint);margin-top:1px;}
+.alert-date{font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--ink-faint);margin-left:auto;flex-shrink:0;}
 
-  /* Modal */
-  .modal-backdrop{
-    position:fixed; inset:0; background:rgba(17,32,58,0.45); backdrop-filter:blur(2px);
-    display:flex; align-items:center; justify-content:center; z-index:50; padding:20px;
-  }
-  .modal{
-    background:#fff; border-radius:14px; width:min(560px,100%); max-height:88vh; overflow-y:auto;
-    box-shadow:0 30px 70px -20px rgba(0,0,0,0.4);
-  }
-  .modal-head{padding:18px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between;}
-  .modal-head h3{font-size:16px;}
-  .modal-close{background:none; border:none; cursor:pointer; color:var(--ink-soft); font-size:20px; line-height:1; padding:4px;}
-  .modal-body{padding:20px 22px;}
-  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-  .form-grid .full{grid-column:1/-1;}
-  .form-field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:5px;}
-  .form-field input, .form-field select, .form-field textarea{
-    width:100%; padding:9px 11px; border-radius:7px; border:1px solid var(--line);
-    font-size:13px; font-family:inherit; color:var(--ink); background:#fdfdfb;
-  }
-  .form-field textarea{resize:vertical; min-height:60px;}
-  .modal-foot{padding:16px 22px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:10px;}
+/* Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(17,32,58,.5);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+.modal{background:#fff;border-radius:14px;width:min(620px,100%);max-height:92vh;overflow-y:auto;
+  box-shadow:0 30px 70px -20px rgba(0,0,0,.45);display:flex;flex-direction:column;}
+.modal-head{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.modal-head h3{font-size:16px;}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--ink-soft);font-size:22px;line-height:1;padding:2px 6px;border-radius:5px;}
+.modal-close:hover{background:var(--paper);color:var(--coral);}
+.modal-body{padding:20px 22px;overflow-y:auto;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid .full{grid-column:1/-1;}
+.form-field label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;}
+.form-field label .req{color:var(--coral);}
+.form-field input,.form-field select,.form-field textarea{
+  width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);
+  font-size:13px;font-family:inherit;color:var(--ink);background:#fdfdfb;transition:border-color .12s;}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{outline:none;border-color:var(--sky);}
+.form-field input[readonly]{background:var(--paper);color:var(--ink-soft);}
+.form-field textarea{resize:vertical;min-height:58px;}
+.form-field input.invalid,.form-field select.invalid,.form-field textarea.invalid{border-color:var(--coral);}
+.modal-foot{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;}
 
-  .pill-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
-  .pill{
-    padding:6px 13px; border-radius:999px; border:1px solid var(--line); background:#fff;
-    font-size:12px; color:var(--ink-soft); cursor:pointer; font-weight:500;
-  }
-  .pill.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+/* Stage history timeline */
+.stage-history{margin-top:10px;}
+.stage-history h4{font-size:11.5px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+.history-timeline{display:flex;flex-direction:column;gap:0;}
+.history-step{display:flex;gap:12px;position:relative;}
+.history-step::before{content:"";position:absolute;left:11px;top:24px;bottom:-8px;width:2px;background:var(--line);}
+.history-step:last-child::before{display:none;}
+.history-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700;margin-top:2px;}
+.history-info{padding-bottom:14px;}
+.history-stage{font-size:12.5px;font-weight:600;color:var(--ink);}
+.history-meta{font-size:11px;color:var(--ink-faint);margin-top:2px;}
 
-  .config-banner{
-    background:var(--coral-pale); border:1px solid var(--coral); color:#7A2E1D;
-    padding:12px 16px; border-radius:10px; font-size:12.5px; margin:0 28px 0; display:none;
-  }
-  .config-banner code{background:rgba(0,0,0,0.06); padding:1px 5px; border-radius:4px;}
+/* Combobox custom component */
+.combo-wrap{position:relative;}
+.combo-wrap input{width:100%;padding:8px 10px;border-radius:7px;border:1px solid var(--line);font-size:13px;font-family:inherit;color:var(--ink);background:#fdfdfb;}
+.combo-wrap input:focus{outline:none;border-color:var(--sky);}
+.combo-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--sky);border-radius:8px;
+  box-shadow:0 8px 24px -8px rgba(0,0,0,.2);max-height:200px;overflow-y:auto;z-index:100;margin-top:2px;display:none;}
+.combo-list.open{display:block;}
+.combo-opt{padding:8px 12px;font-size:12.5px;cursor:pointer;color:var(--ink);}
+.combo-opt:hover,.combo-opt.focused{background:var(--sky-pale);color:var(--sky-deep);}
+.combo-opt.add-new{color:var(--sky-deep);font-weight:600;border-top:1px solid var(--line-soft);}
+.combo-opt.add-new::before{content:"+ ";}
+.combo-opt.no-match{color:var(--ink-faint);font-style:italic;cursor:default;}
+.combo-opt.no-match:hover{background:none;}
 
-  .chart-box{position:relative; height:260px;}
-  .chart-box.tall{height:320px;}
+/* Probability lock indicator */
+.prob-locked{font-size:11px;color:var(--green);font-weight:600;margin-top:3px;display:none;}
 
-  @media (max-width:880px){
-    .sidebar{position:fixed; left:-230px; transition:left .2s; z-index:40;}
-    .sidebar.open{left:0;}
-    .topbar{padding:14px 16px;}
-    .view{padding:18px 16px 50px;}
-    .form-grid{grid-template-columns:1fr;}
-  }
+/* Config banner */
+.config-banner{background:var(--coral-pale);border:1px solid var(--coral);color:#7A2E1D;
+  padding:11px 16px;border-radius:10px;font-size:12px;margin:0 28px 16px;display:none;}
+.config-banner code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;}
+
+.chart-box{position:relative;height:260px;}
+.chart-box.tall{height:300px;}
+.chart-box.short{height:200px;}
+
+/* Empty & loading states */
+.empty-state{padding:36px 20px;text-align:center;color:var(--ink-soft);font-size:13px;}
+.loading-state{padding:36px 20px;text-align:center;color:var(--ink-faint);font-size:12px;}
+
+/* Expandable row detail */
+.row-detail{display:none;background:var(--paper);}
+.row-detail.open{display:table-row;}
+.row-detail td{padding:14px 18px 16px;}
+.row-detail-inner{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 18px;}
+.detail-field label{font-size:10.5px;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;}
+.detail-field .val{font-size:12.5px;color:var(--ink);margin-top:2px;}
+
+@media(max-width:880px){
+  .sidebar{position:fixed;left:-230px;transition:left .2s;z-index:40;}
+  .sidebar.open{left:0;}
+  .topbar{padding:12px 16px;}
+  .view{padding:16px 14px 50px;}
+  .form-grid{grid-template-columns:1fr;}
+  .grid-2{grid-template-columns:1fr;}
+  .kpi-grid{grid-template-columns:repeat(2,1fr);}
+}
+
+/* ---- BD Sales Funnel Tracker ---- */
+.bd-tracker{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;overflow:hidden;}
+.bd-tracker-header{
+  background:var(--ink);color:#fff;padding:11px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.bd-tracker-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9FC3E3;}
+.bd-month-filter{display:flex;align-items:center;gap:8px;font-size:11px;color:#9FC3E3;}
+.bd-month-filter select{
+  padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);color:#fff;font-size:11px;font-family:inherit;cursor:pointer;
+}
+.bd-month-filter select option{background:var(--ink);color:#fff;}
+.bd-section{border-bottom:1px solid var(--line-soft);padding:12px 20px 10px;}
+.bd-section:last-child{border-bottom:none;}
+.bd-section-title{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;}
+.bd-metric-row{display:flex;gap:0;border:1px solid var(--line-soft);border-radius:8px;overflow:hidden;}
+.bd-metric-row + .bd-metric-row{margin-top:8px;}
+.bd-metric{flex:1;padding:8px 10px;border-right:1px solid var(--line-soft);text-align:center;transition:background .12s;}
+.bd-metric:last-child{border-right:none;}
+.bd-metric:hover{background:var(--sky-pale);}
+.bd-metric-label{font-size:9.5px;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;line-height:1.3;}
+.bd-metric-val{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--ink);}
+.bd-metric-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-faint);margin-top:2px;}
+.bd-metric-row.active .bd-metric-val{color:var(--green);}
+.bd-metric-row.engaged .bd-metric-val{color:var(--sky-deep);}
+
+/* Pipeline funnel grid */
+.bd-pipeline-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line-soft);border-radius:8px;overflow:hidden;}
+.bd-pipeline-col{border-right:1px solid var(--line-soft);text-align:center;}
+.bd-pipeline-col:last-child{border-right:none;}
+.bd-pipeline-col-head{
+  padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:#fff;
+}
+.bd-pipeline-col:nth-child(1) .bd-pipeline-col-head{background:var(--stage-01);}
+.bd-pipeline-col:nth-child(2) .bd-pipeline-col-head{background:var(--stage-04);}
+.bd-pipeline-col:nth-child(3) .bd-pipeline-col-head{background:var(--stage-05);}
+.bd-pipeline-col:nth-child(4) .bd-pipeline-col-head{background:var(--stage-07);}
+.bd-pipeline-row{display:flex;border-top:1px solid var(--line-soft);}
+.bd-pipeline-cell{flex:1;padding:7px 8px;text-align:center;border-right:1px solid var(--line-soft);}
+.bd-pipeline-cell:last-child{border-right:none;}
+.bd-pipeline-cell-val{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:var(--ink);}
+.bd-pipeline-cell-label{font-size:9.5px;color:var(--ink-faint);margin-top:1px;}
+.bd-pipeline-cell-val.green{color:var(--green);}
+
+@media(max-width:860px){
+  .bd-metric-val{font-size:18px;}
+  .bd-pipeline-grid{grid-template-columns:repeat(2,1fr);}
+}
 </style>
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
+<!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-eyebrow">Neovation · Internal</div>
@@ -346,23 +359,19 @@
     <div class="login-sub">FY 2026–27 · Sign in with your Microsoft 365 account</div>
     <div class="login-error" id="login-error">Sign-in failed.</div>
     <button class="login-btn" id="login-submit">
-      <svg width="16" height="16" viewBox="0 0 21 21" style="vertical-align:-3px; margin-right:8px;"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      <svg width="16" height="16" viewBox="0 0 21 21"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
       Sign in with Microsoft
     </button>
-    <div class="login-foot">Anyone with a company Microsoft 365 account can view the dashboards. Adding or editing records is limited to admins — ask your administrator to add your email if you need that access.</div>
+    <div class="login-foot">Anyone with a company Microsoft 365 account can view dashboards. Adding or editing records is limited to admins.</div>
   </div>
 </div>
 
-<!-- ============ APP ============ -->
+<!-- APP -->
 <div id="app" hidden>
   <aside class="sidebar">
     <div class="brand">
-        <img
-          src="logo.png"
-          alt="Neovation Logo"
-          style="width:140px;height:auto;display:block;margin:0 0 20px 0;"
-        >
-      <div class="brand-eyebrow">Neovation · FY 2026–27</div>
+      <img src="logo.png" alt="Neovation" onerror="this.style.display='none'">
+      <div class="brand-eyebrow">FY 2026–27</div>
       <h1>Client Engagement Tracker</h1>
     </div>
     <nav class="nav" id="nav">
@@ -372,128 +381,174 @@
       <button class="nav-item" data-view="engagements"><span class="dot"></span>Engagement Log</button>
       <button class="nav-item" data-view="companies"><span class="dot"></span>Companies</button>
     </nav>
-    <div class="sidebar-foot">Data lives in SharePoint, shared live with everyone signed in.</div>
+    <div class="sidebar-foot">Data in SharePoint · shared live</div>
   </aside>
 
   <div class="main">
     <div class="topbar">
-      <div>
+      <div class="topbar-left">
         <div class="topbar-title" id="topbar-title">Overview</div>
-        <div class="topbar-sub" id="topbar-sub">Holistic view across all the sheets</div>
+        <div class="topbar-sub" id="topbar-sub">Executive snapshot</div>
       </div>
       <div class="topbar-right">
+        <button class="refresh-btn" id="refresh-btn" title="Refresh data">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
         <div class="user-pill">
           <span class="user-avatar" id="user-avatar">A</span>
-          <span id="user-name">Admin</span>
-          <span class="role-badge" id="user-role">ADMIN</span>
+          <span id="user-name">User</span>
+          <span class="role-badge" id="user-role">VIEWER</span>
         </div>
         <button class="logout-btn" id="logout-btn">Sign out</button>
       </div>
     </div>
 
     <div class="config-banner" id="config-banner">
-      <strong>Setup needed:</strong> this page isn't connected to SharePoint yet. Open <code>index.html</code> and fill in the values near the top of the <code>&lt;script&gt;</code> section (<code>MSAL_CLIENT_ID</code>, <code>MSAL_TENANT_ID</code>, <code>SHAREPOINT_SITE_ID</code>, <code>LIST_IDS</code>), then reload. See SHAREPOINT_SETUP_GUIDE.md.
+      <strong>Setup needed:</strong> fill in <code>MSAL_CLIENT_ID</code>, <code>MSAL_TENANT_ID</code>, <code>SHAREPOINT_SITE_ID</code> and <code>LIST_IDS</code> near the top of the script, then reload.
     </div>
 
-    <!-- ===== OVERVIEW ===== -->
+    <!-- OVERVIEW -->
     <section class="view active" id="view-overview">
-      <div class="view-head">
-        <div>
-          <h2>Holistic Overview</h2>
-          <p>Pulled live from Client Database, Opportunity Tracker and Engagement Log.</p>
+      <div class="view-head"><div><h2>Executive Overview</h2><p>Live data from all four lists.</p></div></div>
+
+      <!-- BD SALES FUNNEL TRACKER (mirrors original dashboard sheet, now fully live) -->
+      <div class="bd-tracker" id="bd-tracker">
+        <div class="bd-tracker-header">
+          <span class="bd-tracker-title">📊 BD Sales Funnel Tracker</span>
+          <div class="bd-month-filter">
+            <span>Engagement filter:</span>
+            <select id="bd-month-sel" onchange="renderBDFunnel()">
+              <option value="all">All time</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Section 1: Stakeholder List -->
+        <div class="bd-section">
+          <div class="bd-section-title">Stakeholder List</div>
+          <div class="bd-metric-row" id="bd-s-total"></div>
+          <div class="bd-metric-row active" id="bd-s-active"></div>
+        </div>
+
+        <!-- Section 2: Engagement Overview -->
+        <div class="bd-section">
+          <div class="bd-section-title" id="bd-eng-title">Engagement Overview</div>
+          <div class="bd-metric-row engaged" id="bd-eng"></div>
+        </div>
+
+        <!-- Section 3: Opportunity Mapping -->
+        <div class="bd-section">
+          <div class="bd-section-title">Opportunity Mapping</div>
+          <div class="bd-metric-row" id="bd-opp"></div>
+        </div>
+
+        <!-- Section 4: Pipeline Funnel -->
+        <div class="bd-section">
+          <div class="bd-section-title">Pipeline Funnel</div>
+          <div class="bd-pipeline-grid" id="bd-pipeline"></div>
         </div>
       </div>
+
       <div class="kpi-grid" id="ov-kpis"></div>
-      <div class="grid-2">
+      <div class="grid-2" style="margin-bottom:16px;">
         <div class="panel">
-          <div class="panel-head">
-            <div><h3>Pipeline funnel</h3><p>Opportunities by stage, by count</p></div>
-          </div>
+          <div class="panel-head"><div><h3>Pipeline funnel</h3><p>Opportunities by stage</p></div></div>
           <div class="panel-body"><div class="funnel" id="ov-funnel"></div></div>
         </div>
         <div class="panel">
-          <div class="panel-head">
-            <div><h3>Engagements per week</h3><p>Last 10 weeks of logged touchpoints</p></div>
-          </div>
+          <div class="panel-head"><div><h3>Engagements per week</h3><p>Last 10 weeks</p></div></div>
           <div class="panel-body"><div class="chart-box"><canvas id="ov-weekly-chart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="grid-3" style="margin-bottom:16px;">
+        <div class="insight-card"><h4>Pipeline by company</h4><div id="ov-pipeline-company"></div></div>
+        <div class="insight-card"><h4>Stakeholders by therapy area</h4><div id="ov-therapy-area"></div></div>
+        <div class="insight-card"><h4>Stakeholders by region</h4><div id="ov-region"></div></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="panel">
+          <div class="panel-head"><div><h3>⚠️ Follow-ups due / overdue</h3><p>CTAs requiring attention</p></div></div>
+          <div class="panel-body" style="padding:0 0 2px;"><div id="ov-followup-list" style="padding:6px 16px;"></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><h3>🏆 Recently won & 📉 lost</h3><p>Outcomes in the last 90 days</p></div></div>
+          <div class="panel-body" style="padding:0 0 2px;"><div id="ov-outcomes-list" style="padding:6px 16px;"></div></div>
         </div>
       </div>
       <div class="grid-2">
         <div class="panel">
-          <div class="panel-head">
-            <div><h3>Blue sky opportunities</h3><p>Earliest-stage opportunities worth watching</p></div>
-          </div>
+          <div class="panel-head"><div><h3>Blue sky opportunities</h3><p>Highest-value earliest-stage</p></div></div>
           <div class="table-wrap"><table id="ov-bluesky-table"><thead></thead><tbody></tbody></table></div>
         </div>
         <div class="panel">
-          <div class="panel-head">
-            <div><h3>Client status mix</h3><p>Across the full client database</p></div>
-          </div>
-          <div class="panel-body"><div class="chart-box"><canvas id="ov-status-chart"></canvas></div></div>
+          <div class="panel-head"><div><h3>Client status mix</h3></div></div>
+          <div class="panel-body"><div class="chart-box short"><canvas id="ov-status-chart"></canvas></div></div>
         </div>
       </div>
     </section>
 
-    <!-- ===== CLIENTS ===== -->
+    <!-- CLIENTS -->
     <section class="view" id="view-clients">
       <div class="view-head">
-        <div>
-          <h2>Client database</h2>
-          <p>Every stakeholder contact across all client companies.</p>
+        <div><h2>Client database</h2><p>Every stakeholder across all companies.</p></div>
+        <div class="view-head-actions" id="client-actions">
+          <button class="btn btn-primary" id="add-client-btn">+ Add client</button>
         </div>
-        <button class="btn btn-primary" id="add-client-btn">+ Add client</button>
       </div>
       <div class="kpi-grid" id="cl-kpis"></div>
       <div class="panel">
         <div class="panel-body" style="padding-bottom:0;">
           <div class="toolbar">
-            <input type="search" id="cl-search" placeholder="Search name, company, email...">
+            <input type="search" id="cl-search" placeholder="Search name, company, email…">
             <select id="cl-filter-status"><option value="">All statuses</option></select>
             <select id="cl-filter-company"><option value="">All companies</option></select>
+            <select id="cl-filter-priority"><option value="">All priorities</option></select>
+            <button class="clear-filters" id="cl-clear">✕ Clear</button>
             <span class="spacer"></span>
-            <span class="kpi-sub" id="cl-count"></span>
+            <span style="font-size:11px;color:var(--ink-faint);" id="cl-count"></span>
           </div>
         </div>
         <div class="table-wrap"><table id="cl-table"><thead></thead><tbody></tbody></table></div>
       </div>
     </section>
 
-    <!-- ===== OPPORTUNITIES ===== -->
+    <!-- OPPORTUNITIES -->
     <section class="view" id="view-opportunities">
       <div class="view-head">
-        <div>
-          <h2>Opportunity tracker</h2>
-          <p>Blue sky ideas through to won and lost RFPs.</p>
+        <div><h2>Opportunity tracker</h2><p>Full lifecycle from blue sky to win/loss.</p></div>
+        <div class="view-head-actions" id="opp-actions">
+          <button class="btn btn-primary" id="add-opp-btn">+ Add opportunity</button>
         </div>
-        <button class="btn btn-primary" id="add-opp-btn">+ Add opportunity</button>
       </div>
       <div class="kpi-grid" id="op-kpis"></div>
       <div class="panel">
-        <div class="panel-head"><div><h3>By stage</h3><p>Count and probability-weighted value</p></div></div>
+        <div class="panel-head"><div><h3>By stage — count &amp; weighted value</h3></div></div>
         <div class="panel-body"><div class="chart-box"><canvas id="op-stage-chart"></canvas></div></div>
       </div>
       <div class="panel">
         <div class="panel-body" style="padding-bottom:0;">
           <div class="toolbar">
-            <input type="search" id="op-search" placeholder="Search opportunity, client, company...">
+            <input type="search" id="op-search" placeholder="Search opportunity, client, company…">
             <select id="op-filter-status"><option value="">All stages</option></select>
+            <select id="op-filter-company"><option value="">All companies</option></select>
             <select id="op-filter-bd"><option value="">All BD owners</option></select>
+            <button class="clear-filters" id="op-clear">✕ Clear</button>
             <span class="spacer"></span>
-            <span class="kpi-sub" id="op-count"></span>
+            <span style="font-size:11px;color:var(--ink-faint);" id="op-count"></span>
           </div>
         </div>
         <div class="table-wrap"><table id="op-table"><thead></thead><tbody></tbody></table></div>
       </div>
     </section>
 
-    <!-- ===== ENGAGEMENTS ===== -->
+    <!-- ENGAGEMENTS -->
     <section class="view" id="view-engagements">
       <div class="view-head">
-        <div>
-          <h2>Engagement log</h2>
-          <p>Every touchpoint — meetings, calls, emails — by week.</p>
+        <div><h2>Engagement log</h2><p>Every touchpoint — meetings, calls, emails.</p></div>
+        <div class="view-head-actions" id="eng-actions">
+          <button class="btn btn-primary" id="add-eng-btn">+ Log engagement</button>
         </div>
-        <button class="btn btn-primary" id="add-eng-btn">+ Log engagement</button>
       </div>
       <div class="kpi-grid" id="eg-kpis"></div>
       <div class="panel">
@@ -503,33 +558,36 @@
       <div class="panel">
         <div class="panel-body" style="padding-bottom:0;">
           <div class="toolbar">
-            <input type="search" id="eg-search" placeholder="Search client, company, notes...">
-            <select id="eg-filter-type"><option value="">All engagement types</option></select>
-            <select id="eg-filter-followup"><option value="">Follow-up: any</option><option value="yes">Follow-up done</option><option value="no">Follow-up pending</option></select>
+            <input type="search" id="eg-search" placeholder="Search client, company, notes…">
+            <select id="eg-filter-type"><option value="">All types</option></select>
+            <select id="eg-filter-company"><option value="">All companies</option></select>
+            <select id="eg-filter-followup"><option value="">Follow-up: any</option><option value="yes">Done</option><option value="no">Pending</option></select>
+            <button class="clear-filters" id="eg-clear">✕ Clear</button>
             <span class="spacer"></span>
-            <span class="kpi-sub" id="eg-count"></span>
+            <span style="font-size:11px;color:var(--ink-faint);" id="eg-count"></span>
           </div>
         </div>
         <div class="table-wrap"><table id="eg-table"><thead></thead><tbody></tbody></table></div>
       </div>
     </section>
 
-    <!-- ===== COMPANIES ===== -->
+    <!-- COMPANIES -->
     <section class="view" id="view-companies">
       <div class="view-head">
-        <div>
-          <h2>Company performance</h2>
-          <p>Roll-up of clients, engagement and pipeline value per company.</p>
+        <div><h2>Company performance</h2><p>Roll-up across clients, pipeline and engagement.</p></div>
+        <div class="view-head-actions" id="co-actions">
+          <button class="btn btn-primary" id="add-company-btn">+ Add company</button>
         </div>
-        <button class="btn btn-primary" id="add-company-btn">+ Add company</button>
       </div>
       <div class="kpi-grid" id="co-kpis"></div>
       <div class="panel">
         <div class="panel-body" style="padding-bottom:0;">
           <div class="toolbar">
-            <input type="search" id="co-search" placeholder="Search company...">
+            <input type="search" id="co-search" placeholder="Search company…">
+            <select id="co-filter-onboarding"><option value="">All onboarding statuses</option></select>
+            <button class="clear-filters" id="co-clear">✕ Clear</button>
             <span class="spacer"></span>
-            <span class="kpi-sub" id="co-count"></span>
+            <span style="font-size:11px;color:var(--ink-faint);" id="co-count"></span>
           </div>
         </div>
         <div class="table-wrap"><table id="co-table"><thead></thead><tbody></tbody></table></div>
@@ -537,974 +595,948 @@
     </section>
   </div>
 </div>
-
 <div id="modal-root"></div>
 
 <script>
 /* ============================================================
-   Neovation Client Engagement Tracker — Application Logic
-   (SharePoint / Microsoft Graph backend)
+   Neovation Client Engagement Tracker v2
    ============================================================ */
 
-/* ---------- 1. CONFIG — fill these in, see SHAREPOINT_SETUP_GUIDE.md ---------- */
-const MSAL_CLIENT_ID = '997ad661-b120-4f9e-bc6f-f672a0339206';      // from your Azure AD app registration
-const MSAL_TENANT_ID = 'e1a8eec3-eb6b-4aba-bbca-c2512937361f';          // your Microsoft 365 tenant ID (or domain, e.g. contoso.onmicrosoft.com)
-const SHAREPOINT_SITE_ID = 'neovationsg.sharepoint.com,31e6c0b5-79a5-4ab7-9a3d-d81b111fd9fb,370ce563-c0f0-4788-8152-5dac7fb721e5';        // from Graph Explorer, see setup guide
+/* ---------- 1. CONFIG ---------- */
+const MSAL_CLIENT_ID   = '997ad661-b120-4f9e-bc6f-f672a0339206';
+const MSAL_TENANT_ID   = 'e1a8eec3-eb6b-4aba-bbca-c2512937361f';
+const SHAREPOINT_SITE_ID = 'neovationsg.sharepoint.com,31e6c0b5-79a5-4ab7-9a3d-d81b111fd9fb,370ce563-c0f0-4788-8152-5dac7fb721e5';
 const LIST_IDS = {
   clients:       'ea38938c-a1bf-45fa-b011-41e7ce2e35f9',
   opportunities: '8ffc2b36-fc95-47b1-9412-c2383a1d935d',
   engagements:   'bc18a9fa-155c-45ff-98b1-c87cedb823b7',
   companies:     '6aa2ab20-ad4c-4dcd-b931-c2b9eeda4585'
 };
-// Anyone signed in can view dashboards. Only these email addresses (UPNs) can add
-// records. Use lower case. Add/remove people freely, no other setup needed.
-const ADMIN_EMAILS = [
-  'arohi.jain@neovation.sg', 'hasnain.patel@neovation.sg'
-];
+const ADMIN_EMAILS = ['arohi.jain@neovation.sg','hasnain.patel@neovation.sg'];
+const GRAPH_SCOPES  = ['User.Read','Sites.ReadWrite.All'];
 
-const GRAPH_SCOPES = ['User.Read', 'Sites.ReadWrite.All'];
+/* ---------- 2. LOOKUP LISTS ---------- */
+const EMPLOYEES = [
+  'Aditya Ghuman','Aishwarya Sutar','Aashka Kothari','Arohi Jain','Arpana Akella',
+  'Arundhati Tiwari','Ashwini Maratha','Brenda Cheong','Burhan Patan','Chuin Hau Teo',
+  'Disha Dayal','Dnyanesh Limaye','Fariza Nasreen','Hasnain Patel','Ibrahim Hamdy',
+  'Ilmira Murni','Jaya Pandey','Kamayani Gupta','Kapil Vats','Kashmira Mangavkar',
+  'Keegan Afonso','Keerthy Thatikonda','Linu Thomas','Manila Pasricha','Murtaza Bhugediwala',
+  'Navneet Kaur','Neha Patnaik','Nehal Hassan','Padmashree Kanangi','Pargat Singh',
+  'Pawan Kumar','Pooja Amuthan','Priya Joshi','Priyanka Kapoor','Sakshi Sharma',
+  'Salini Asok','Saloni Kakkar','Sandhya Kaimal','Sanjay Joseph','Santosh Jha',
+  'Santhosh','Sharon Mueller','Siddhi Parab','Simpy Sethi Khanna','Smrita Chaudhury',
+  'Snehal Ingale','Sonal Nafade','Susan Linda Rajkumar','Tanzim Khan','Tanvi Sejpal',
+  'Vaishnavi','Vibhuti Rana'
+].sort();
 
-/* ---------- 2. LOOKUP LISTS (mirrors your Excel "Lookups" tab) ---------- */
 const LOOKUPS = {
-  therapyAreas: ["Oncology","CNS","Cardiology","Infectious Disease","Rare Disease","Immunology","Gastroenterology","Dermatology","Endocrinology","Respiratory","Rheumatology","HEOR","Across TAs","Other"],
-  departments: ["Medical","Market Access/ HEOR","Marketing/ Commercial","Procurement","Digital","Others"],
-  regions: ["UAE","KSA","Qatar","Kuwait","Bahrain","Oman","Egypt","Jordan","Lebanon","Gulf","MENA","Global/ International","Intercontinental","MEAR","GCC","META","GEM & Levant","Others"],
-  clientStatus: ["Inactive","Prospect","Active engagement","Active business"],
-  priority: ["Low","Medium","High"],
-  opportunityStatus: ["01 Blue Sky Opportunity","02 Identified Opportunity","03 Concept pitch preparation","04 Proposal preparation","05 Proposal submitted","06 To Win","07 Win","08 Loss","09 Client not interested","10 Missed to discuss"],
-  engagementTypes: ["In-Person Meeting","Virtual Meeting","Phone Call/ Whatsapp","Email","Conference/Event","Others"],
-  stakeholderType: ["Existing Stakeholder Engagement","Procurement Engagement","New Stakeholder Development"],
-  engagementObjective: ["Blue sky opportunity discussion","Identified opportunity discussion","Discussion on new RFP","Follow up on ongoing RFP","Capability presentation","Request for referral","Intelligence gathering","Relationship building","Other discussion"],
-  engagementOutcome: ["New opportunities discovered","Led to RFP","Progress on ongoing RFP","Led to referral","Others (Mentioned in notes)"],
-  followUp: ["Yes","No"]
+  therapyAreas:['Oncology','CNS','Cardiology','Infectious Disease','Rare Disease','Immunology',
+    'Gastroenterology','Dermatology','Endocrinology','Respiratory','Rheumatology','HEOR','Across TAs','Other'],
+  departments:['Medical','Market Access/ HEOR','Marketing/ Commercial','Procurement','Digital','Others'],
+  regions:['UAE','KSA','Qatar','Kuwait','Bahrain','Oman','Egypt','Jordan','Lebanon','Gulf','MENA',
+    'Global/ International','Intercontinental','MEAR','GCC','META','GEM & Levant','Others'],
+  clientStatus:['Inactive','Prospect','Active engagement','Active business'],
+  priority:['Low','Medium','High'],
+  opportunityStatus:[
+    '01 Blue Sky Opportunity','02 Identified Opportunity','03 Concept pitch preparation',
+    '04 Proposal preparation','05 Proposal submitted','06 To Win',
+    '07 Win','08 Loss','09 Client not interested','10 Missed to discuss'
+  ],
+  engagementTypes:['In-Person Meeting','Virtual Meeting','Phone Call/ Whatsapp','Email','Conference/Event','Others'],
+  stakeholderType:['Existing Stakeholder Engagement','Procurement Engagement','New Stakeholder Development'],
+  engagementObjective:['Blue sky opportunity discussion','Identified opportunity discussion','Discussion on new RFP',
+    'Follow up on ongoing RFP','Capability presentation','Request for referral','Intelligence gathering',
+    'Relationship building','Other discussion'],
+  engagementOutcome:['New opportunities discovered','Led to RFP','Progress on ongoing RFP','Led to referral','Others (Mentioned in notes)'],
+  followUp:['Yes','No']
 };
 
 /* ---------- 3. STATE ---------- */
 let msalInstance = null;
 let currentAccount = null;
-let currentUser = null; // {username, name, role}
-let DATA = { clients: [], opportunities: [], engagements: [], companies: [] };
-let CHARTS = {}; // keep Chart.js instances so we can destroy before re-render
+let currentUser = null;
+let DATA = { clients:[], opportunities:[], engagements:[], companies:[] };
+let CHARTS = {};
+let SORT_STATE = {}; // { viewKey: { col, dir } }
 
 /* ---------- 4. UTILITIES ---------- */
-function escapeHtml(str){
-  if(str === null || str === undefined) return '';
-  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function esc(str){
+  if(str==null) return '';
+  return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 function fmtDate(d){
   if(!d) return '—';
-  const dt = new Date(d);
-  if(isNaN(dt)) return '—';
-  return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const dt=new Date(d); if(isNaN(dt)) return '—';
+  return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 }
 function fmtMoney(n){
-  if(n === null || n === undefined || n === '') return '—';
-  const num = Number(n);
-  if(isNaN(num)) return '—';
-  return '$' + num.toLocaleString('en-US', { maximumFractionDigits:0 });
+  if(n==null||n==='') return '—';
+  const num=Number(n); if(isNaN(num)) return '—';
+  if(num>=1000000) return '$'+(num/1000000).toFixed(1)+'M';
+  if(num>=1000) return '$'+(num/1000).toFixed(0)+'K';
+  return '$'+num.toLocaleString('en-US',{maximumFractionDigits:0});
 }
-function fmtNum(n){
-  if(n === null || n === undefined || n === '') return '—';
-  return Number(n).toLocaleString('en-US');
-}
-function debounce(fn, ms){
-  let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), ms); };
-}
+function fmtNum(n){ if(n==null||n==='') return '—'; return Number(n).toLocaleString('en-US'); }
+function debounce(fn,ms){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
 function isoWeek(dateStr){
   if(!dateStr) return null;
-  const d = new Date(dateStr);
-  if(isNaN(d)) return null;
-  const dt = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = (dt.getUTCDay() + 6) % 7;
-  dt.setUTCDate(dt.getUTCDate() - dayNum + 3);
-  const firstThursday = new Date(Date.UTC(dt.getUTCFullYear(),0,4));
-  const week = 1 + Math.round(((dt - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
-  return `${dt.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+  const d=new Date(dateStr); if(isNaN(d)) return null;
+  const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=(dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-day+3);
+  const jan4=new Date(Date.UTC(dt.getUTCFullYear(),0,4));
+  const wk=1+Math.round(((dt-jan4)/86400000-3+((jan4.getUTCDay()+6)%7))/7);
+  return `${dt.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`;
 }
-function weekRangeLabel(dateStr){
-  const d = new Date(dateStr);
-  if(isNaN(d)) return '';
-  const day = (d.getDay()+6)%7;
-  const monday = new Date(d); monday.setDate(d.getDate()-day);
-  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
-  const opts = {day:'numeric', month:'short'};
-  return `${monday.toLocaleDateString('en-GB',opts)} – ${sunday.toLocaleDateString('en-GB',opts)}`;
+function weekRangeLabel(d){
+  const dt=new Date(d); if(isNaN(dt)) return '';
+  const day=(dt.getDay()+6)%7;
+  const mon=new Date(dt); mon.setDate(dt.getDate()-day);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  const o={day:'numeric',month:'short'};
+  return `${mon.toLocaleDateString('en-GB',o)} – ${sun.toLocaleDateString('en-GB',o)}`;
 }
-function statusTagClass(status){
-  if(!status) return 'tag-grey';
-  const s = String(status).toLowerCase();
-  if(s.includes('win') || s === 'active business' || s.includes('onboarded') || s.includes('msa')) return 'tag-green';
-  if(s.includes('loss') || s.includes('inactive') || s.includes('not interested') || s.includes('missed')) return 'tag-coral';
-  if(s.includes('blue sky') || s.includes('identified') || s.includes('prospect') || s.includes('concept') || s.includes('proposal') || s.includes('to win') || s.includes('active engagement')) return 'tag-amber';
-  return 'tag-sky';
+function initials(n){ return (n||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+function daysAgo(dateStr){
+  if(!dateStr) return null;
+  return Math.floor((Date.now()-new Date(dateStr))/(1000*60*60*24));
 }
-function initials(name){
-  return (name||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase();
+function sortAlpha(arr,key){ return [...arr].sort((a,b)=>(a[key]||'').localeCompare(b[key]||'')); }
+function uniqueCompanies(){
+  const s=new Set();
+  DATA.companies.forEach(c=>{if(c.company)s.add(c.company.trim());});
+  DATA.clients.forEach(c=>{if(c.company)s.add(c.company.trim());});
+  return [...s].sort();
 }
 
-/* ---------- 5. AUTH (Microsoft Entra ID via MSAL) ---------- */
+/* ---------- 5. COLOUR HELPERS ---------- */
+const STAGE_NUM = s => { const m=(s||'').match(/^(\d+)/); return m?Number(m[1]):0; };
+function stageTagClass(status){
+  const n=STAGE_NUM(status);
+  return n>=1&&n<=10 ? `tag stage-0${n<10?'0'+n:n}`.replace('stage-010','stage-10') : 'tag tag-grey';
+}
+function stageTagClassN(n){ return n>=1&&n<=9?`tag stage-0${n}`:(n===10?'tag stage-10':'tag tag-grey'); }
+function clientStatusClass(s){
+  const m={'active business':'tag-green','active engagement':'tag-sky','prospect':'tag-amber','inactive':'tag-coral'};
+  return 'tag '+(m[(s||'').toLowerCase()]||'tag-grey');
+}
+function priorityClass(p){
+  return 'tag '+(p==='High'?'tag-coral':p==='Medium'?'tag-amber':'tag-grey');
+}
+function engTypeClass(t){
+  const m={'in-person meeting':'tag-green','virtual meeting':'tag-sky','phone call/ whatsapp':'tag-amber',
+    'email':'tag-purple','conference/event':'tag-teal','others':'tag-grey'};
+  return 'tag '+(m[(t||'').toLowerCase()]||'tag-grey');
+}
+function followUpClass(v){
+  return 'tag '+(String(v||'').toLowerCase()==='yes'?'tag-green':'tag-amber');
+}
+function onboardingClass(s){
+  const m={'onboarded':'tag-green','active msa':'tag-sky','preferred vendor':'tag-teal'};
+  return 'tag '+(m[(s||'').toLowerCase()]||'tag-grey');
+}
+// Stage colors for Chart.js
+const STAGE_COLORS=['#E4EFF8','#2F7DC0','#00897B','#F57C00','#7B1FA2','#3949AB','#AFB42B','#1F8F62','#C8543D','#8D6E63','#546E7A'];
+const COLORS={ink:'#11203A',sky:'#2F7DC0',skyDeep:'#154C7A',skyPale:'#E4EFF8',amber:'#D98E2B',amberPale:'#FBF0DD',green:'#1F8F62',greenPale:'#E1F3EA',coral:'#C8543D',coralPale:'#FBE6E1',inkSoft:'#4B5A72',line:'#DEDBD0'};
+
+function destroyChart(k){ if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k];} }
+
+/* ---------- 6. STAGE LOGIC ---------- */
+function isOpenStage(s){
+  const closed=['07 win','08 loss','09 client not interested','10 missed to discuss'];
+  return s && !closed.includes(String(s).toLowerCase().trim());
+}
+function isWinStage(s){ return String(s||'').toLowerCase().trim()==='07 win'; }
+function isLossStage(s){ const v=String(s||'').toLowerCase().trim(); return v==='08 loss'||v==='09 client not interested'; }
+function autoProb(status){
+  if(isWinStage(status)) return 1;
+  if(isLossStage(status)) return 0;
+  return null; // no auto-set
+}
+
+/* ---------- 7. AUTH (MSAL) ---------- */
 function initMsal(){
-  if(msalInstance) return msalInstance;
-  msalInstance = new msal.PublicClientApplication({
-    auth: {
-      clientId: MSAL_CLIENT_ID,
-      authority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
-      redirectUri: window.location.origin + window.location.pathname
-    },
-    cache: {
-      // Kept in memory only (not sessionStorage/localStorage): signing in again
-      // after a page refresh is expected behaviour for this tool.
-      cacheLocation: 'memoryStorage'
-    }
+  if(msalInstance) return;
+  msalInstance=new msal.PublicClientApplication({
+    auth:{clientId:MSAL_CLIENT_ID,authority:`https://login.microsoftonline.com/${MSAL_TENANT_ID}`,redirectUri:window.location.origin+window.location.pathname},
+    cache:{cacheLocation:'memoryStorage'}
   });
-  return msalInstance;
 }
-
 async function doLogin(){
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
-  if(MSAL_CLIENT_ID.includes('YOUR_') || MSAL_TENANT_ID.includes('YOUR_')){
-    errEl.textContent = 'This dashboard is not connected to Microsoft 365 yet. See SHAREPOINT_SETUP_GUIDE.md.';
-    errEl.style.display = 'block';
-    return;
+  const errEl=document.getElementById('login-error');
+  errEl.style.display='none';
+  if(MSAL_CLIENT_ID.includes('YOUR_')||MSAL_TENANT_ID.includes('YOUR_')){
+    errEl.textContent='Not connected to Microsoft 365. See SHAREPOINT_SETUP_GUIDE.md.';
+    errEl.style.display='block'; return;
   }
   try{
     initMsal();
     await msalInstance.initialize();
-    const result = await msalInstance.loginPopup({ scopes: GRAPH_SCOPES });
-    currentAccount = result.account;
+    const result=await msalInstance.loginPopup({scopes:GRAPH_SCOPES});
+    currentAccount=result.account;
     msalInstance.setActiveAccount(currentAccount);
-    const email = (currentAccount.username || '').toLowerCase();
-    const role = ADMIN_EMAILS.map(e=>e.toLowerCase()).includes(email) ? 'admin' : 'viewer';
-    currentUser = { username: email, name: currentAccount.name || email, role };
-
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').hidden = false;
-    document.getElementById('user-name').textContent = currentUser.name;
-    document.getElementById('user-role').textContent = currentUser.role.toUpperCase();
-    document.getElementById('user-avatar').textContent = initials(currentUser.name);
+    const email=(currentAccount.username||'').toLowerCase();
+    const role=ADMIN_EMAILS.map(e=>e.toLowerCase()).includes(email)?'admin':'viewer';
+    currentUser={username:email,name:currentAccount.name||email,role};
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').hidden=false;
+    document.getElementById('user-name').textContent=currentUser.name;
+    document.getElementById('user-role').textContent=role.toUpperCase();
+    document.getElementById('user-avatar').textContent=initials(currentUser.name);
     applyRolePermissions();
     await boot();
-  } catch(err){
+  }catch(err){
     console.error(err);
-    errEl.textContent = 'Sign-in failed or was cancelled: ' + (err.errorMessage || err.message || err);
-    errEl.style.display = 'block';
+    errEl.textContent='Sign-in failed: '+(err.errorMessage||err.message||err);
+    errEl.style.display='block';
   }
 }
-
 function doLogout(){
-  currentUser = null;
-  currentAccount = null;
-  document.getElementById('app').hidden = true;
-  document.getElementById('login-screen').style.display = 'flex';
-  if(msalInstance && msalInstance.getActiveAccount()){
-    msalInstance.logoutPopup().catch(()=>{});
-  }
+  currentUser=null; currentAccount=null;
+  document.getElementById('app').hidden=true;
+  document.getElementById('login-screen').style.display='flex';
+  if(msalInstance&&msalInstance.getActiveAccount()) msalInstance.logoutPopup().catch(()=>{});
 }
-
 async function getGraphToken(){
   initMsal();
-  try{
-    const result = await msalInstance.acquireTokenSilent({ scopes: GRAPH_SCOPES, account: currentAccount });
-    return result.accessToken;
-  } catch(err){
-    const result = await msalInstance.acquireTokenPopup({ scopes: GRAPH_SCOPES });
-    return result.accessToken;
-  }
+  try{ return (await msalInstance.acquireTokenSilent({scopes:GRAPH_SCOPES,account:currentAccount})).accessToken; }
+  catch(e){ return (await msalInstance.acquireTokenPopup({scopes:GRAPH_SCOPES})).accessToken; }
 }
-
 function applyRolePermissions(){
-  const isViewer = currentUser.role === 'viewer';
+  const v=currentUser.role==='viewer';
   ['add-client-btn','add-opp-btn','add-eng-btn','add-company-btn'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.style.display = isViewer ? 'none' : 'inline-flex';
+    const el=document.getElementById(id); if(el) el.style.display=v?'none':'inline-flex';
   });
 }
 
-/* ---------- 6. NAV ---------- */
-const VIEW_META = {
-  overview:      { title: 'Overview',            sub: 'Holistic view across all the sheets' },
-  clients:       { title: 'Client Database',     sub: 'Every stakeholder contact across all client companies' },
-  opportunities: { title: 'Opportunity Tracker',  sub: 'Blue sky ideas through to won and lost RFPs' },
-  engagements:   { title: 'Engagement Log',       sub: 'Every touchpoint, by week' },
-  companies:     { title: 'Company Performance',  sub: 'Roll-up of clients, engagement and pipeline value per company' }
+/* ---------- 8. NAV ---------- */
+const VIEW_META={
+  overview:{title:'Executive Overview',sub:'Live snapshot across all data'},
+  clients:{title:'Client Database',sub:'Every stakeholder across all companies'},
+  opportunities:{title:'Opportunity Tracker',sub:'Full lifecycle: blue sky to win/loss'},
+  engagements:{title:'Engagement Log',sub:'Every touchpoint, by week'},
+  companies:{title:'Company Performance',sub:'Roll-up across clients, pipeline and engagement'}
 };
-function switchView(view){
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
-  document.getElementById('topbar-title').textContent = VIEW_META[view].title;
-  document.getElementById('topbar-sub').textContent = VIEW_META[view].sub;
+function switchView(v){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
+  document.getElementById('topbar-title').textContent=VIEW_META[v].title;
+  document.getElementById('topbar-sub').textContent=VIEW_META[v].sub;
   document.querySelectorAll('.sidebar').forEach(s=>s.classList.remove('open'));
 }
 
-/* ---------- 7. DATA LAYER (Microsoft Graph / SharePoint Lists) ---------- */
-const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
-
-async function graphGetAllPages(url){
-  const token = await getGraphToken();
-  let items = [];
-  let next = url;
-  while(next){
-    const res = await fetch(next, { headers: { Authorization: `Bearer ${token}` } });
-    if(!res.ok){
-      const body = await res.text();
-      throw new Error(`Graph GET failed (${res.status}): ${body}`);
-    }
-    const json = await res.json();
-    items = items.concat(json.value || []);
-    next = json['@odata.nextLink'] || null;
-  }
-  return items;
-}
-
-async function graphPost(url, body){
-  const token = await getGraphToken();
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  if(!res.ok){
-    const errBody = await res.text();
-    throw new Error(`Graph POST failed (${res.status}): ${errBody}`);
-  }
-  return res.json();
-}
-
-// Map between our internal snake_case field names and each SharePoint list's
-// column internal names (see SHAREPOINT_SETUP_GUIDE.md for the exact columns
-// to create). "Title" is SharePoint's built-in column.
-const FIELD_MAP = {
-  clients: {
-  client_name:'Title',
-  company:'field_1',
-  designation:'field_2',
-  department:'field_3',
-  therapy_area:'field_4',
-  region:'field_5',
-  email:'field_6',
-  phone:'field_7',
-  linkedin_url:'field_8',
-  status:'field_9',
-  priority:'field_10',
-  assigned_bd:'field_11',
-  notes:'field_12'
-},
-
-opportunities: {
-  opportunity:'Title',
-  rfp_id:'field_1',
-  company:'field_2',
-  client_name:'field_3',
-  opportunity_status:'field_4',
-
-  discussion_date:'field_5',
-  pitch_date:'field_6',
-  proposal_submission_date:'field_7',
-  expected_close_date:'field_8',
-
-  bd_owner:'field_9',
-  technical_lead:'field_10',
-
-  estimated_value_usd:'field_11',
-  probability_pct:'field_12',
-  probability_weighted_value:'field_13',
-
-  notes:'field_14'
-},
-
-engagements: {
-  client_name:'Title',
-
-  eng_month:'field_1',
-  eng_date:'field_2',
-
-  designation:'field_3',
-  company:'field_4',
-  bd_pm:'field_5',
-
-  engagement_type:'field_6',
-  platform_venue:'field_7',
-  stakeholder_type:'field_8',
-
-  engagement_objective:'field_9',
-  engagement_outcome:'field_10',
-  discussion_points:'field_11',
-
-  cta_next_step:'field_12',
-  cta_due_date:'field_13',
-  cta_owner:'field_14',
-  follow_up_done:'field_15'
-},
-
-companies: {
-  company:'Title',
-  onboarding_status:'field_1',
-  notes:'field_2'
-}
-  // opportunities: {
-  //   opportunity:'Title', rfp_id:'RFPID', company:'Company', client_name:'ClientName',
-  //   opportunity_status:'OpportunityStatus', discussion_date:'DiscussionDate', pitch_date:'PitchDate',
-  //   proposal_submission_date:'ProposalSubmissionDate', expected_close_date:'ExpectedCloseDate',
-  //   bd_owner:'BDOwner', technical_lead:'TechnicalLead', estimated_value_usd:'EstimatedValueUSD',
-  //   probability_pct:'ProbabilityPct', probability_weighted_value:'ProbabilityWeightedValue', notes:'Notes'
-  // },
-  // engagements: {
-  //   client_name:'Title', eng_month:'EngMonth', eng_date:'EngDate', designation:'Designation', company:'Company',
-  //   bd_pm:'BDPM', engagement_type:'EngagementType', platform_venue:'PlatformVenue', stakeholder_type:'StakeholderType',
-  //   engagement_objective:'EngagementObjective', engagement_outcome:'EngagementOutcome',
-  //   discussion_points:'DiscussionPoints', cta_next_step:'CTANextStep', cta_due_date:'CTADueDate',
-  //   cta_owner:'CTAOwner', follow_up_done:'FollowUpDone'
-  // },
-  // companies: { company:'Title', onboarding_status:'OnboardingStatus', notes:'Notes' }
+/* ---------- 9. DATA LAYER ---------- */
+const GRAPH_BASE='https://graph.microsoft.com/v1.0';
+const FIELD_MAP={
+  clients:{client_name:'Title',company:'field_1',designation:'field_2',department:'field_3',therapy_area:'field_4',region:'field_5',email:'field_6',phone:'field_7',linkedin_url:'field_8',status:'field_9',priority:'field_10',assigned_bd:'field_11',notes:'field_12'},
+  opportunities:{opportunity:'Title',rfp_id:'field_1',company:'field_2',client_name:'field_3',opportunity_status:'field_4',discussion_date:'field_5',pitch_date:'field_6',proposal_submission_date:'field_7',expected_close_date:'field_8',bd_owner:'field_9',technical_lead:'field_10',estimated_value_usd:'field_11',probability_pct:'field_12',probability_weighted_value:'field_13',notes:'field_14',stage_history:'field_15'},
+  engagements:{client_name:'Title',eng_month:'field_1',eng_date:'field_2',designation:'field_3',company:'field_4',bd_pm:'field_5',engagement_type:'field_6',platform_venue:'field_7',stakeholder_type:'field_8',engagement_objective:'field_9',engagement_outcome:'field_10',discussion_points:'field_11',cta_next_step:'field_12',cta_due_date:'field_13',cta_owner:'field_14',follow_up_done:'field_15'},
+  companies:{company:'Title',onboarding_status:'field_1',notes:'field_2'}
 };
-const DATE_FIELDS = {
-  clients: [],
-  opportunities: ['discussion_date','pitch_date','proposal_submission_date','expected_close_date'],
-  engagements: ['eng_month','eng_date','cta_due_date'],
-  companies: []
-};
+const DATE_FIELDS={clients:[],opportunities:['discussion_date','pitch_date','proposal_submission_date','expected_close_date'],engagements:['eng_month','eng_date','cta_due_date'],companies:[]};
 
-// function spItemToRecord(kind, item){
-//   const map = FIELD_MAP[kind];
-//   const f = item.fields || {};
-//   const rec = { id: item.id };
-//   Object.entries(map).forEach(([ourKey, spKey]) => {
-//     let v = f[spKey];
-//     if(v !== undefined && v !== null && DATE_FIELDS[kind].includes(ourKey)){
-//       v = String(v).split('T')[0];
-//     }
-//     rec[ourKey] = v ?? null;
-//   });
-//   return rec;
-// }
-
-function spItemToRecord(kind, item){
-  console.log('ITEM FIELDS:', item.fields);
-
-  const map = FIELD_MAP[kind];
-  const f = item.fields || {};
-  const rec = { id: item.id };
-
-  Object.entries(map).forEach(([ourKey, spKey]) => {
-    let v = f[spKey];
-
-    if(v !== undefined && v !== null && DATE_FIELDS[kind].includes(ourKey)){
-      v = String(v).split('T')[0];
-    }
-
-    rec[ourKey] = v ?? null;
+function spItemToRecord(kind,item){
+  const map=FIELD_MAP[kind],f=item.fields||{},rec={id:item.id};
+  Object.entries(map).forEach(([k,sp])=>{
+    let v=f[sp];
+    if(v!=null&&DATE_FIELDS[kind].includes(k)) v=String(v).split('T')[0];
+    rec[k]=v??null;
   });
-
   return rec;
 }
-
-function recordToSpFields(kind, payload){
-  const map = FIELD_MAP[kind];
-  const fields = {};
-  Object.entries(payload).forEach(([ourKey, v]) => {
-    const spKey = map[ourKey];
-    if(!spKey) return;
-    if(v !== null && v !== undefined && DATE_FIELDS[kind].includes(ourKey)){
-      v = new Date(v).toISOString();
-    }
-    fields[spKey] = v;
+function recordToSpFields(kind,payload){
+  const map=FIELD_MAP[kind],fields={};
+  Object.entries(payload).forEach(([k,v])=>{
+    const sp=map[k]; if(!sp) return;
+    if(v!=null&&DATE_FIELDS[kind].includes(k)) v=new Date(v).toISOString();
+    fields[sp]=v;
   });
   return fields;
 }
 
-async function fetchAll(){
-  const [clientsRaw, oppsRaw, engsRaw, companiesRaw] = await Promise.all([
-    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.clients}/items?expand=fields&$top=200`),
-    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.opportunities}/items?expand=fields&$top=200`),
-    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.engagements}/items?expand=fields&$top=200`),
-    graphGetAllPages(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.companies}/items?expand=fields&$top=200`)
-  ]);
-  DATA.clients = clientsRaw.map(i => spItemToRecord('clients', i));
-  DATA.opportunities = oppsRaw.map(i => spItemToRecord('opportunities', i));
-  DATA.engagements = engsRaw.map(i => spItemToRecord('engagements', i));
-  DATA.companies = companiesRaw.map(i => spItemToRecord('companies', i));
+async function graphGet(url){
+  const token=await getGraphToken();
+  let items=[],next=url;
+  while(next){
+    const r=await fetch(next,{headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok){const b=await r.text();throw new Error(`Graph GET ${r.status}: ${b}`);}
+    const j=await r.json(); items=items.concat(j.value||[]); next=j['@odata.nextLink']||null;
+  }
+  return items;
+}
+async function graphPost(url,body){
+  const token=await getGraphToken();
+  const r=await fetch(url,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const b=await r.text();throw new Error(`Graph POST ${r.status}: ${b}`);}
+  return r.json();
+}
+async function graphPatch(url,body){
+  const token=await getGraphToken();
+  const r=await fetch(url,{method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const b=await r.text();throw new Error(`Graph PATCH ${r.status}: ${b}`);}
+  return r.json();
 }
 
-async function insertRecord(kind, payload){
+async function fetchAll(){
+  const [c,o,e,co]=await Promise.all([
+    graphGet(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.clients}/items?expand=fields&$top=500`),
+    graphGet(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.opportunities}/items?expand=fields&$top=500`),
+    graphGet(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.engagements}/items?expand=fields&$top=500`),
+    graphGet(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS.companies}/items?expand=fields&$top=500`)
+  ]);
+  DATA.clients=c.map(i=>spItemToRecord('clients',i));
+  DATA.opportunities=o.map(i=>spItemToRecord('opportunities',i));
+  DATA.engagements=e.map(i=>spItemToRecord('engagements',i));
+  DATA.companies=co.map(i=>spItemToRecord('companies',i));
+}
+
+async function insertRecord(kind,payload){
   try{
-    const fields = recordToSpFields(kind, payload);
-    const json = await graphPost(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS[kind]}/items`, { fields });
-    return spItemToRecord(kind, json);
-  } catch(err){
-    console.error(err);
-    alert('Could not save: ' + err.message);
-    return null;
-  }
+    const fields=recordToSpFields(kind,payload);
+    const j=await graphPost(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS[kind]}/items`,{fields});
+    return spItemToRecord(kind,j);
+  }catch(err){alert('Could not save: '+err.message);return null;}
+}
+async function updateRecord(kind,id,payload){
+  try{
+    const fields=recordToSpFields(kind,payload);
+    await graphPatch(`${GRAPH_BASE}/sites/${SHAREPOINT_SITE_ID}/lists/${LIST_IDS[kind]}/items/${id}/fields`,fields);
+    return true;
+  }catch(err){alert('Could not update: '+err.message);return false;}
 }
 
 async function refreshAndRenderAll(){
+  setRefreshSpinning(true);
   await fetchAll();
-  renderOverview();
-  renderClients();
-  renderOpportunities();
-  renderEngagements();
-  renderCompanies();
+  renderOverview();renderClients();renderOpportunities();renderEngagements();renderCompanies();
+  setRefreshSpinning(false);
 }
-/* ---------- 8. COLOR TOKENS (mirrors CSS vars, for Chart.js) ---------- */
-const COLORS = {
-  ink:'#11203A', sky:'#2F7DC0', skyDeep:'#154C7A', skyPale:'#E4EFF8',
-  amber:'#D98E2B', amberPale:'#FBF0DD', green:'#1F8F62', greenPale:'#E1F3EA',
-  coral:'#C8543D', coralPale:'#FBE6E1', inkSoft:'#4B5A72', line:'#DEDBD0'
-};
-const STAGE_COLORS = [COLORS.skyPale, COLORS.sky, COLORS.amber, COLORS.amber, COLORS.amber, COLORS.amber, COLORS.green, COLORS.coral, COLORS.coral, COLORS.coral];
-
-function destroyChart(key){
-  if(CHARTS[key]){ CHARTS[key].destroy(); delete CHARTS[key]; }
+function setRefreshSpinning(on){
+  const btn=document.getElementById('refresh-btn');
+  if(btn) btn.classList.toggle('spinning',on);
 }
 
-/* ---------- 9. COMPUTATIONS ---------- */
-function isOpenStage(status){
-  if(!status) return false;
-  const closed = ['07 win','08 loss','09 client not interested','10 missed to discuss'];
-  return !closed.includes(String(status).toLowerCase().trim());
+/* ---------- 10. COLUMN SORT HELPER ---------- */
+function makeSortableHeaders(theadEl, cols, viewKey, renderFn){
+  const state=SORT_STATE[viewKey]||{col:null,dir:'asc'};
+  theadEl.innerHTML=`<tr>${cols.map(c=>`
+    <th data-col="${esc(c.key||c.label)}" class="${state.col===(c.key||c.label)?('sort-'+state.dir):''}">
+      ${esc(c.label)}<span class="sort-icon"></span>
+    </th>`).join('')}</tr>`;
+  theadEl.querySelectorAll('th').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const col=th.dataset.col;
+      const cur=SORT_STATE[viewKey]||{col:null,dir:'asc'};
+      SORT_STATE[viewKey]={col,dir:(cur.col===col&&cur.dir==='asc')?'desc':'asc'};
+      renderFn();
+    });
+  });
 }
-function isWinStage(status){ return String(status||'').toLowerCase().trim() === '07 win'; }
-function isLossStage(status){
-  const s = String(status||'').toLowerCase().trim();
-  return s === '08 loss' || s === '09 client not interested';
-}
-
-function computeOverviewKpis(){
-  const totalClients = DATA.clients.length;
-  const activeClients = DATA.clients.filter(c => ['active business','active engagement'].includes(String(c.status||'').toLowerCase())).length;
-  const blueSky = DATA.opportunities.filter(o => String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
-  const openOpps = DATA.opportunities.filter(o => isOpenStage(o.opportunity_status));
-  const pipelineValue = openOpps.reduce((s,o)=> s + (Number(o.estimated_value_usd)||0), 0);
-  const weightedValue = openOpps.reduce((s,o)=> s + (Number(o.probability_weighted_value)||0), 0);
-  const wins = DATA.opportunities.filter(o=>isWinStage(o.opportunity_status)).length;
-  const losses = DATA.opportunities.filter(o=>isLossStage(o.opportunity_status)).length;
-  const winRate = (wins+losses) > 0 ? Math.round((wins/(wins+losses))*100) : null;
-  const thisWeek = isoWeek(new Date().toISOString());
-  const engThisWeek = DATA.engagements.filter(e => isoWeek(e.eng_date) === thisWeek).length;
-
-  return [
-    { label:'Total clients', value: fmtNum(totalClients), sub: `${activeClients} active`, accent:'sky' },
-    { label:'Blue sky opportunities', value: fmtNum(blueSky.length), sub: fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), accent:'amber' },
-    { label:'Open pipeline value', value: fmtMoney(pipelineValue), sub: `${openOpps.length} open opportunities`, accent:'sky' },
-    { label:'Probability-weighted', value: fmtMoney(weightedValue), sub:'across open pipeline', accent:'sky' },
-    { label:'Win rate', value: winRate===null ? '—' : winRate+'%', sub: `${wins} won · ${losses} lost`, accent:'green' },
-    { label:'Engagements this week', value: fmtNum(engThisWeek), sub: `${DATA.engagements.length} logged total`, accent:'amber' }
-  ];
+function applySort(rows,viewKey,defaultKey){
+  const {col,dir}=SORT_STATE[viewKey]||{col:defaultKey,dir:'asc'};
+  if(!col) return rows;
+  return [...rows].sort((a,b)=>{
+    let av=a[col]??'', bv=b[col]??'';
+    if(!isNaN(Number(av))&&!isNaN(Number(bv))){av=Number(av);bv=Number(bv);}
+    const cmp = typeof av==='number'?av-bv:String(av).localeCompare(String(bv));
+    return dir==='asc'?cmp:-cmp;
+  });
 }
 
-function renderKpiCards(containerId, cards){
-  const el = document.getElementById(containerId);
-  el.innerHTML = cards.map(c => `
+/* ---------- 11. KPI CARDS ---------- */
+function renderKpiCards(id,cards){
+  document.getElementById(id).innerHTML=cards.map(c=>`
     <div class="kpi-card accent-${c.accent||'sky'}">
-      <div class="kpi-label">${escapeHtml(c.label)}</div>
+      <div class="kpi-label">${esc(c.label)}</div>
       <div class="kpi-value">${c.value}</div>
-      <div class="kpi-sub">${escapeHtml(c.sub||'')}</div>
-    </div>
-  `).join('');
+      <div class="kpi-sub">${esc(c.sub||'')}</div>
+    </div>`).join('');
 }
 
-/* ---------- 10. RENDER: OVERVIEW ---------- */
+/* ---------- 12. RENDER: OVERVIEW ---------- */
 function renderOverview(){
-  renderKpiCards('ov-kpis', computeOverviewKpis());
+  populateBDMonthFilter();
+  renderBDFunnel();
+  const totalClients=DATA.clients.length;
+  const activeClients=DATA.clients.filter(c=>['active business','active engagement'].includes(String(c.status||'').toLowerCase())).length;
+  const blueSky=DATA.opportunities.filter(o=>String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
+  const openOpps=DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
+  const pipelineVal=openOpps.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0);
+  const weightedVal=openOpps.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0);
+  const wins=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
+  const losses=DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
+  const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
+  const thisWeek=isoWeek(new Date().toISOString());
+  const engThisWeek=DATA.engagements.filter(e=>isoWeek(e.eng_date)===thisWeek).length;
+  const avgOppSize=openOpps.length>0?pipelineVal/openOpps.length:0;
+  const overdueFollowups=DATA.engagements.filter(e=>{
+    if(String(e.follow_up_done||'').toLowerCase()==='yes') return false;
+    if(!e.cta_due_date) return false;
+    return new Date(e.cta_due_date)<new Date();
+  }).length;
+
+  renderKpiCards('ov-kpis',[
+    {label:'Total clients',value:fmtNum(totalClients),sub:`${activeClients} active · ${[...new Set(DATA.clients.map(c=>c.company))].filter(Boolean).length} companies`,accent:'sky'},
+    {label:'Open pipeline',value:fmtMoney(pipelineVal),sub:`${openOpps.length} opportunities`,accent:'sky'},
+    {label:'Weighted pipeline',value:fmtMoney(weightedVal),sub:'probability-adjusted',accent:'sky'},
+    {label:'Blue sky',value:fmtNum(blueSky.length),sub:fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'amber'},
+    {label:'Win rate',value:winRate===null?'—':winRate+'%',sub:`${wins.length} won · ${losses.length} lost`,accent:'green'},
+    {label:'Avg opp size',value:fmtMoney(avgOppSize),sub:'open pipeline',accent:'sky'},
+    {label:'This week',value:fmtNum(engThisWeek),sub:weekRangeLabel(new Date()),accent:'amber'},
+    {label:'Overdue CTAs',value:fmtNum(overdueFollowups),sub:'follow-up past due date',accent:overdueFollowups>0?'coral':'green'}
+  ]);
 
   // Funnel
-  const stages = LOOKUPS.opportunityStatus;
-  const counts = stages.map(s => DATA.opportunities.filter(o => o.opportunity_status === s).length);
-  const maxCount = Math.max(1, ...counts);
-  const funnelEl = document.getElementById('ov-funnel');
-  funnelEl.innerHTML = stages.map((s,i) => `
+  const stages=LOOKUPS.opportunityStatus;
+  const counts=stages.map(s=>DATA.opportunities.filter(o=>o.opportunity_status===s).length);
+  const maxCount=Math.max(1,...counts);
+  document.getElementById('ov-funnel').innerHTML=stages.map((s,i)=>`
     <div class="funnel-row">
-      <div class="funnel-label">${escapeHtml(s.replace(/^\d+\s/,''))}</div>
-      <div class="funnel-track"><div class="funnel-fill" style="width:${(counts[i]/maxCount*100).toFixed(0)}%; background:${STAGE_COLORS[i]||COLORS.sky};"></div></div>
+      <div class="funnel-label">${esc(s.replace(/^\d+\s/,''))}</div>
+      <div class="funnel-track"><div class="funnel-fill" style="width:${(counts[i]/maxCount*100).toFixed(0)}%;background:${STAGE_COLORS[i+1]||COLORS.sky};opacity:0.85;"></div></div>
       <div class="funnel-val">${counts[i]}</div>
-    </div>
-  `).join('');
+    </div>`).join('');
 
-  // Weekly engagement trend (last 10 weeks)
-  const weekMap = {};
-  DATA.engagements.forEach(e => {
-    const wk = isoWeek(e.eng_date);
-    if(!wk) return;
-    weekMap[wk] = (weekMap[wk]||0) + 1;
-  });
-  const sortedWeeks = Object.keys(weekMap).sort();
-  const last10 = sortedWeeks.slice(-10);
+  // Weekly chart
+  const wkMap={};
+  DATA.engagements.forEach(e=>{const wk=isoWeek(e.eng_date);if(wk)wkMap[wk]=(wkMap[wk]||0)+1;});
+  const last10=Object.keys(wkMap).sort().slice(-10);
   destroyChart('ovWeekly');
-  const ctx1 = document.getElementById('ov-weekly-chart').getContext('2d');
-  CHARTS.ovWeekly = new Chart(ctx1, {
-    type:'line',
-    data:{ labels: last10, datasets:[{
-      label:'Engagements', data: last10.map(w=>weekMap[w]),
-      borderColor: COLORS.sky, backgroundColor: COLORS.skyPale, fill:true, tension:0.35, pointRadius:3, pointBackgroundColor: COLORS.skyDeep
-    }]},
-    options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false} },
-      scales:{ y:{ beginAtZero:true, ticks:{precision:0} }, x:{ grid:{display:false} } }
-    }
+  const c1=document.getElementById('ov-weekly-chart').getContext('2d');
+  CHARTS.ovWeekly=new Chart(c1,{type:'line',data:{labels:last10,datasets:[{label:'Engagements',data:last10.map(w=>wkMap[w]),borderColor:COLORS.sky,backgroundColor:COLORS.skyPale,fill:true,tension:0.35,pointRadius:3,pointBackgroundColor:COLORS.skyDeep}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
+
+  // Pipeline by company
+  const coMap={};
+  DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status)).forEach(o=>{
+    const co=(o.company||'Unknown').trim(); coMap[co]=(coMap[co]||0)+(Number(o.estimated_value_usd)||0);
   });
+  const topCo=Object.entries(coMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  document.getElementById('ov-pipeline-company').innerHTML=topCo.length?topCo.map(([c,v])=>`
+    <div class="insight-row"><span class="label">${esc(c)}</span><span class="val">${fmtMoney(v)}</span></div>`).join(''):'<div class="empty-state" style="padding:10px 0">No open pipeline</div>';
+
+  // Therapy area breakdown
+  const taMap={};
+  DATA.clients.forEach(c=>{const t=(c.therapy_area||'Other').trim();taMap[t]=(taMap[t]||0)+1;});
+  const topTA=Object.entries(taMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  document.getElementById('ov-therapy-area').innerHTML=topTA.map(([t,n])=>`
+    <div class="insight-row"><span class="label">${esc(t)}</span><span class="val">${n}</span></div>`).join('');
+
+  // Region breakdown
+  const rMap={};
+  DATA.clients.forEach(c=>{const r=(c.region||'Other').trim();rMap[r]=(rMap[r]||0)+1;});
+  const topR=Object.entries(rMap).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  document.getElementById('ov-region').innerHTML=topR.map(([r,n])=>`
+    <div class="insight-row"><span class="label">${esc(r)}</span><span class="val">${n}</span></div>`).join('');
+
+  // Follow-ups due / overdue
+  const now=new Date(); const in7=new Date(); in7.setDate(in7.getDate()+7);
+  const followups=DATA.engagements.filter(e=>{
+    if(String(e.follow_up_done||'').toLowerCase()==='yes') return false;
+    if(!e.cta_due_date) return false;
+    return new Date(e.cta_due_date)<=in7;
+  }).sort((a,b)=>new Date(a.cta_due_date)-new Date(b.cta_due_date)).slice(0,8);
+  document.getElementById('ov-followup-list').innerHTML=followups.length?followups.map(e=>{
+    const overdue=new Date(e.cta_due_date)<now;
+    return `<div class="alert-row">
+      <div class="alert-dot" style="background:${overdue?'var(--coral)':'var(--amber)'}"></div>
+      <div><div class="alert-text">${esc(e.client_name||'—')} · ${esc(e.company||'—')}</div>
+      <div class="alert-meta">${esc(e.cta_next_step||'—')}</div></div>
+      <div class="alert-date">${fmtDate(e.cta_due_date)}</div>
+    </div>`}).join('')
+    :'<div class="empty-state" style="padding:10px 0">No follow-ups due this week 🎉</div>';
+
+  // Recent outcomes
+  const since90=new Date(); since90.setDate(since90.getDate()-90);
+  const recentOpps=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status)||isLossStage(o.opportunity_status)).slice(0,8);
+  document.getElementById('ov-outcomes-list').innerHTML=recentOpps.length?recentOpps.map(o=>{
+    const won=isWinStage(o.opportunity_status);
+    return `<div class="alert-row">
+      <div class="alert-dot" style="background:${won?'var(--green)':'var(--coral)'}"></div>
+      <div><div class="alert-text">${esc(o.opportunity||'—')} · ${esc(o.company||'—')}</div>
+      <div class="alert-meta">${won?'Won':'Lost'} · ${esc(o.bd_owner||'—')}</div></div>
+      <div class="alert-date">${fmtMoney(o.estimated_value_usd)}</div>
+    </div>`}).join('')
+    :'<div class="empty-state" style="padding:10px 0">No recent outcomes</div>';
 
   // Blue sky table
-  const blueSky = DATA.opportunities.filter(o => String(o.opportunity_status||'').toLowerCase().includes('blue sky'))
-    .sort((a,b)=> (Number(b.estimated_value_usd)||0) - (Number(a.estimated_value_usd)||0)).slice(0,8);
-  const bsTable = document.getElementById('ov-bluesky-table');
-  bsTable.querySelector('thead').innerHTML = `<tr><th>Opportunity</th><th>Company</th><th>BD owner</th><th class="num">Est. value</th></tr>`;
-  bsTable.querySelector('tbody').innerHTML = blueSky.length ? blueSky.map(o => `
-    <tr>
-      <td>${escapeHtml(o.opportunity||'—')}</td>
-      <td>${escapeHtml(o.company||'—')}</td>
-      <td>${escapeHtml(o.bd_owner||'—')}</td>
-      <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="4" class="empty-state">No blue sky opportunities logged yet.</td></tr>`;
+  const bsTbl=document.getElementById('ov-bluesky-table');
+  bsTbl.querySelector('thead').innerHTML='<tr><th>Opportunity</th><th>Company</th><th>BD Owner</th><th class="num">Est. Value</th></tr>';
+  bsTbl.querySelector('tbody').innerHTML=(blueSky.length?[...blueSky].sort((a,b)=>(Number(b.estimated_value_usd)||0)-(Number(a.estimated_value_usd)||0)).slice(0,8).map(o=>`
+    <tr><td>${esc(o.opportunity||'—')}</td><td>${esc(o.company||'—')}</td><td>${esc(o.bd_owner||'—')}</td><td class="num">${fmtMoney(o.estimated_value_usd)}</td></tr>`).join('')
+    :'<tr><td colspan="4" class="empty-state">No blue sky opportunities yet.</td></tr>');
 
-  // Client status mix
-  const statusCounts = {};
-  DATA.clients.forEach(c => { const s = c.status || 'Unspecified'; statusCounts[s] = (statusCounts[s]||0)+1; });
+  // Status doughnut
+  const stMap={};
+  DATA.clients.forEach(c=>{const s=c.status||'Unspecified';stMap[s]=(stMap[s]||0)+1;});
   destroyChart('ovStatus');
-  const ctx2 = document.getElementById('ov-status-chart').getContext('2d');
-  const statusLabels = Object.keys(statusCounts);
-  const statusColorMap = { 'Active business': COLORS.green, 'Active engagement': COLORS.sky, 'Prospect': COLORS.amber, 'Inactive': COLORS.coral, 'Unspecified': COLORS.line };
-  CHARTS.ovStatus = new Chart(ctx2, {
-    type:'doughnut',
-    data:{ labels: statusLabels, datasets:[{ data: statusLabels.map(l=>statusCounts[l]), backgroundColor: statusLabels.map(l=>statusColorMap[l]||COLORS.skyPale), borderWidth:2, borderColor:'#fff' }]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11} } } } }
+  const c2=document.getElementById('ov-status-chart').getContext('2d');
+  const stLbls=Object.keys(stMap);
+  const stCols={'Active business':COLORS.green,'Active engagement':COLORS.sky,'Prospect':COLORS.amber,'Inactive':COLORS.coral,'Unspecified':COLORS.line};
+  CHARTS.ovStatus=new Chart(c2,{type:'doughnut',data:{labels:stLbls,datasets:[{data:stLbls.map(l=>stMap[l]),backgroundColor:stLbls.map(l=>stCols[l]||COLORS.skyPale),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}});
+}
+
+/* ---------- 13. RENDER: BD SALES FUNNEL TRACKER ---------- */
+function populateBDMonthFilter(){
+  const sel=document.getElementById('bd-month-sel');
+  if(!sel) return;
+  const cur=sel.value;
+  // Collect unique months from engagement log
+  const months=new Set();
+  DATA.engagements.forEach(e=>{
+    if(e.eng_date){const d=new Date(e.eng_date);if(!isNaN(d))months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}
   });
+  const sorted=[...months].sort().reverse();
+  sel.innerHTML='<option value="all">All time</option>'+sorted.map(m=>{
+    const [y,mo]=m.split('-');
+    const label=new Date(Number(y),Number(mo)-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+    return `<option value="${m}"${cur===m?' selected':''}>${label}</option>`;
+  }).join('');
+  if(cur) sel.value=cur;
 }
 
-/* ---------- 11. RENDER: CLIENTS ---------- */
-let clientFilters = { search:'', status:'', company:'' };
+function renderBDFunnel(){
+  const sel=document.getElementById('bd-month-sel');
+  const monthFilter=sel?sel.value:'all';
 
-function populateClientFilterOptions(){
-  const statusSel = document.getElementById('cl-filter-status');
-  const companySel = document.getElementById('cl-filter-company');
-  const statuses = [...new Set(DATA.clients.map(c=>c.status).filter(Boolean))].sort();
-  const companies = [...new Set(DATA.clients.map(c=>c.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-  statusSel.innerHTML = '<option value="">All statuses</option>' + statuses.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-  companySel.innerHTML = '<option value="">All companies</option>' + companies.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  // Helper: filter engagements by selected month
+  function filterEngs(arr){
+    if(monthFilter==='all') return arr;
+    return arr.filter(e=>{
+      if(!e.eng_date) return false;
+      const d=new Date(e.eng_date);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`===monthFilter;
+    });
+  }
+  const engs=filterEngs(DATA.engagements);
+
+  // Update section title to show selected month
+  const titleEl=document.getElementById('bd-eng-title');
+  if(titleEl){
+    if(monthFilter==='all') titleEl.textContent='Engagement Overview — All Time';
+    else {
+      const [y,mo]=monthFilter.split('-');
+      const label=new Date(Number(y),Number(mo)-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+      titleEl.textContent=`Engagement Overview — ${label}`;
+    }
+  }
+
+  /* ---- SECTION 1: STAKEHOLDER LIST ---- */
+  const depts=[
+    {label:'Total Clients',key:null},
+    {label:'Medical',key:'Medical'},
+    {label:'Access / HEOR',key:'Market Access/ HEOR'},
+    {label:'Marketing / Comm.',key:'Marketing/ Commercial'},
+    {label:'Procurement',key:'Procurement'},
+    {label:'Digital',key:'Digital'},
+    {label:'Others',key:'Others'}
+  ];
+
+  const isActiveStatus=c=>['active business','active engagement'].includes(String(c.status||'').toLowerCase());
+
+  const totalEl=document.getElementById('bd-s-total');
+  const activeEl=document.getElementById('bd-s-active');
+  if(totalEl) totalEl.innerHTML=depts.map(d=>{
+    const count=d.key?DATA.clients.filter(c=>c.department===d.key).length:DATA.clients.length;
+    return `<div class="bd-metric">
+      <div class="bd-metric-label">${esc(d.label)}</div>
+      <div class="bd-metric-val">${count}</div>
+      <div class="bd-metric-sub">total</div>
+    </div>`;
+  }).join('');
+  if(activeEl) activeEl.innerHTML=depts.map(d=>{
+    const count=d.key
+      ?DATA.clients.filter(c=>c.department===d.key&&isActiveStatus(c)).length
+      :DATA.clients.filter(c=>isActiveStatus(c)).length;
+    return `<div class="bd-metric">
+      <div class="bd-metric-label">${esc(d.label)}</div>
+      <div class="bd-metric-val">${count}</div>
+      <div class="bd-metric-sub">active</div>
+    </div>`;
+  }).join('');
+
+  /* ---- SECTION 2: ENGAGEMENT OVERVIEW ---- */
+  const ftf=engs.filter(e=>e.engagement_type==='In-Person Meeting').length;
+  const virt=engs.filter(e=>e.engagement_type==='Virtual Meeting').length;
+  const call=engs.filter(e=>e.engagement_type==='Phone Call/ Whatsapp').length;
+  const newStake=engs.filter(e=>e.stakeholder_type==='New Stakeholder Development').length;
+  const procure=engs.filter(e=>e.stakeholder_type==='Procurement Engagement').length;
+  const existStake=engs.filter(e=>e.stakeholder_type==='Existing Stakeholder Engagement').length;
+
+  const engEl=document.getElementById('bd-eng');
+  if(engEl) engEl.innerHTML=[
+    {label:'Active Engagements',val:engs.length},
+    {label:'Face to Face',val:ftf},
+    {label:'Virtual Meetings',val:virt},
+    {label:'Calls / WhatsApp',val:call},
+    {label:'New Stakeholders',val:newStake},
+    {label:'Procurement',val:procure},
+    {label:'Existing Stakeholders',val:existStake}
+  ].map(m=>`<div class="bd-metric">
+    <div class="bd-metric-label">${esc(m.label)}</div>
+    <div class="bd-metric-val">${m.val}</div>
+  </div>`).join('');
+
+  /* ---- SECTION 3: OPPORTUNITY MAPPING ---- */
+  const opps=DATA.opportunities;
+  const stN=o=>STAGE_NUM(o.opportunity_status);
+  const oppMetrics=[
+    {label:'Total Mapped',val:opps.length},
+    {label:'Blue Sky',val:opps.filter(o=>stN(o)===1).length},
+    {label:'Identified / Discussed',val:opps.filter(o=>stN(o)===2||stN(o)===3).length},
+    {label:'Proposals',val:opps.filter(o=>stN(o)===4||stN(o)===5).length},
+    {label:'To Win / Active',val:opps.filter(o=>stN(o)===6).length},
+    {label:'Won',val:opps.filter(o=>isWinStage(o.opportunity_status)).length},
+    {label:'Lost / Missed',val:opps.filter(o=>stN(o)>=8).length}
+  ];
+  const oppEl=document.getElementById('bd-opp');
+  if(oppEl) oppEl.innerHTML=oppMetrics.map(m=>`<div class="bd-metric">
+    <div class="bd-metric-label">${esc(m.label)}</div>
+    <div class="bd-metric-val">${m.val}</div>
+  </div>`).join('');
+
+  /* ---- SECTION 4: PIPELINE FUNNEL ---- */
+  function sumVal(arr){ return arr.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0); }
+  const pipelineCols=[
+    {label:'Blue Sky',stages:[1],color:'stage-01'},
+    {label:'In Progress',stages:[2,3,4,5,6],color:'stage-04'},
+    {label:'Proposals',stages:[4,5],color:'stage-05'},
+    {label:'Won',stages:null,filter:o=>isWinStage(o.opportunity_status),color:'stage-07'}
+  ];
+  const pipEl=document.getElementById('bd-pipeline');
+  if(pipEl) pipEl.innerHTML=pipelineCols.map((col,ci)=>{
+    const bucket=col.filter
+      ?opps.filter(col.filter)
+      :opps.filter(o=>col.stages.includes(stN(o)));
+    const isWin=ci===3;
+    return `<div class="bd-pipeline-col">
+      <div class="bd-pipeline-col-head">${esc(col.label)}</div>
+      <div class="bd-pipeline-row">
+        <div class="bd-pipeline-cell">
+          <div class="bd-pipeline-cell-val${isWin?' green':''}">${bucket.length}</div>
+          <div class="bd-pipeline-cell-label">opportunities</div>
+        </div>
+        <div class="bd-pipeline-cell">
+          <div class="bd-pipeline-cell-val${isWin?' green':''}">${fmtMoney(sumVal(bucket))}</div>
+          <div class="bd-pipeline-cell-label">est. value</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
+/* ---------- 14. RENDER: CLIENTS ---------- */
+let clFilters={search:'',status:'',company:'',priority:''};
 function renderClients(){
-  const totalActive = DATA.clients.filter(c=>c.status==='Active business').length;
-  const totalEngaged = DATA.clients.filter(c=>c.status==='Active engagement').length;
-  const totalProspect = DATA.clients.filter(c=>c.status==='Prospect').length;
-  const totalInactive = DATA.clients.filter(c=>c.status==='Inactive').length;
-  renderKpiCards('cl-kpis', [
-    { label:'Total stakeholders', value: fmtNum(DATA.clients.length), sub: `${[...new Set(DATA.clients.map(c=>c.company))].length} companies`, accent:'sky' },
-    { label:'Active business', value: fmtNum(totalActive), sub:'signed projects this year', accent:'green' },
-    { label:'Active engagement', value: fmtNum(totalEngaged), sub:'touchpoint in last 3 months', accent:'sky' },
-    { label:'Prospects', value: fmtNum(totalProspect), sub:'potential, not yet engaged', accent:'amber' },
-    { label:'Inactive', value: fmtNum(totalInactive), sub:'no recent engagement', accent:'coral' }
+  const total=DATA.clients.length;
+  const actBiz=DATA.clients.filter(c=>c.status==='Active business').length;
+  const actEng=DATA.clients.filter(c=>c.status==='Active engagement').length;
+  const prospect=DATA.clients.filter(c=>c.status==='Prospect').length;
+  const inactive=DATA.clients.filter(c=>c.status==='Inactive').length;
+  renderKpiCards('cl-kpis',[
+    {label:'Total',value:fmtNum(total),sub:`${[...new Set(DATA.clients.map(c=>c.company).filter(Boolean))].length} companies`,accent:'sky'},
+    {label:'Active business',value:fmtNum(actBiz),sub:'signed projects',accent:'green'},
+    {label:'Active engagement',value:fmtNum(actEng),sub:'in progress',accent:'sky'},
+    {label:'Prospects',value:fmtNum(prospect),sub:'nurturing',accent:'amber'},
+    {label:'Inactive',value:fmtNum(inactive),sub:'no recent touch',accent:'coral'}
   ]);
 
-  populateClientFilterOptions();
-  document.getElementById('cl-filter-status').value = clientFilters.status;
-  document.getElementById('cl-filter-company').value = clientFilters.company;
+  // Populate filter dropdowns alphabetically
+  const clSel=document.getElementById('cl-filter-company');
+  const prevCo=clSel.value;
+  clSel.innerHTML='<option value="">All companies</option>'+
+    sortAlpha(DATA.clients,'company').map(c=>c.company).filter((v,i,a)=>v&&a.indexOf(v)===i).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  clSel.value=prevCo;
 
-  const rows = DATA.clients.filter(c => {
-    if(clientFilters.status && c.status !== clientFilters.status) return false;
-    if(clientFilters.company && c.company !== clientFilters.company) return false;
-    if(clientFilters.search){
-      const hay = `${c.client_name||''} ${c.company||''} ${c.email||''} ${c.designation||''}`.toLowerCase();
-      if(!hay.includes(clientFilters.search.toLowerCase())) return false;
+  const stSel=document.getElementById('cl-filter-status');
+  const prevSt=stSel.value;
+  stSel.innerHTML='<option value="">All statuses</option>'+
+    LOOKUPS.clientStatus.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  stSel.value=prevSt;
+
+  const priSel=document.getElementById('cl-filter-priority');
+  const prevPri=priSel.value;
+  priSel.innerHTML='<option value="">All priorities</option>'+
+    LOOKUPS.priority.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  priSel.value=prevPri;
+
+  let rows=DATA.clients.filter(c=>{
+    if(clFilters.status&&c.status!==clFilters.status) return false;
+    if(clFilters.company&&c.company!==clFilters.company) return false;
+    if(clFilters.priority&&c.priority!==clFilters.priority) return false;
+    if(clFilters.search){
+      const h=`${c.client_name||''} ${c.company||''} ${c.email||''} ${c.designation||''} ${c.therapy_area||''}`.toLowerCase();
+      if(!h.includes(clFilters.search.toLowerCase())) return false;
     }
     return true;
   });
+  rows=applySort(rows,'clients','company');
 
-  // const table = document.getElementById('cl-table');
-  // table.querySelector('thead').innerHTML = `<tr>
-  //   <th>Company</th><th>Client name</th><th>Designation</th><th>Department</th><th>Therapy area</th><th>Region</th><th>Status</th><th>Priority</th><th>Assigned BD</th><th>Contact</th>
-  // </tr>`;
-  // table.querySelector('tbody').innerHTML = rows.length ? rows.map(c => `
-  //   <tr>
-  //     <td>${escapeHtml(c.company)}</td>
-  //     <td>${escapeHtml(c.client_name)}</td>
-  //     <td>${escapeHtml(c.designation||'—')}</td>
-  //     <td>${escapeHtml(c.department||'—')}</td>
-  //     <td>${escapeHtml(c.therapy_area||'—')}</td>
-  //     <td>${escapeHtml(c.region||'—')}</td>
-  //     <td><span class="tag ${statusTagClass(c.status)}">${escapeHtml(c.status||'—')}</span></td>
-  //     <td><span class="tag ${c.priority==='High'?'tag-coral':c.priority==='Medium'?'tag-amber':'tag-grey'}">${escapeHtml(c.priority||'—')}</span></td>
-  //     <td>${escapeHtml(c.assigned_bd||'—')}</td>
-  //     <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--sky-deep)">${escapeHtml(c.email)}</a>` : '—'}</td>
-  //   </tr>
-  // `).join('') : `<tr><td colspan="10" class="empty-state">No clients match these filters.</td></tr>`;
-  // document.getElementById('cl-count').textContent = `${rows.length} of ${DATA.clients.length} shown`;
-
-  const table = document.getElementById('cl-table');
-
-table.querySelector('thead').innerHTML = `<tr>
-  <th>Company</th>
-  <th>Client name</th>
-  <th>Designation</th>
-  <th>Department</th>
-  <th>Therapy area</th>
-  <th>Region</th>
-  <th>Status</th>
-  <th>Priority</th>
-  <th>Assigned BD</th>
-  <th>Email</th>
-  <th>Phone</th>
-  <th>LinkedIn</th>
-  <th>Notes</th>
-</tr>`;
-
-table.querySelector('tbody').innerHTML = rows.length ? rows.map(c => `
-<tr>
-  <td>${escapeHtml(c.company)}</td>
-  <td>${escapeHtml(c.client_name)}</td>
-  <td>${escapeHtml(c.designation || '—')}</td>
-  <td>${escapeHtml(c.department || '—')}</td>
-  <td>${escapeHtml(c.therapy_area || '—')}</td>
-  <td>${escapeHtml(c.region || '—')}</td>
-  <td><span class="tag ${statusTagClass(c.status)}">${escapeHtml(c.status || '—')}</span></td>
-  <td><span class="tag ${c.priority==='High'?'tag-coral':c.priority==='Medium'?'tag-amber':'tag-grey'}">${escapeHtml(c.priority || '—')}</span></td>
-  <td>${escapeHtml(c.assigned_bd || '—')}</td>
-
-  <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}">${escapeHtml(c.email)}</a>` : '—'}</td>
-
-  <td>${escapeHtml(c.phone || '—')}</td>
-
-  <td>${c.linkedin_url ? `<a href="${escapeHtml(c.linkedin_url)}" target="_blank">View Profile</a>` : '—'}</td>
-
-  <td>${escapeHtml(c.notes || '—')}</td>
-</tr>
-`).join('') : `<tr><td colspan="13" class="empty-state">No clients match these filters.</td></tr>`;
-
-document.getElementById('cl-count').textContent = `${rows.length} of ${DATA.clients.length} shown`;
+  const cols=[
+    {key:'company',label:'Company'},{key:'client_name',label:'Name'},{key:'designation',label:'Designation'},
+    {key:'department',label:'Department'},{key:'therapy_area',label:'Therapy Area'},{key:'region',label:'Region'},
+    {key:'status',label:'Status'},{key:'priority',label:'Priority'},{key:'assigned_bd',label:'Assigned BD'},
+    {key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'linkedin_url',label:'LinkedIn'},{key:'notes',label:'Notes'},
+    {key:'_actions',label:''}
+  ];
+  const tbl=document.getElementById('cl-table');
+  makeSortableHeaders(tbl.querySelector('thead'),cols,'clients',renderClients);
+  tbl.querySelector('tbody').innerHTML=rows.length?rows.map(c=>`
+    <tr>
+      <td><strong>${esc(c.company)}</strong></td>
+      <td>${esc(c.client_name)}</td>
+      <td>${esc(c.designation||'—')}</td>
+      <td>${esc(c.department||'—')}</td>
+      <td>${esc(c.therapy_area||'—')}</td>
+      <td>${esc(c.region||'—')}</td>
+      <td><span class="${clientStatusClass(c.status)}">${esc(c.status||'—')}</span></td>
+      <td><span class="${priorityClass(c.priority)}">${esc(c.priority||'—')}</span></td>
+      <td>${esc(c.assigned_bd||'—')}</td>
+      <td>${c.email?`<a href="mailto:${esc(c.email)}" style="color:var(--sky-deep)">${esc(c.email)}</a>`:'—'}</td>
+      <td>${esc(c.phone||'—')}</td>
+      <td>${c.linkedin_url?`<a href="${esc(c.linkedin_url)}" target="_blank" style="color:var(--sky-deep)">View</a>`:'—'}</td>
+      <td style="max-width:180px;white-space:normal">${esc(c.notes||'—')}</td>
+      <td class="td-actions">${currentUser.role==='admin'?`<button class="btn btn-edit btn-sm" onclick="openEditModal('clients','${esc(c.id)}')">Edit</button>`:''}</td>
+    </tr>`).join('')
+    :'<tr><td colspan="14" class="empty-state">No clients match these filters.</td></tr>';
+  document.getElementById('cl-count').textContent=`${rows.length} of ${total}`;
 }
 
-/* ---------- 12. RENDER: OPPORTUNITIES ---------- */
-let oppFilters = { search:'', status:'', bd:'' };
-
-function populateOppFilterOptions(){
-  const statusSel = document.getElementById('op-filter-status');
-  const bdSel = document.getElementById('op-filter-bd');
-  const statuses = [...new Set(DATA.opportunities.map(o=>o.opportunity_status).filter(Boolean))].sort();
-  const bds = [...new Set(DATA.opportunities.map(o=>o.bd_owner).filter(Boolean))].sort();
-  statusSel.innerHTML = '<option value="">All stages</option>' + statuses.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
-  bdSel.innerHTML = '<option value="">All BD owners</option>' + bds.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
-}
+/* ---------- 14. RENDER: OPPORTUNITIES ---------- */
+let opFilters={search:'',status:'',company:'',bd:''};
 
 function renderOpportunities(){
-  const open = DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
-  const blueSky = DATA.opportunities.filter(o => String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
-  const wins = DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
-  const losses = DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
-  const winRate = (wins.length+losses.length) > 0 ? Math.round((wins.length/(wins.length+losses.length))*100) : null;
-
-  renderKpiCards('op-kpis', [
-    { label:'Total opportunities', value: fmtNum(DATA.opportunities.length), sub: `${open.length} currently open`, accent:'sky' },
-    { label:'Blue sky', value: fmtNum(blueSky.length), sub: fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), accent:'amber' },
-    { label:'Open pipeline value', value: fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), sub:'estimated, USD', accent:'sky' },
-    { label:'Probability-weighted', value: fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)), sub:'open pipeline only', accent:'sky' },
-    { label:'Won', value: fmtNum(wins.length), sub: fmtMoney(wins.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)), accent:'green' },
-    { label:'Win rate', value: winRate===null?'—':winRate+'%', sub: `${wins.length} won · ${losses.length} lost`, accent: winRate>=50?'green':'coral' }
+  const open=DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
+  const blueSky=DATA.opportunities.filter(o=>String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
+  const wins=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
+  const losses=DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
+  const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
+  renderKpiCards('op-kpis',[
+    {label:'Total',value:fmtNum(DATA.opportunities.length),sub:`${open.length} open`,accent:'sky'},
+    {label:'Blue sky',value:fmtNum(blueSky.length),sub:fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'amber'},
+    {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),sub:'estimated USD',accent:'sky'},
+    {label:'Weighted',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)),sub:'open pipeline',accent:'sky'},
+    {label:'Won',value:fmtNum(wins.length),sub:fmtMoney(wins.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'green'},
+    {label:'Win rate',value:winRate===null?'—':winRate+'%',sub:`${wins.length}W · ${losses.length}L`,accent:winRate>=50?'green':'coral'}
   ]);
 
-  // Stage chart: count (bar, left axis) + weighted value (bar, right axis)
-  const stages = LOOKUPS.opportunityStatus;
-  const counts = stages.map(s => DATA.opportunities.filter(o=>o.opportunity_status===s).length);
-  const values = stages.map(s => DATA.opportunities.filter(o=>o.opportunity_status===s).reduce((sum,o)=>sum+(Number(o.probability_weighted_value)||0),0));
+  // Stage chart
+  const stages=LOOKUPS.opportunityStatus;
+  const stageCounts=stages.map(s=>DATA.opportunities.filter(o=>o.opportunity_status===s).length);
+  const stageVals=stages.map(s=>DATA.opportunities.filter(o=>o.opportunity_status===s).reduce((sum,o)=>sum+(Number(o.probability_weighted_value)||0),0));
   destroyChart('opStage');
-  const ctx = document.getElementById('op-stage-chart').getContext('2d');
-  CHARTS.opStage = new Chart(ctx, {
-    data:{
-      labels: stages.map(s=>s.replace(/^\d+\s/,'')),
-      datasets:[
-        { type:'bar', label:'Count', data:counts, backgroundColor: COLORS.sky, yAxisID:'yCount', borderRadius:4, maxBarThickness:34 },
-        { type:'line', label:'Weighted value (USD)', data:values, borderColor: COLORS.amber, backgroundColor: COLORS.amber, yAxisID:'yValue', tension:0.3, pointRadius:3 }
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:'index', intersect:false },
-      scales:{
-        x:{ ticks:{ font:{size:10}, maxRotation:40, minRotation:40 }, grid:{display:false} },
-        yCount:{ position:'left', beginAtZero:true, ticks:{precision:0}, title:{display:true,text:'Count'} },
-        yValue:{ position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, title:{display:true,text:'USD'} }
-      },
-      plugins:{ legend:{ position:'bottom', labels:{boxWidth:10,font:{size:11}} } }
-    }
+  const ctx=document.getElementById('op-stage-chart').getContext('2d');
+  CHARTS.opStage=new Chart(ctx,{
+    data:{labels:stages.map(s=>s.replace(/^\d+\s/,'')),datasets:[
+      {type:'bar',label:'Count',data:stageCounts,backgroundColor:STAGE_COLORS.slice(1),yAxisID:'yCount',borderRadius:4,maxBarThickness:36},
+      {type:'line',label:'Weighted value',data:stageVals,borderColor:COLORS.amber,backgroundColor:COLORS.amber,yAxisID:'yValue',tension:0.3,pointRadius:3}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      scales:{x:{ticks:{font:{size:9},maxRotation:40,minRotation:40},grid:{display:false}},
+        yCount:{position:'left',beginAtZero:true,ticks:{precision:0},title:{display:true,text:'Count'}},
+        yValue:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'USD'}}},
+      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}
   });
 
-  populateOppFilterOptions();
-  document.getElementById('op-filter-status').value = oppFilters.status;
-  document.getElementById('op-filter-bd').value = oppFilters.bd;
+  // Populate filters alphabetically
+  const opCoSel=document.getElementById('op-filter-company');
+  const prevOpCo=opCoSel.value;
+  opCoSel.innerHTML='<option value="">All companies</option>'+
+    [...new Set(DATA.opportunities.map(o=>o.company).filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  opCoSel.value=prevOpCo;
 
-  const rows = DATA.opportunities.filter(o => {
-    if(oppFilters.status && o.opportunity_status !== oppFilters.status) return false;
-    if(oppFilters.bd && o.bd_owner !== oppFilters.bd) return false;
-    if(oppFilters.search){
-      const hay = `${o.opportunity||''} ${o.company||''} ${o.client_name||''} ${o.rfp_id||''}`.toLowerCase();
-      if(!hay.includes(oppFilters.search.toLowerCase())) return false;
+  const bdSel=document.getElementById('op-filter-bd');
+  const prevBd=bdSel.value;
+  bdSel.innerHTML='<option value="">All BD owners</option>'+
+    [...new Set(DATA.opportunities.map(o=>o.bd_owner).filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  bdSel.value=prevBd;
+
+  const stSel=document.getElementById('op-filter-status');
+  const prevSt=stSel.value;
+  stSel.innerHTML='<option value="">All stages</option>'+
+    LOOKUPS.opportunityStatus.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  stSel.value=prevSt;
+
+  let rows=DATA.opportunities.filter(o=>{
+    if(opFilters.status&&o.opportunity_status!==opFilters.status) return false;
+    if(opFilters.company&&o.company!==opFilters.company) return false;
+    if(opFilters.bd&&o.bd_owner!==opFilters.bd) return false;
+    if(opFilters.search){
+      const h=`${o.opportunity||''} ${o.company||''} ${o.client_name||''}`.toLowerCase();
+      if(!h.includes(opFilters.search.toLowerCase())) return false;
     }
     return true;
   });
+  rows=applySort(rows,'opportunities','company');
 
-  // const table = document.getElementById('op-table');
-  // table.querySelector('thead').innerHTML = `<tr>
-  //   <th>RFP ID</th><th>Company</th><th>Client</th><th>Opportunity</th><th>Stage</th><th>BD owner</th><th class="num">Est. value</th><th class="num">Prob.</th><th class="num">Weighted</th><th>Expected close</th>
-  // </tr>`;
-  // table.querySelector('tbody').innerHTML = rows.length ? rows.map(o => `
-  //   <tr>
-  //     <td>${escapeHtml(o.rfp_id||'—')}</td>
-  //     <td>${escapeHtml(o.company||'—')}</td>
-  //     <td>${escapeHtml(o.client_name||'—')}</td>
-  //     <td>${escapeHtml(o.opportunity||'—')}</td>
-  //     <td><span class="tag ${statusTagClass(o.opportunity_status)}">${escapeHtml((o.opportunity_status||'—').replace(/^\d+\s/,''))}</span></td>
-  //     <td>${escapeHtml(o.bd_owner||'—')}</td>
-  //     <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
-  //     <td class="num">${o.probability_pct!=null ? Math.round(o.probability_pct*100)+'%' : '—'}</td>
-  //     <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
-  //     <td>${fmtDate(o.expected_close_date)}</td>
-  //   </tr>
-  // `).join('') : `<tr><td colspan="10" class="empty-state">No opportunities match these filters.</td></tr>`;
-  // document.getElementById('op-count').textContent = `${rows.length} of ${DATA.opportunities.length} shown`;
-
-  const table = document.getElementById('op-table');
-
-table.querySelector('thead').innerHTML = `<tr>
-  <th>RFP ID</th>
-  <th>Company</th>
-  <th>Client</th>
-  <th>Opportunity</th>
-  <th>Stage</th>
-  <th>Discussion Date</th>
-  <th>Pitch Date</th>
-  <th>Proposal Submission</th>
-  <th>Expected Close</th>
-  <th>BD Owner</th>
-  <th>Technical Lead</th>
-  <th class="num">Est. Value</th>
-  <th class="num">Probability</th>
-  <th class="num">Weighted Value</th>
-  <th>Notes</th>
-</tr>`;
-
-table.querySelector('tbody').innerHTML = rows.length ? rows.map(o => `
-  <tr>
-    <td>${escapeHtml(o.rfp_id || '—')}</td>
-    <td>${escapeHtml(o.company || '—')}</td>
-    <td>${escapeHtml(o.client_name || '—')}</td>
-    <td>${escapeHtml(o.opportunity || '—')}</td>
-
-    <td>
-      <span class="tag ${statusTagClass(o.opportunity_status)}">
-        ${escapeHtml((o.opportunity_status || '—').replace(/^\d+\s/, ''))}
-      </span>
-    </td>
-
-    <td>${fmtDate(o.discussion_date)}</td>
-    <td>${fmtDate(o.pitch_date)}</td>
-    <td>${fmtDate(o.proposal_submission_date)}</td>
-    <td>${fmtDate(o.expected_close_date)}</td>
-
-    <td>${escapeHtml(o.bd_owner || '—')}</td>
-    <td>${escapeHtml(o.technical_lead || '—')}</td>
-
-    <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
-    <td class="num">${o.probability_pct != null ? Math.round(o.probability_pct * 100) + '%' : '—'}</td>
-    <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
-
-    <td>${escapeHtml(o.notes || '—')}</td>
-  </tr>
-`).join('') : `
-  <tr>
-    <td colspan="15" class="empty-state">No opportunities match these filters.</td>
-  </tr>
-`;
-
-document.getElementById('op-count').textContent = `${rows.length} of ${DATA.opportunities.length} shown`;
+  const cols=[
+    {key:'company',label:'Company'},{key:'client_name',label:'Client'},{key:'opportunity',label:'Opportunity'},
+    {key:'opportunity_status',label:'Stage'},{key:'bd_owner',label:'BD Owner'},{key:'technical_lead',label:'Tech Lead'},
+    {key:'estimated_value_usd',label:'Est. Value'},{key:'probability_pct',label:'Prob.'},
+    {key:'probability_weighted_value',label:'Weighted'},{key:'expected_close_date',label:'Close Date'},
+    {key:'notes',label:'Notes'},{key:'_actions',label:''}
+  ];
+  const tbl=document.getElementById('op-table');
+  makeSortableHeaders(tbl.querySelector('thead'),cols,'opportunities',renderOpportunities);
+  tbl.querySelector('tbody').innerHTML=rows.length?rows.map(o=>{
+    const stageN=STAGE_NUM(o.opportunity_status);
+    return `<tr>
+      <td><strong>${esc(o.company||'—')}</strong></td>
+      <td>${esc(o.client_name||'—')}</td>
+      <td>${esc(o.opportunity||'—')}</td>
+      <td><span class="${stageTagClassN(stageN)}">${esc((o.opportunity_status||'—').replace(/^\d+\s/,''))}</span></td>
+      <td>${esc(o.bd_owner||'—')}</td>
+      <td>${esc(o.technical_lead||'—')}</td>
+      <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
+      <td class="num">${o.probability_pct!=null?Math.round(o.probability_pct*100)+'%':'—'}</td>
+      <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
+      <td>${fmtDate(o.expected_close_date)}</td>
+      <td style="max-width:160px;white-space:normal">${esc(o.notes||'—')}</td>
+      <td class="td-actions">${currentUser.role==='admin'?`<button class="btn btn-edit btn-sm" onclick="openEditModal('opportunities','${esc(o.id)}')">Edit</button>`:''}</td>
+    </tr>`}).join('')
+    :'<tr><td colspan="12" class="empty-state">No opportunities match these filters.</td></tr>';
+  document.getElementById('op-count').textContent=`${rows.length} of ${DATA.opportunities.length}`;
 }
 
-/* ---------- 13. RENDER: ENGAGEMENTS ---------- */
-let engFilters = { search:'', type:'', followup:'' };
-
-function populateEngFilterOptions(){
-  const typeSel = document.getElementById('eg-filter-type');
-  const types = [...new Set(DATA.engagements.map(e=>e.engagement_type).filter(Boolean))].sort();
-  typeSel.innerHTML = '<option value="">All engagement types</option>' + types.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
-}
+/* ---------- 15. RENDER: ENGAGEMENTS ---------- */
+let egFilters={search:'',type:'',company:'',followup:''};
 
 function renderEngagements(){
-  const thisWeek = isoWeek(new Date().toISOString());
-  const engThisWeek = DATA.engagements.filter(e => isoWeek(e.eng_date) === thisWeek).length;
-  const pending = DATA.engagements.filter(e => String(e.follow_up_done||'').toLowerCase() !== 'yes').length;
-  const ledToRfp = DATA.engagements.filter(e => String(e.engagement_outcome||'').toLowerCase().includes('led to rfp')).length;
-
-  renderKpiCards('eg-kpis', [
-    { label:'Total engagements', value: fmtNum(DATA.engagements.length), sub:'logged touchpoints', accent:'sky' },
-    { label:'This week', value: fmtNum(engThisWeek), sub: weekRangeLabel(new Date()), accent:'amber' },
-    { label:'Follow-up pending', value: fmtNum(pending), sub:'needs a next step', accent:'coral' },
-    { label:'Led to RFP', value: fmtNum(ledToRfp), sub:'of all logged engagements', accent:'green' }
+  const thisWeek=isoWeek(new Date().toISOString());
+  const engThisWeek=DATA.engagements.filter(e=>isoWeek(e.eng_date)===thisWeek).length;
+  const pending=DATA.engagements.filter(e=>String(e.follow_up_done||'').toLowerCase()!=='yes').length;
+  const ledToRfp=DATA.engagements.filter(e=>String(e.engagement_outcome||'').toLowerCase().includes('led to rfp')).length;
+  renderKpiCards('eg-kpis',[
+    {label:'Total',value:fmtNum(DATA.engagements.length),sub:'logged touchpoints',accent:'sky'},
+    {label:'This week',value:fmtNum(engThisWeek),sub:weekRangeLabel(new Date()),accent:'amber'},
+    {label:'Follow-up pending',value:fmtNum(pending),sub:'needs attention',accent:'coral'},
+    {label:'Led to RFP',value:fmtNum(ledToRfp),sub:'conversion events',accent:'green'}
   ]);
 
-  // Weekly bar chart, last 12 weeks
-  const weekMap = {};
-  DATA.engagements.forEach(e => { const wk = isoWeek(e.eng_date); if(wk) weekMap[wk]=(weekMap[wk]||0)+1; });
-  const weeks = Object.keys(weekMap).sort().slice(-12);
+  // Weekly bar chart
+  const wkMap={};
+  DATA.engagements.forEach(e=>{const wk=isoWeek(e.eng_date);if(wk)wkMap[wk]=(wkMap[wk]||0)+1;});
+  const weeks=Object.keys(wkMap).sort().slice(-12);
   destroyChart('egWeekly');
-  const ctx = document.getElementById('eg-weekly-chart').getContext('2d');
-  CHARTS.egWeekly = new Chart(ctx, {
-    type:'bar',
-    data:{ labels: weeks, datasets:[{ label:'Engagements', data: weeks.map(w=>weekMap[w]), backgroundColor: COLORS.sky, borderRadius:5, maxBarThickness:38 }]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, ticks:{precision:0}}, x:{grid:{display:false}} } }
-  });
+  const ctx=document.getElementById('eg-weekly-chart').getContext('2d');
+  CHARTS.egWeekly=new Chart(ctx,{type:'bar',data:{labels:weeks,datasets:[{label:'Engagements',data:weeks.map(w=>wkMap[w]),backgroundColor:COLORS.sky,borderRadius:4,maxBarThickness:36}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
 
-  populateEngFilterOptions();
-  document.getElementById('eg-filter-type').value = engFilters.type;
-  document.getElementById('eg-filter-followup').value = engFilters.followup;
+  // Company filter alphabetically
+  const egCoSel=document.getElementById('eg-filter-company');
+  const prevEgCo=egCoSel.value;
+  egCoSel.innerHTML='<option value="">All companies</option>'+
+    [...new Set(DATA.engagements.map(e=>e.company).filter(Boolean))].sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  egCoSel.value=prevEgCo;
 
-  const rows = DATA.engagements.filter(e => {
-    if(engFilters.type && e.engagement_type !== engFilters.type) return false;
-    if(engFilters.followup === 'yes' && String(e.follow_up_done||'').toLowerCase() !== 'yes') return false;
-    if(engFilters.followup === 'no' && String(e.follow_up_done||'').toLowerCase() === 'yes') return false;
-    if(engFilters.search){
-      const hay = `${e.client_name||''} ${e.company||''} ${e.discussion_points||''} ${e.cta_next_step||''}`.toLowerCase();
-      if(!hay.includes(engFilters.search.toLowerCase())) return false;
+  const typeSel=document.getElementById('eg-filter-type');
+  const prevType=typeSel.value;
+  typeSel.innerHTML='<option value="">All types</option>'+
+    LOOKUPS.engagementTypes.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  typeSel.value=prevType;
+
+  let rows=DATA.engagements.filter(e=>{
+    if(egFilters.type&&e.engagement_type!==egFilters.type) return false;
+    if(egFilters.company&&e.company!==egFilters.company) return false;
+    if(egFilters.followup==='yes'&&String(e.follow_up_done||'').toLowerCase()!=='yes') return false;
+    if(egFilters.followup==='no'&&String(e.follow_up_done||'').toLowerCase()==='yes') return false;
+    if(egFilters.search){
+      const h=`${e.client_name||''} ${e.company||''} ${e.discussion_points||''} ${e.cta_next_step||''}`.toLowerCase();
+      if(!h.includes(egFilters.search.toLowerCase())) return false;
     }
     return true;
   });
+  rows=applySort(rows,'engagements','company');
 
-  // 
-  
-  const table = document.getElementById('eg-table');
-
-table.querySelector('thead').innerHTML = `<tr>
-  <th>Month</th>
-  <th>Date</th>
-  <th>Client</th>
-  <th>Company</th>
-  <th>Designation</th>
-  <th>BD / PM</th>
-  <th>Type</th>
-  <th>Platform / Venue</th>
-  <th>Stakeholder Type</th>
-  <th>Objective</th>
-  <th>Discussion Points</th>
-  <th>Outcome</th>
-  <th>Next Step</th>
-  <th>CTA Due</th>
-  <th>CTA Owner</th>
-  <th>Follow-up</th>
-</tr>`;
-
-table.querySelector('tbody').innerHTML = rows.length ? rows.map(e => `
-  <tr>
-    <td>${fmtDate(e.eng_month)}</td>
-    <td>${fmtDate(e.eng_date)}</td>
-    <td>${escapeHtml(e.client_name || '—')}</td>
-    <td>${escapeHtml(e.company || '—')}</td>
-    <td>${escapeHtml(e.designation || '—')}</td>
-    <td>${escapeHtml(e.bd_pm || '—')}</td>
-
-    <td><span class="tag tag-sky">${escapeHtml(e.engagement_type || '—')}</span></td>
-
-    <td>${escapeHtml(
-      e.platform_venue === 0
-        ? 'Virtual'
-        : e.platform_venue === 1
-        ? 'In Person'
-        : e.platform_venue || '—'
-    )}</td>
-
-    <td>${escapeHtml(e.stakeholder_type || '—')}</td>
-
-    <td>${escapeHtml(e.engagement_objective || '—')}</td>
-
-    <td>${escapeHtml(e.discussion_points || '—')}</td>
-
-    <td>${escapeHtml(e.engagement_outcome || '—')}</td>
-
-    <td>${escapeHtml(e.cta_next_step || '—')}</td>
-
-    <td>${fmtDate(e.cta_due_date)}</td>
-
-    <td>${escapeHtml(e.cta_owner || '—')}</td>
-
-    <td>
-      <span class="tag ${
-        String(e.follow_up_done || '').toLowerCase() === 'yes'
-          ? 'tag-green'
-          : 'tag-amber'
-      }">
-        ${escapeHtml(e.follow_up_done || 'No')}
-      </span>
-    </td>
-  </tr>
-`).join('') : `
-  <tr>
-    <td colspan="16" class="empty-state">No engagements match these filters.</td>
-  </tr>
-`;
-
-document.getElementById('eg-count').textContent =
-  `${rows.length} of ${DATA.engagements.length} shown`;
+  const cols=[
+    {key:'eng_date',label:'Date'},{key:'client_name',label:'Client'},{key:'company',label:'Company'},
+    {key:'designation',label:'Designation'},{key:'bd_pm',label:'BD / PM'},{key:'engagement_type',label:'Type'},
+    {key:'platform_venue',label:'Platform'},{key:'stakeholder_type',label:'Stakeholder'},
+    {key:'engagement_objective',label:'Objective'},{key:'engagement_outcome',label:'Outcome'},
+    {key:'discussion_points',label:'Discussion'},{key:'cta_next_step',label:'Next Step'},
+    {key:'cta_due_date',label:'CTA Due'},{key:'cta_owner',label:'CTA Owner'},
+    {key:'follow_up_done',label:'Follow-up'},{key:'_actions',label:''}
+  ];
+  const tbl=document.getElementById('eg-table');
+  makeSortableHeaders(tbl.querySelector('thead'),cols,'engagements',renderEngagements);
+  tbl.querySelector('tbody').innerHTML=rows.length?rows.map(e=>`
+    <tr>
+      <td style="white-space:nowrap">${fmtDate(e.eng_date)}</td>
+      <td>${esc(e.client_name||'—')}</td>
+      <td><strong>${esc(e.company||'—')}</strong></td>
+      <td>${esc(e.designation||'—')}</td>
+      <td>${esc(e.bd_pm||'—')}</td>
+      <td><span class="${engTypeClass(e.engagement_type)}">${esc(e.engagement_type||'—')}</span></td>
+      <td>${esc(e.platform_venue||'—')}</td>
+      <td>${esc(e.stakeholder_type||'—')}</td>
+      <td>${esc(e.engagement_objective||'—')}</td>
+      <td>${esc(e.engagement_outcome||'—')}</td>
+      <td style="max-width:180px;white-space:normal">${esc(e.discussion_points||'—')}</td>
+      <td style="max-width:160px;white-space:normal">${esc(e.cta_next_step||'—')}</td>
+      <td style="white-space:nowrap">${fmtDate(e.cta_due_date)}</td>
+      <td>${esc(e.cta_owner||'—')}</td>
+      <td><span class="${followUpClass(e.follow_up_done)}">${esc(e.follow_up_done||'No')}</span></td>
+      <td class="td-actions">${currentUser.role==='admin'?`<button class="btn btn-edit btn-sm" onclick="openEditModal('engagements','${esc(e.id)}')">Edit</button>`:''}</td>
+    </tr>`).join('')
+    :'<tr><td colspan="16" class="empty-state">No engagements match these filters.</td></tr>';
+  document.getElementById('eg-count').textContent=`${rows.length} of ${DATA.engagements.length}`;
 }
 
-/* ---------- 14. RENDER: COMPANIES ---------- */
-let companySearch = '';
+/* ---------- 16. RENDER: COMPANIES ---------- */
+let coFilters={search:'',onboarding:''};
 
-function normCompany(name){ return (name||'').trim().toLowerCase(); }
-
+function normCo(n){ return (n||'').trim().toLowerCase(); }
 function computeCompanyRollup(){
-  const map = {}; // normName -> row
+  const map={};
   function ensure(name){
-    const norm = normCompany(name);
-    if(!norm) return null;
-    if(!map[norm]) map[norm] = { company: name.trim(), onboarding_status:null, totalClients:0, activeClients:0, openOpps:0, pipelineValue:0, weightedValue:0, wins:0, engagements:0, lastEngagement:null };
+    const norm=normCo(name); if(!norm) return null;
+    if(!map[norm]) map[norm]={company:name.trim(),onboarding_status:null,totalClients:0,activeClients:0,openOpps:0,pipelineValue:0,weightedValue:0,wins:0,engagements:0,lastEngagement:null};
     return map[norm];
   }
-  DATA.companies.forEach(c => { const r = ensure(c.company); if(r) r.onboarding_status = c.onboarding_status; });
-  DATA.clients.forEach(c => {
-    const r = ensure(c.company); if(!r) return;
-    r.totalClients++;
-    if(['active business','active engagement'].includes(String(c.status||'').toLowerCase())) r.activeClients++;
-  });
-  DATA.opportunities.forEach(o => {
-    const r = ensure(o.company); if(!r) return;
-    if(isOpenStage(o.opportunity_status)){
-      r.openOpps++;
-      r.pipelineValue += Number(o.estimated_value_usd)||0;
-      r.weightedValue += Number(o.probability_weighted_value)||0;
-    }
-    if(isWinStage(o.opportunity_status)) r.wins++;
-  });
-  DATA.engagements.forEach(e => {
-    const r = ensure(e.company); if(!r) return;
-    r.engagements++;
-    if(!r.lastEngagement || new Date(e.eng_date) > new Date(r.lastEngagement)) r.lastEngagement = e.eng_date;
-  });
-  return Object.values(map).sort((a,b)=> b.pipelineValue - a.pipelineValue);
+  DATA.companies.forEach(c=>{const r=ensure(c.company);if(r)r.onboarding_status=c.onboarding_status;});
+  DATA.clients.forEach(c=>{const r=ensure(c.company);if(!r)return;r.totalClients++;if(['active business','active engagement'].includes(String(c.status||'').toLowerCase()))r.activeClients++;});
+  DATA.opportunities.forEach(o=>{const r=ensure(o.company);if(!r)return;if(isOpenStage(o.opportunity_status)){r.openOpps++;r.pipelineValue+=Number(o.estimated_value_usd)||0;r.weightedValue+=Number(o.probability_weighted_value)||0;}if(isWinStage(o.opportunity_status))r.wins++;});
+  DATA.engagements.forEach(e=>{const r=ensure(e.company);if(!r)return;r.engagements++;if(!r.lastEngagement||new Date(e.eng_date)>new Date(r.lastEngagement))r.lastEngagement=e.eng_date;});
+  return Object.values(map).sort((a,b)=>a.company.localeCompare(b.company));
 }
 
 function renderCompanies(){
-  const rollup = computeCompanyRollup();
-  const withActiveBusiness = rollup.filter(r=>r.activeClients>0).length;
-  const totalPipeline = rollup.reduce((s,r)=>s+r.pipelineValue,0);
-  const totalWins = rollup.reduce((s,r)=>s+r.wins,0);
-
-  renderKpiCards('co-kpis', [
-    { label:'Companies tracked', value: fmtNum(rollup.length), sub: `${withActiveBusiness} with active business`, accent:'sky' },
-    { label:'Combined open pipeline', value: fmtMoney(totalPipeline), sub:'across all companies', accent:'sky' },
-    { label:'Total wins', value: fmtNum(totalWins), sub:'opportunities won', accent:'green' },
-    { label:'Onboarding on file', value: fmtNum(DATA.companies.filter(c=>c.onboarding_status).length), sub: `of ${DATA.companies.length} listed companies`, accent:'amber' }
+  const rollup=computeCompanyRollup();
+  const withBiz=rollup.filter(r=>r.activeClients>0).length;
+  renderKpiCards('co-kpis',[
+    {label:'Companies',value:fmtNum(rollup.length),sub:`${withBiz} with active business`,accent:'sky'},
+    {label:'Combined pipeline',value:fmtMoney(rollup.reduce((s,r)=>s+r.pipelineValue,0)),sub:'open opportunities',accent:'sky'},
+    {label:'Total wins',value:fmtNum(rollup.reduce((s,r)=>s+r.wins,0)),sub:'closed won',accent:'green'},
+    {label:'Onboarding on file',value:fmtNum(DATA.companies.filter(c=>c.onboarding_status).length),sub:`of ${DATA.companies.length} listed`,accent:'amber'}
   ]);
 
-  const rows = companySearch
-    ? rollup.filter(r => r.company.toLowerCase().includes(companySearch.toLowerCase()))
-    : rollup;
+  // Onboarding filter
+  const onbSel=document.getElementById('co-filter-onboarding');
+  const prevOnb=onbSel.value;
+  const onbStatuses=[...new Set(DATA.companies.map(c=>c.onboarding_status).filter(Boolean))].sort();
+  onbSel.innerHTML='<option value="">All onboarding statuses</option>'+onbStatuses.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  onbSel.value=prevOnb;
 
-  const table = document.getElementById('co-table');
-  table.querySelector('thead').innerHTML = `<tr>
-    <th>Company</th><th>Onboarding</th><th class="num">Clients</th><th class="num">Active</th><th class="num">Open opps</th><th class="num">Pipeline value</th><th class="num">Weighted value</th><th class="num">Wins</th><th class="num">Engagements</th><th>Last engagement</th>
-  </tr>`;
-  table.querySelector('tbody').innerHTML = rows.length ? rows.map(r => `
-    <tr>
-      <td><strong>${escapeHtml(r.company)}</strong></td>
-      <td>${r.onboarding_status ? `<span class="tag tag-green">${escapeHtml(r.onboarding_status)}</span>` : `<span class="tag tag-grey">Not on file</span>`}</td>
+  let rows=rollup.filter(r=>{
+    if(coFilters.onboarding&&r.onboarding_status!==coFilters.onboarding) return false;
+    if(coFilters.search&&!r.company.toLowerCase().includes(coFilters.search.toLowerCase())) return false;
+    return true;
+  });
+  rows=applySort(rows,'companies','company');
+
+  const cols=[
+    {key:'company',label:'Company'},{key:'onboarding_status',label:'Onboarding'},
+    {key:'totalClients',label:'Clients'},{key:'activeClients',label:'Active'},
+    {key:'openOpps',label:'Open Opps'},{key:'pipelineValue',label:'Pipeline'},
+    {key:'weightedValue',label:'Weighted'},{key:'wins',label:'Wins'},
+    {key:'engagements',label:'Engagements'},{key:'lastEngagement',label:'Last Engagement'},
+    {key:'_actions',label:''}
+  ];
+  const tbl=document.getElementById('co-table');
+  makeSortableHeaders(tbl.querySelector('thead'),cols,'companies',renderCompanies);
+  tbl.querySelector('tbody').innerHTML=rows.length?rows.map(r=>{
+    const noEng90=r.lastEngagement&&daysAgo(r.lastEngagement)>90;
+    return `<tr${noEng90?' style="background:rgba(200,84,61,0.04)"':''}>
+      <td><strong>${esc(r.company)}</strong></td>
+      <td>${r.onboarding_status?`<span class="${onboardingClass(r.onboarding_status)}">${esc(r.onboarding_status)}</span>`:'<span class="tag tag-grey">Not on file</span>'}</td>
       <td class="num">${fmtNum(r.totalClients)}</td>
       <td class="num">${fmtNum(r.activeClients)}</td>
       <td class="num">${fmtNum(r.openOpps)}</td>
@@ -1512,200 +1544,490 @@ function renderCompanies(){
       <td class="num">${fmtMoney(r.weightedValue)}</td>
       <td class="num">${fmtNum(r.wins)}</td>
       <td class="num">${fmtNum(r.engagements)}</td>
-      <td>${r.lastEngagement ? fmtDate(r.lastEngagement) : '—'}</td>
-    </tr>
-  `).join('') : `<tr><td colspan="10" class="empty-state">No companies match this search.</td></tr>`;
-  document.getElementById('co-count').textContent = `${rows.length} of ${rollup.length} shown`;
+      <td${noEng90?' style="color:var(--coral)"':''}>${r.lastEngagement?fmtDate(r.lastEngagement):'—'}</td>
+      <td class="td-actions">${currentUser.role==='admin'?`<button class="btn btn-edit btn-sm" onclick="openCoEditModal('${esc(r.company)}')">Edit</button>`:''}</td>
+    </tr>`}).join('')
+    :'<tr><td colspan="11" class="empty-state">No companies match this search.</td></tr>';
+  document.getElementById('co-count').textContent=`${rows.length} of ${rollup.length}`;
 }
 
-/* ---------- 15. MODAL / ADD-RECORD FORMS ---------- */
-const FORM_CONFIGS = {
-  client: {
-    title: 'Add client',
-    table: 'clients',
-    fields: [
-      { name:'company', label:'Company', type:'text', required:true },
-      { name:'client_name', label:'Client name', type:'text', required:true },
-      { name:'designation', label:'Designation', type:'text' },
-      { name:'department', label:'Department', type:'select', options:LOOKUPS.departments },
-      { name:'therapy_area', label:'Therapy area', type:'select', options:LOOKUPS.therapyAreas },
-      { name:'region', label:'Region', type:'select', options:LOOKUPS.regions },
-      { name:'email', label:'Email', type:'text' },
-      { name:'phone', label:'Phone', type:'text' },
-      { name:'linkedin_url', label:'LinkedIn URL', type:'text' },
-      { name:'status', label:'Status', type:'select', options:LOOKUPS.clientStatus },
-      { name:'priority', label:'Priority', type:'select', options:LOOKUPS.priority },
-      { name:'assigned_bd', label:'Assigned BD', type:'text' },
-      { name:'notes', label:'Notes', type:'textarea', full:true }
-    ]
-  },
-  opportunity: {
-    title: 'Add opportunity',
-    table: 'opportunities',
-    fields: [
-      { name:'rfp_id', label:'RFP ID', type:'text' },
-      { name:'company', label:'Company', type:'text', required:true },
-      { name:'client_name', label:'Client name', type:'text' },
-      { name:'opportunity', label:'Opportunity', type:'text', required:true, full:true },
-      { name:'opportunity_status', label:'Stage', type:'select', options:LOOKUPS.opportunityStatus, required:true },
-      { name:'bd_owner', label:'BD owner', type:'text' },
-      { name:'technical_lead', label:'Technical lead', type:'text' },
-      { name:'estimated_value_usd', label:'Estimated value (USD)', type:'number' },
-      { name:'probability_pct', label:'Probability (%)', type:'number', min:0, max:100 },
-      { name:'discussion_date', label:'Discussion date', type:'date' },
-      { name:'pitch_date', label:'Pitch presentation date', type:'date' },
-      { name:'proposal_submission_date', label:'Proposal submission date', type:'date' },
-      { name:'expected_close_date', label:'Expected close date', type:'date' },
-      { name:'notes', label:'Notes', type:'textarea', full:true }
-    ]
-  },
-  engagement: {
-    title: 'Log engagement',
-    table: 'engagements',
-    fields: [
-      { name:'eng_date', label:'Date', type:'date', required:true },
-      { name:'client_name', label:'Client name', type:'text', required:true },
-      { name:'designation', label:'Designation', type:'text' },
-      { name:'company', label:'Company', type:'text', required:true },
-      { name:'bd_pm', label:'Neovation BD / PM', type:'text' },
-      { name:'engagement_type', label:'Engagement type', type:'select', options:LOOKUPS.engagementTypes },
-      { name:'platform_venue', label:'Platform / venue', type:'text' },
-      { name:'stakeholder_type', label:'Stakeholder type', type:'select', options:LOOKUPS.stakeholderType },
-      { name:'engagement_objective', label:'Engagement objective', type:'select', options:LOOKUPS.engagementObjective },
-      { name:'engagement_outcome', label:'Engagement outcome', type:'select', options:LOOKUPS.engagementOutcome },
-      { name:'discussion_points', label:'Discussion points', type:'textarea', full:true },
-      { name:'cta_next_step', label:'CTA / next step', type:'textarea', full:true },
-      { name:'cta_due_date', label:'CTA due date', type:'date' },
-      { name:'cta_owner', label:'CTA owner', type:'text' },
-      { name:'follow_up_done', label:'Follow-up done?', type:'select', options:LOOKUPS.followUp }
-    ]
-  },
-  company: {
-    title: 'Add company',
-    table: 'companies',
-    fields: [
-      { name:'company', label:'Company', type:'text', required:true },
-      { name:'onboarding_status', label:'Onboarding status', type:'text' },
-      { name:'notes', label:'Notes', type:'textarea', full:true }
-    ]
+/* ---------- 17. COMBOBOX HELPER ---------- */
+// Builds a searchable dropdown with optional "Add new" capability.
+// opts: {id, value, options[], placeholder, allowNew, required}
+function buildCombo(opts){
+  const {id,value='',options=[],placeholder='',allowNew=false,required=false}=opts;
+  return `<div class="combo-wrap" data-combo="${id}">
+    <input type="text" id="${id}" name="${id}" placeholder="${esc(placeholder)}"
+      value="${esc(value)}" autocomplete="off" ${required?'required':''}
+      oninput="comboFilter(this)" onfocus="comboOpen(this)" onblur="comboBlur(this,300)">
+    <div class="combo-list" id="${id}-list">
+      ${options.map(o=>`<div class="combo-opt" onmousedown="comboPick(this,'${id}','${esc(o)}')">${esc(o)}</div>`).join('')}
+      ${allowNew?`<div class="combo-opt add-new" onmousedown="comboAddNew(event,'${id}')">Add new…</div>`:''}
+    </div>
+  </div>`;
+}
+// Combobox interaction functions
+function comboFilter(inp){
+  const q=inp.value.toLowerCase();
+  const list=document.getElementById(inp.id+'-list');
+  if(!list) return;
+  list.classList.add('open');
+  list.querySelectorAll('.combo-opt:not(.add-new)').forEach(opt=>{
+    opt.style.display=opt.textContent.toLowerCase().includes(q)?'':'none';
+  });
+  // Show no-match message
+  const visible=[...list.querySelectorAll('.combo-opt:not(.add-new):not(.no-match)')].filter(o=>o.style.display!=='none');
+  let nm=list.querySelector('.no-match');
+  if(!visible.length&&!list.querySelector('.add-new')){
+    if(!nm){nm=document.createElement('div');nm.className='combo-opt no-match';nm.textContent='No matches';list.appendChild(nm);}
+  }else if(nm) nm.remove();
+}
+function comboOpen(inp){
+  const list=document.getElementById(inp.id+'-list');
+  if(list) list.classList.add('open');
+}
+function comboBlur(inp,delay){
+  setTimeout(()=>{const list=document.getElementById(inp.id+'-list');if(list)list.classList.remove('open');},delay);
+}
+function comboPick(el,id,val){
+  const inp=document.getElementById(id); if(inp) inp.value=val;
+  const list=document.getElementById(id+'-list'); if(list) list.classList.remove('open');
+  // Trigger company→client cascade if needed
+  if(id==='modal-company') updateModalClientOptions(val);
+  if(id==='modal-opp-company') updateModalOppClientOptions(val);
+}
+async function comboAddNew(evt,id){
+  evt.preventDefault();
+  const inp=document.getElementById(id);
+  const val=inp?inp.value.trim():'';
+  const name=prompt(`Add new entry for this field:`+(val?` (pre-filled: "${val}")`:''),(val||''));
+  if(!name||!name.trim()) return;
+  inp.value=name.trim();
+  // If this is the company field, also create a company record in SharePoint
+  if(id==='modal-company'||id==='modal-opp-company'){
+    const existing=DATA.companies.find(c=>normCo(c.company)===normCo(name));
+    if(!existing){
+      const r=await insertRecord('companies',{company:name.trim(),onboarding_status:null,notes:null});
+      if(r) DATA.companies.push(r);
+    }
+    if(id==='modal-company') updateModalClientOptions(name.trim());
+    if(id==='modal-opp-company') updateModalOppClientOptions(name.trim());
   }
+}
+
+function updateModalClientOptions(company){
+  // Update client name combo options when company changes
+  const listEl=document.getElementById('modal-client-list');
+  if(!listEl) return;
+  const clients=DATA.clients.filter(c=>normCo(c.company)===normCo(company)).map(c=>c.client_name).filter(Boolean).sort();
+  const existing=listEl.querySelectorAll('.combo-opt:not(.add-new)');
+  existing.forEach(e=>e.remove());
+  const addNew=listEl.querySelector('.add-new');
+  clients.forEach(cl=>{
+    const div=document.createElement('div'); div.className='combo-opt';
+    div.textContent=cl; div.onmousedown=()=>comboPick(div,'modal-client-name',cl);
+    listEl.insertBefore(div,addNew);
+  });
+}
+function updateModalOppClientOptions(company){
+  const listEl=document.getElementById('modal-opp-client-list');
+  if(!listEl) return;
+  const clients=DATA.clients.filter(c=>normCo(c.company)===normCo(company)).map(c=>c.client_name).filter(Boolean).sort();
+  const existing=listEl.querySelectorAll('.combo-opt:not(.add-new)');
+  existing.forEach(e=>e.remove());
+  const addNew=listEl.querySelector('.add-new');
+  clients.forEach(cl=>{
+    const div=document.createElement('div'); div.className='combo-opt';
+    div.textContent=cl; div.onmousedown=()=>comboPick(div,'modal-opp-client-name',cl);
+    listEl.insertBefore(div,addNew||null);
+  });
+}
+
+/* ---------- 18. STAGE HISTORY HELPERS ---------- */
+function getHistory(opp){
+  try{ return JSON.parse(opp.stage_history||'[]')||[]; }catch{ return []; }
+}
+function addHistoryEntry(existingJson, newStage, userEmail){
+  const hist=(() => { try{ return JSON.parse(existingJson||'[]'); }catch{ return []; } })();
+  hist.push({stage:newStage,date:new Date().toISOString().slice(0,10),by:userEmail||'unknown'});
+  return JSON.stringify(hist);
+}
+function renderHistoryTimeline(hist){
+  if(!hist||!hist.length) return '<div style="color:var(--ink-faint);font-size:12px;">No stage history recorded.</div>';
+  return hist.map((h,i)=>{
+    const n=STAGE_NUM(h.stage)||1;
+    const clr=STAGE_COLORS[n]||COLORS.sky;
+    return `<div class="history-step">
+      <div class="history-dot" style="background:${clr}">${n}</div>
+      <div class="history-info">
+        <div class="history-stage">${esc((h.stage||'').replace(/^\d+\s/,''))}</div>
+        <div class="history-meta">${esc(h.date)} · ${esc(h.by)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- 19. MODAL: ADD ---------- */
+const ADD_CONFIGS={
+  clients:{title:'Add client',kind:'clients',fields:[
+    {name:'modal-company',label:'Company',combo:true,allowNew:true,required:true,comboOpts:()=>uniqueCompanies()},
+    {name:'modal-client-name',label:'Client name',combo:true,allowNew:true,required:true,comboOpts:()=>[],comboId:'modal-client-list',comboDepends:'modal-company'},
+    {name:'designation',label:'Designation',type:'text',required:true},
+    {name:'department',label:'Department',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.departments.sort()},
+    {name:'therapy_area',label:'Therapy area',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.therapyAreas.sort()},
+    {name:'region',label:'Region',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.regions.sort()},
+    {name:'email',label:'Email',type:'text',required:true},
+    {name:'phone',label:'Phone',type:'text',required:true},
+    {name:'linkedin_url',label:'LinkedIn URL',type:'text'},
+    {name:'status',label:'Status',type:'select',opts:LOOKUPS.clientStatus,required:true},
+    {name:'priority',label:'Priority',type:'select',opts:LOOKUPS.priority,required:true},
+    {name:'assigned_bd',label:'Assigned BD',combo:true,comboOpts:()=>EMPLOYEES,required:true},
+    {name:'notes',label:'Notes',type:'textarea',full:true}
+  ]},
+  opportunities:{title:'Add opportunity',kind:'opportunities',fields:[
+    {name:'modal-opp-company',label:'Company',combo:true,required:true,comboOpts:()=>uniqueCompanies()},
+    {name:'modal-opp-client-name',label:'Client name',combo:true,comboOpts:()=>[],comboId:'modal-opp-client-list',comboDepends:'modal-opp-company',required:true},
+    {name:'opportunity',label:'Opportunity',type:'text',required:true,full:true},
+    {name:'opportunity_status',label:'Stage',type:'select',opts:LOOKUPS.opportunityStatus,required:true},
+    {name:'bd_owner',label:'BD owner',combo:true,comboOpts:()=>EMPLOYEES,required:true},
+    {name:'technical_lead',label:'Technical lead',combo:true,comboOpts:()=>EMPLOYEES},
+    {name:'estimated_value_usd',label:'Estimated value (USD)',type:'number',required:true},
+    {name:'probability_pct',label:'Probability (%)',type:'number',min:0,max:100},
+    {name:'discussion_date',label:'Discussion date',type:'date',required:true},
+    {name:'pitch_date',label:'Pitch date',type:'date'},
+    {name:'proposal_submission_date',label:'Proposal submission',type:'date'},
+    {name:'expected_close_date',label:'Expected close',type:'date',required:true},
+    {name:'notes',label:'Notes',type:'textarea',full:true}
+  ]},
+  engagements:{title:'Log engagement',kind:'engagements',fields:[
+    {name:'eng_date',label:'Date',type:'date',required:true},
+    {name:'modal-eng-company',label:'Company',combo:true,required:true,comboOpts:()=>uniqueCompanies()},
+    {name:'modal-eng-client',label:'Client name',combo:true,comboOpts:()=>[],comboId:'modal-eng-client-list',comboDepends:'modal-eng-company',required:true},
+    {name:'designation',label:'Designation',type:'text',required:true},
+    {name:'bd_pm',label:'BD / PM',combo:true,comboOpts:()=>EMPLOYEES,required:true},
+    {name:'engagement_type',label:'Engagement type',type:'select',opts:LOOKUPS.engagementTypes,required:true},
+    {name:'platform_venue',label:'Platform / venue',type:'text',required:true},
+    {name:'stakeholder_type',label:'Stakeholder type',type:'select',opts:LOOKUPS.stakeholderType,required:true},
+    {name:'engagement_objective',label:'Objective',type:'select',opts:LOOKUPS.engagementObjective,required:true},
+    {name:'engagement_outcome',label:'Outcome',type:'select',opts:LOOKUPS.engagementOutcome,required:true},
+    {name:'discussion_points',label:'Discussion points',type:'textarea',full:true,required:true},
+    {name:'cta_next_step',label:'CTA / next step',type:'textarea',full:true,required:true},
+    {name:'cta_due_date',label:'CTA due date',type:'date',required:true},
+    {name:'cta_owner',label:'CTA owner',combo:true,comboOpts:()=>EMPLOYEES,required:true},
+    {name:'follow_up_done',label:'Follow-up done?',type:'select',opts:LOOKUPS.followUp,required:true}
+  ]},
+  companies:{title:'Add company',kind:'companies',fields:[
+    {name:'company',label:'Company name',type:'text',required:true},
+    {name:'onboarding_status',label:'Onboarding status',type:'text'},
+    {name:'notes',label:'Notes',type:'textarea',full:true}
+  ]}
 };
 
-function fieldHtml(f){
-  const wrap = f.full ? 'full' : '';
-  let input;
-  if(f.type === 'select'){
-    input = `<select name="${f.name}" ${f.required?'required':''}><option value="">—</option>${f.options.map(o=>`<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}</select>`;
-  } else if(f.type === 'textarea'){
-    input = `<textarea name="${f.name}" ${f.required?'required':''}></textarea>`;
+function renderModalField(f,val=''){
+  const req=f.required?`<span class="req"> *</span>`:'';
+  const wrap=f.full?'full':'';
+  let inp='';
+  if(f.combo){
+    const id=f.comboId||f.name;
+    inp=buildCombo({id,value:val,options:f.comboOpts(),placeholder:`Type to search…`,allowNew:!!f.allowNew,required:f.required});
+  } else if(f.type==='select'){
+    inp=`<select name="${f.name}" id="${f.name}" ${f.required?'required':''}><option value="">—</option>${f.opts.map(o=>`<option value="${esc(o)}"${val===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  } else if(f.type==='textarea'){
+    inp=`<textarea name="${f.name}" id="${f.name}" ${f.required?'required':''}>${esc(val)}</textarea>`;
   } else {
-    const extra = f.type==='number' ? `min="${f.min??''}" max="${f.max??''}" step="any"` : '';
-    input = `<input type="${f.type}" name="${f.name}" ${extra} ${f.required?'required':''}>`;
+    const extra=f.type==='number'?`min="${f.min??''}" max="${f.max??''}" step="any"`:'';
+    inp=`<input type="${f.type||'text'}" name="${f.name}" id="${f.name}" value="${esc(val)}" ${extra} ${f.required?'required':''}>`;
   }
-  return `<div class="form-field ${wrap}"><label>${escapeHtml(f.label)}${f.required?' *':''}</label>${input}</div>`;
+  return `<div class="form-field ${wrap}"><label>${esc(f.label)}${req}</label>${inp}</div>`;
 }
 
 function openAddModal(kind){
-  const cfg = FORM_CONFIGS[kind];
-  const root = document.getElementById('modal-root');
-  root.innerHTML = `
-    <div class="modal-backdrop" id="modal-backdrop">
-      <div class="modal">
-        <div class="modal-head"><h3>${escapeHtml(cfg.title)}</h3><button class="modal-close" id="modal-close">&times;</button></div>
-        <form id="modal-form">
-          <div class="modal-body">
-            <div class="form-grid">${cfg.fields.map(fieldHtml).join('')}</div>
-          </div>
-          <div class="modal-foot">
-            <button type="button" class="btn" id="modal-cancel">Cancel</button>
-            <button type="submit" class="btn btn-primary" id="modal-save">Save</button>
-          </div>
-        </form>
-      </div>
+  const cfg=ADD_CONFIGS[kind];
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`<div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal">
+      <div class="modal-head"><h3>${esc(cfg.title)}</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+      <form id="modal-form" novalidate>
+        <div class="modal-body">
+          <div class="form-grid">${cfg.fields.map(f=>renderModalField(f)).join('')}</div>
+          ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">🔒 Probability auto-set by stage</div>`:''}
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-save">Save</button>
+        </div>
+      </form>
     </div>
-  `;
-  const close = () => { root.innerHTML = ''; };
-  document.getElementById('modal-close').onclick = close;
-  document.getElementById('modal-cancel').onclick = close;
-  document.getElementById('modal-backdrop').addEventListener('click', e => { if(e.target.id === 'modal-backdrop') close(); });
+  </div>`;
 
-  document.getElementById('modal-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const saveBtn = document.getElementById('modal-save');
-    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
-    const formData = new FormData(e.target);
-    const payload = {};
-    cfg.fields.forEach(f => {
-      let v = formData.get(f.name);
-      if(v === '') v = null;
-      if(f.type === 'number' && v !== null) v = Number(v);
-      payload[f.name] = v;
-    });
-    if(kind === 'opportunity'){
-      const pct = payload.probability_pct;
-      payload.probability_pct = pct !== null ? pct/100 : null;
-      payload.probability_weighted_value = (pct !== null && payload.estimated_value_usd != null)
-        ? Number(payload.estimated_value_usd) * (pct/100) : null;
-    }
-    if(kind === 'engagement' && payload.eng_date){
-      const d = new Date(payload.eng_date);
-      payload.eng_month = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
-    }
-    const result = await insertRecord(cfg.table, payload);
-    saveBtn.disabled = false; saveBtn.textContent = 'Save';
-    if(result){
-      close();
-      await refreshAndRenderAll();
-    }
+  document.getElementById('modal-backdrop').addEventListener('click',e=>{if(e.target.id==='modal-backdrop')closeModal();});
+
+  if(kind==='opportunities'){
+    const stSel=document.getElementById('opportunity_status');
+    if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
+  }
+
+  document.getElementById('modal-form').addEventListener('submit',e=>handleAddSubmit(e,kind,cfg));
+}
+
+function handleStageChange(stSel){
+  const prob=autoProb(stSel.value);
+  const pctInp=document.getElementById('probability_pct');
+  const lockMsg=document.getElementById('prob-lock-msg');
+  if(prob!==null&&pctInp){
+    pctInp.value=Math.round(prob*100);
+    pctInp.readOnly=true;
+    if(lockMsg) lockMsg.style.display='block';
+  } else if(pctInp){
+    pctInp.readOnly=false;
+    if(lockMsg) lockMsg.style.display='none';
+  }
+}
+
+async function handleAddSubmit(e,kind,cfg){
+  e.preventDefault();
+  const saveBtn=document.getElementById('modal-save');
+  // Validate required fields
+  let valid=true;
+  cfg.fields.filter(f=>f.required).forEach(f=>{
+    const id=f.comboId||f.name;
+    const el=document.getElementById(id);
+    if(el&&!el.value.trim()){el.classList.add('invalid');valid=false;}
+    else if(el) el.classList.remove('invalid');
+  });
+  if(!valid){alert('Please fill in all required fields marked with *.');return;}
+
+  saveBtn.disabled=true;saveBtn.textContent='Saving…';
+
+  // Build payload
+  const payload={};
+  cfg.fields.forEach(f=>{
+    const id=f.comboId||f.name;
+    const el=document.getElementById(id);
+    let v=el?el.value.trim()||null:null;
+    if(f.type==='number'&&v!==null) v=Number(v);
+    // Map combo company/client fields to real keys
+    const keyMap={'modal-company':'company','modal-client-name':'client_name','modal-opp-company':'company',
+      'modal-opp-client-name':'client_name','modal-eng-company':'company','modal-eng-client':'client_name'};
+    const realKey=keyMap[id]||f.name;
+    payload[realKey]=v;
+  });
+
+  if(kind==='opportunities'){
+    const pct=payload.probability_pct;
+    payload.probability_pct=pct!==null?pct/100:null;
+    payload.probability_weighted_value=(pct!==null&&payload.estimated_value_usd!=null)?Number(payload.estimated_value_usd)*(pct/100):null;
+    // Start stage history
+    payload.stage_history=payload.opportunity_status?JSON.stringify([{stage:payload.opportunity_status,date:new Date().toISOString().slice(0,10),by:currentUser.username}]):null;
+  }
+  if(kind==='engagements'&&payload.eng_date){
+    const d=new Date(payload.eng_date);
+    payload.eng_month=new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);
+  }
+
+  const result=await insertRecord(kind,payload);
+  saveBtn.disabled=false;saveBtn.textContent='Save';
+  if(result){
+    closeModal();await refreshAndRenderAll();
+  }
+}
+
+/* ---------- 20. MODAL: EDIT ---------- */
+async function openEditModal(kind,id){
+  const record=(DATA[kind]||[]).find(r=>r.id===id);
+  if(!record){alert('Record not found.');return;}
+
+  const cfg=ADD_CONFIGS[kind];
+  const root=document.getElementById('modal-root');
+
+  // Build initial values map (handle combo key aliases)
+  const vals={...record};
+  const comboKeyMap={company:'modal-company',client_name:'modal-client-name'};
+  if(kind==='opportunities') comboKeyMap.company='modal-opp-company', comboKeyMap.client_name='modal-opp-client-name';
+  if(kind==='engagements') comboKeyMap.company='modal-eng-company', comboKeyMap.client_name='modal-eng-client';
+
+  function getVal(f){
+    const reverseMap={'modal-company':'company','modal-client-name':'client_name',
+      'modal-opp-company':'company','modal-opp-client-name':'client_name',
+      'modal-eng-company':'company','modal-eng-client':'client_name'};
+    const realKey=reverseMap[f.comboId||f.name]||(f.comboId||f.name);
+    let v=vals[realKey]??'';
+    if(f.name==='probability_pct'&&v!==''&&v!==null) v=Math.round(Number(v)*100);
+    return String(v);
+  }
+
+  const hist=kind==='opportunities'?getHistory(record):[];
+  const histHtml=kind==='opportunities'?`<div class="stage-history" style="border-top:1px solid var(--line);padding-top:14px;margin-top:4px;"><h4>Stage history</h4><div class="history-timeline">${renderHistoryTimeline(hist)}</div></div>`:'';
+
+  root.innerHTML=`<div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal">
+      <div class="modal-head"><h3>Edit · ${esc(cfg.title.replace('Add ',''))}</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+      <form id="modal-form" novalidate>
+        <div class="modal-body">
+          <div class="form-grid">${cfg.fields.map(f=>renderModalField(f,getVal(f))).join('')}</div>
+          ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">🔒 Probability auto-set by stage</div>`:''}
+          ${histHtml}
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-save">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+
+  document.getElementById('modal-backdrop').addEventListener('click',e=>{if(e.target.id==='modal-backdrop')closeModal();});
+
+  if(kind==='opportunities'){
+    const stSel=document.getElementById('opportunity_status');
+    if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
+    // Check current stage
+    const cur=document.getElementById('opportunity_status');
+    if(cur&&autoProb(cur.value)!==null) handleStageChange(cur);
+    // Cascade client options
+    const coCur=document.getElementById('modal-opp-company');
+    if(coCur&&coCur.value) updateModalOppClientOptions(coCur.value);
+  }
+  if(kind==='clients'){
+    const coCur=document.getElementById('modal-company');
+    if(coCur&&coCur.value) updateModalClientOptions(coCur.value);
+  }
+  if(kind==='engagements'){
+    const coCur=document.getElementById('modal-eng-company');
+    if(coCur&&coCur.value) updateModalEngClientOptions(coCur.value);
+  }
+
+  document.getElementById('modal-form').addEventListener('submit',e=>handleEditSubmit(e,kind,id,record,cfg));
+}
+
+function updateModalEngClientOptions(company){
+  const listEl=document.getElementById('modal-eng-client-list');
+  if(!listEl) return;
+  const clients=DATA.clients.filter(c=>normCo(c.company)===normCo(company)).map(c=>c.client_name).filter(Boolean).sort();
+  listEl.querySelectorAll('.combo-opt:not(.add-new)').forEach(e=>e.remove());
+  const addNew=listEl.querySelector('.add-new');
+  clients.forEach(cl=>{
+    const div=document.createElement('div'); div.className='combo-opt';
+    div.textContent=cl; div.onmousedown=()=>comboPick(div,'modal-eng-client',cl);
+    listEl.insertBefore(div,addNew||null);
   });
 }
 
+async function openCoEditModal(companyName){
+  const rec=DATA.companies.find(c=>normCo(c.company)===normCo(companyName));
+  if(!rec){alert('Company record not found in SharePoint companies list.');return;}
+  openEditModal('companies',rec.id);
+}
 
-/* ---------- 16. BOOT ---------- */
+async function handleEditSubmit(e,kind,id,original,cfg){
+  e.preventDefault();
+  const saveBtn=document.getElementById('modal-save');
+  let valid=true;
+  cfg.fields.filter(f=>f.required).forEach(f=>{
+    const elId=f.comboId||f.name;
+    const el=document.getElementById(elId);
+    if(el&&!el.value.trim()){el.classList.add('invalid');valid=false;}
+    else if(el) el.classList.remove('invalid');
+  });
+  if(!valid){alert('Please fill in all required fields marked with *.');return;}
+
+  saveBtn.disabled=true;saveBtn.textContent='Saving…';
+
+  const payload={};
+  cfg.fields.forEach(f=>{
+    const id2=f.comboId||f.name;
+    const el=document.getElementById(id2);
+    let v=el?el.value.trim()||null:null;
+    if(f.type==='number'&&v!==null) v=Number(v);
+    const reverseMap={'modal-company':'company','modal-client-name':'client_name',
+      'modal-opp-company':'company','modal-opp-client-name':'client_name',
+      'modal-eng-company':'company','modal-eng-client':'client_name'};
+    const realKey=reverseMap[id2]||f.name;
+    payload[realKey]=v;
+  });
+
+  if(kind==='opportunities'){
+    const pct=payload.probability_pct;
+    payload.probability_pct=pct!==null?pct/100:null;
+    payload.probability_weighted_value=(pct!==null&&payload.estimated_value_usd!=null)?Number(payload.estimated_value_usd)*(pct/100):null;
+    // Update stage history if stage changed
+    if(payload.opportunity_status&&payload.opportunity_status!==original.opportunity_status){
+      payload.stage_history=addHistoryEntry(original.stage_history||'[]',payload.opportunity_status,currentUser.username);
+    } else {
+      payload.stage_history=original.stage_history;
+    }
+  }
+  if(kind==='engagements'&&payload.eng_date){
+    const d=new Date(payload.eng_date);
+    payload.eng_month=new Date(d.getFullYear(),d.getMonth(),1).toISOString().slice(0,10);
+  }
+
+  const ok=await updateRecord(kind,id,payload);
+  saveBtn.disabled=false;saveBtn.textContent='Save changes';
+  if(ok){
+    closeModal();await refreshAndRenderAll();
+  }
+}
+
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+/* ---------- 21. BOOT ---------- */
 async function boot(){
-  const placeholders = [MSAL_CLIENT_ID, MSAL_TENANT_ID, SHAREPOINT_SITE_ID, ...Object.values(LIST_IDS)];
-  if(placeholders.some(v => v.includes('YOUR_'))){
-    document.getElementById('config-banner').style.display = 'block';
-    return;
+  const placeholders=[MSAL_CLIENT_ID,MSAL_TENANT_ID,SHAREPOINT_SITE_ID,...Object.values(LIST_IDS)];
+  if(placeholders.some(v=>v.includes('YOUR_'))){
+    document.getElementById('config-banner').style.display='block'; return;
   }
-  document.getElementById('config-banner').style.display = 'none';
-  try{
-    await refreshAndRenderAll();
-  } catch(err){
+  document.getElementById('config-banner').style.display='none';
+  try{ await refreshAndRenderAll(); }
+  catch(err){
     console.error(err);
-    alert('Could not load data from SharePoint: ' + err.message + '\n\nCheck that the Site ID and List IDs in index.html are correct, and that this account has access to the SharePoint site.');
+    alert('Could not load data from SharePoint: '+err.message+'\n\nCheck Site ID, List IDs and that this account has access.');
   }
 }
 
+/* ---------- 22. EVENT WIRING ---------- */
 function wireEvents(){
-  document.getElementById('login-submit').addEventListener('click', doLogin);
-  document.getElementById('logout-btn').addEventListener('click', doLogout);
+  document.getElementById('login-submit').addEventListener('click',doLogin);
+  document.getElementById('logout-btn').addEventListener('click',doLogout);
+  document.getElementById('refresh-btn').addEventListener('click',refreshAndRenderAll);
 
-  document.querySelectorAll('.nav-item').forEach(btn => {
-    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click',()=>switchView(btn.dataset.view));
   });
 
-  document.getElementById('add-client-btn').addEventListener('click', () => openAddModal('client'));
-  document.getElementById('add-opp-btn').addEventListener('click', () => openAddModal('opportunity'));
-  document.getElementById('add-eng-btn').addEventListener('click', () => openAddModal('engagement'));
-  document.getElementById('add-company-btn').addEventListener('click', () => openAddModal('company'));
+  document.getElementById('add-client-btn').addEventListener('click',()=>openAddModal('clients'));
+  document.getElementById('add-opp-btn').addEventListener('click',()=>openAddModal('opportunities'));
+  document.getElementById('add-eng-btn').addEventListener('click',()=>openAddModal('engagements'));
+  document.getElementById('add-company-btn').addEventListener('click',()=>openAddModal('companies'));
 
-  document.getElementById('cl-search').addEventListener('input', debounce(e => { clientFilters.search = e.target.value; renderClients(); }, 200));
-  document.getElementById('cl-filter-status').addEventListener('change', e => { clientFilters.status = e.target.value; renderClients(); });
-  document.getElementById('cl-filter-company').addEventListener('change', e => { clientFilters.company = e.target.value; renderClients(); });
+  // Client filters
+  document.getElementById('cl-search').addEventListener('input',debounce(e=>{clFilters.search=e.target.value;renderClients();},200));
+  document.getElementById('cl-filter-status').addEventListener('change',e=>{clFilters.status=e.target.value;renderClients();});
+  document.getElementById('cl-filter-company').addEventListener('change',e=>{clFilters.company=e.target.value;renderClients();});
+  document.getElementById('cl-filter-priority').addEventListener('change',e=>{clFilters.priority=e.target.value;renderClients();});
+  document.getElementById('cl-clear').addEventListener('click',()=>{clFilters={search:'',status:'',company:'',priority:''};document.getElementById('cl-search').value='';renderClients();});
 
-  document.getElementById('op-search').addEventListener('input', debounce(e => { oppFilters.search = e.target.value; renderOpportunities(); }, 200));
-  document.getElementById('op-filter-status').addEventListener('change', e => { oppFilters.status = e.target.value; renderOpportunities(); });
-  document.getElementById('op-filter-bd').addEventListener('change', e => { oppFilters.bd = e.target.value; renderOpportunities(); });
+  // Opportunity filters
+  document.getElementById('op-search').addEventListener('input',debounce(e=>{opFilters.search=e.target.value;renderOpportunities();},200));
+  document.getElementById('op-filter-status').addEventListener('change',e=>{opFilters.status=e.target.value;renderOpportunities();});
+  document.getElementById('op-filter-company').addEventListener('change',e=>{opFilters.company=e.target.value;renderOpportunities();});
+  document.getElementById('op-filter-bd').addEventListener('change',e=>{opFilters.bd=e.target.value;renderOpportunities();});
+  document.getElementById('op-clear').addEventListener('click',()=>{opFilters={search:'',status:'',company:'',bd:''};document.getElementById('op-search').value='';renderOpportunities();});
 
-  document.getElementById('eg-search').addEventListener('input', debounce(e => { engFilters.search = e.target.value; renderEngagements(); }, 200));
-  document.getElementById('eg-filter-type').addEventListener('change', e => { engFilters.type = e.target.value; renderEngagements(); });
-  document.getElementById('eg-filter-followup').addEventListener('change', e => { engFilters.followup = e.target.value; renderEngagements(); });
+  // Engagement filters
+  document.getElementById('eg-search').addEventListener('input',debounce(e=>{egFilters.search=e.target.value;renderEngagements();},200));
+  document.getElementById('eg-filter-type').addEventListener('change',e=>{egFilters.type=e.target.value;renderEngagements();});
+  document.getElementById('eg-filter-company').addEventListener('change',e=>{egFilters.company=e.target.value;renderEngagements();});
+  document.getElementById('eg-filter-followup').addEventListener('change',e=>{egFilters.followup=e.target.value;renderEngagements();});
+  document.getElementById('eg-clear').addEventListener('click',()=>{egFilters={search:'',type:'',company:'',followup:''};document.getElementById('eg-search').value='';renderEngagements();});
 
-  document.getElementById('co-search').addEventListener('input', debounce(e => { companySearch = e.target.value; renderCompanies(); }, 200));
+  // Company filters
+  document.getElementById('co-search').addEventListener('input',debounce(e=>{coFilters.search=e.target.value;renderCompanies();},200));
+  document.getElementById('co-filter-onboarding').addEventListener('change',e=>{coFilters.onboarding=e.target.value;renderCompanies();});
+  document.getElementById('co-clear').addEventListener('click',()=>{coFilters={search:'',onboarding:''};document.getElementById('co-search').value='';renderCompanies();});
 }
 
-document.addEventListener('DOMContentLoaded', wireEvents);
+document.addEventListener('DOMContentLoaded',wireEvents);
 
 </script>
 </body>
