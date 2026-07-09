@@ -286,6 +286,25 @@ tbody tr:hover{background:var(--sky-pale);}
 .detail-field label{font-size:10.5px;font-weight:600;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;}
 .detail-field .val{font-size:12.5px;color:var(--ink);margin-top:2px;}
 
+/* Pivot tables (Excel-dashboard-style: grouped rows + grand total) */
+.pivot-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:8px;}
+table.pivot{width:100%;border-collapse:collapse;font-size:12px;}
+table.pivot thead th{position:sticky;top:0;background:var(--ink);color:#fff;padding:8px 12px;
+  font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;text-align:left;z-index:2;white-space:nowrap;}
+table.pivot thead th.num{text-align:right;}
+table.pivot td{padding:7px 12px;border-bottom:1px solid var(--line-soft);color:var(--ink);}
+table.pivot td.num{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;}
+table.pivot tr.pivot-group{cursor:pointer;background:var(--sky-pale);}
+table.pivot tr.pivot-group:hover td{background:rgba(47,125,192,.12);}
+table.pivot tr.pivot-group td{font-weight:700;}
+table.pivot tr.pivot-group .caret{display:inline-block;width:12px;font-size:9px;transition:transform .15s;color:var(--sky-deep);}
+table.pivot tr.pivot-group.open .caret{transform:rotate(90deg);}
+table.pivot tr.pivot-child{display:none;}
+table.pivot tr.pivot-child.show{display:table-row;}
+table.pivot tr.pivot-child td:first-child{padding-left:30px;color:var(--ink-soft);}
+table.pivot tr.pivot-total{background:var(--ink);color:#fff;font-weight:700;position:sticky;bottom:0;}
+table.pivot tr.pivot-total td{border-bottom:none;color:#fff;}
+
 @media(max-width:880px){
   .sidebar{position:fixed;left:-230px;transition:left .2s;z-index:40;}
   .sidebar.open{left:0;}
@@ -498,6 +517,17 @@ tbody tr:hover{background:var(--sky-pale);}
       </div>
       <div class="kpi-grid" id="cl-kpis"></div>
       <div class="panel">
+        <div class="panel-head">
+          <div><h3>Stakeholder list — by company &amp; department</h3><p>Click a company to expand its departments. Mirrors the FY26–27 workbook dashboard.</p></div>
+          <select id="cl-pivot-therapy" style="padding:6px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;">
+            <option value="">All therapy areas</option>
+          </select>
+        </div>
+        <div class="panel-body" style="padding-top:10px;">
+          <div class="pivot-wrap"><table class="pivot" id="cl-pivot-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+      <div class="panel">
         <div class="panel-body" style="padding-bottom:0;">
           <div class="toolbar">
             <input type="search" id="cl-search" placeholder="Search name, company, email…">
@@ -522,6 +552,29 @@ tbody tr:hover{background:var(--sky-pale);}
         </div>
       </div>
       <div class="kpi-grid" id="op-kpis"></div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Opportunity pivot — by stage</h3><p>No. of opportunities, estimated &amp; weighted value per stage. Mirrors the FY26–27 workbook dashboard.</p></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="op-pivot-company" style="padding:6px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;">
+              <option value="">All companies</option>
+            </select>
+            <select id="op-pivot-datefield" style="padding:6px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;">
+              <option value="">Any date field</option>
+              <option value="discussion_date">Opportunity Discussion Date</option>
+              <option value="pitch_date">Concept/Pitch Presentation Date</option>
+              <option value="proposal_submission_date">Proposal Submission Date</option>
+              <option value="expected_close_date">Expected Close Date</option>
+            </select>
+            <select id="op-pivot-month" style="padding:6px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;" disabled>
+              <option value="">All months</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body" style="padding-top:10px;">
+          <div class="pivot-wrap"><table class="pivot" id="op-pivot-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
       <div class="panel">
         <div class="panel-head"><div><h3>By stage — count &amp; weighted value</h3></div></div>
         <div class="panel-body"><div class="chart-box"><canvas id="op-stage-chart"></canvas></div></div>
@@ -551,17 +604,38 @@ tbody tr:hover{background:var(--sky-pale);}
         </div>
       </div>
       <div class="kpi-grid" id="eg-kpis"></div>
-      <div class="panel">
-        <div class="panel-head"><div><h3>Weekly activity</h3><p>Engagements logged per week</p></div></div>
-        <div class="panel-body"><div class="chart-box tall"><canvas id="eg-weekly-chart"></canvas></div></div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="panel">
+          <div class="panel-head"><div><h3>Weekly activity</h3><p>Click a bar to see that week's engagements</p></div></div>
+          <div class="panel-body"><div class="chart-box tall"><canvas id="eg-weekly-chart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><h3>By company</h3><p>Click a company to filter the log below</p></div></div>
+          <div class="panel-body" id="eg-company-breakdown" style="max-height:300px;overflow-y:auto;"></div>
+        </div>
       </div>
       <div class="panel">
+        <div class="panel-head"><div><h3>Engagement pivot — outcome &amp; stakeholder type</h3><p>Counts by engagement type. Mirrors the FY26–27 workbook dashboard.</p></div></div>
+        <div class="panel-body" style="padding-top:10px;">
+          <div class="toolbar" style="margin-bottom:12px;">
+            <select id="eg-pivot-bd"><option value="">All BD/PM</option></select>
+            <select id="eg-pivot-month"><option value="">All months</option></select>
+            <select id="eg-pivot-company"><option value="">All companies</option></select>
+            <select id="eg-pivot-objective"><option value="">All objectives</option></select>
+            <select id="eg-pivot-type"><option value="">All engagement types</option></select>
+            <button class="clear-filters" id="eg-pivot-clear">✕ Clear</button>
+          </div>
+          <div class="pivot-wrap"><table class="pivot" id="eg-pivot-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+      <div class="panel" id="eg-table-panel">
         <div class="panel-body" style="padding-bottom:0;">
           <div class="toolbar">
             <input type="search" id="eg-search" placeholder="Search client, company, notes…">
             <select id="eg-filter-type"><option value="">All types</option></select>
             <select id="eg-filter-company"><option value="">All companies</option></select>
             <select id="eg-filter-followup"><option value="">Follow-up: any</option><option value="yes">Done</option><option value="no">Pending</option></select>
+            <span id="eg-week-chip"></span>
             <button class="clear-filters" id="eg-clear">✕ Clear</button>
             <span class="spacer"></span>
             <span style="font-size:11px;color:var(--ink-faint);" id="eg-count"></span>
@@ -627,7 +701,7 @@ const EMPLOYEES = [
   'Salini Asok','Saloni Kakkar','Sandhya Kaimal','Sanjay Joseph','Santosh Jha',
   'Santhosh','Sharon Mueller','Siddhi Parab','Simpy Sethi Khanna','Smrita Chaudhury',
   'Snehal Ingale','Sonal Nafade','Susan Linda Rajkumar','Tanzim Khan','Tanvi Sejpal',
-  'Vaishnavi','Vibhuti Rana'
+  'Vaishnavi','Vibhuti Rana',
 ].sort();
 
 const LOOKUPS = {
@@ -696,6 +770,32 @@ function weekRangeLabel(d){
   const o={day:'numeric',month:'short'};
   return `${mon.toLocaleDateString('en-GB',o)} – ${sun.toLocaleDateString('en-GB',o)}`;
 }
+function mondayOf(dateStr){
+  const d=new Date(dateStr); if(isNaN(d)) return null;
+  const day=(d.getDay()+6)%7;
+  return new Date(d.getFullYear(),d.getMonth(),d.getDate()-day);
+}
+// Buckets a list of date strings into ISO weeks, returning them oldest→newest with
+// human-readable, date-based labels (never raw "YYYY-Www" strings) for charts/KPIs.
+function weeklySeries(dateList,count){
+  const map={};
+  (dateList||[]).forEach(ds=>{
+    if(!ds) return;
+    const wk=isoWeek(ds); if(!wk) return;
+    if(!map[wk]) map[wk]={count:0,monday:mondayOf(ds)};
+    map[wk].count++;
+  });
+  let keys=Object.keys(map).sort();
+  if(count) keys=keys.slice(-count);
+  return keys.map(k=>{
+    const m=map[k];
+    return {
+      key:k,count:m.count,monday:m.monday,
+      label:m.monday?m.monday.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):k,
+      rangeLabel:m.monday?weekRangeLabel(m.monday):k
+    };
+  });
+}
 function initials(n){ return (n||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
 function daysAgo(dateStr){
   if(!dateStr) return null;
@@ -740,6 +840,18 @@ const STAGE_COLORS=['#E4EFF8','#2F7DC0','#00897B','#F57C00','#7B1FA2','#3949AB',
 const COLORS={ink:'#11203A',sky:'#2F7DC0',skyDeep:'#154C7A',skyPale:'#E4EFF8',amber:'#D98E2B',amberPale:'#FBF0DD',green:'#1F8F62',greenPale:'#E1F3EA',coral:'#C8543D',coralPale:'#FBE6E1',inkSoft:'#4B5A72',line:'#DEDBD0'};
 
 function destroyChart(k){ if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k];} }
+
+/* ---------- 5b. PIVOT TABLE HELPER (shared by the 3 dashboard pivots) ---------- */
+// Toggles a group row's child rows open/closed in-place (no re-render needed).
+function togglePivotGroup(groupRow){
+  groupRow.classList.toggle('open');
+  const isOpen=groupRow.classList.contains('open');
+  let sib=groupRow.nextElementSibling;
+  while(sib&&sib.classList.contains('pivot-child')){
+    sib.classList.toggle('show',isOpen);
+    sib=sib.nextElementSibling;
+  }
+}
 
 /* ---------- 6. STAGE LOGIC ---------- */
 function isOpenStage(s){
@@ -967,7 +1079,11 @@ function renderOverview(){
   const losses=DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
   const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
   const thisWeek=isoWeek(new Date().toISOString());
+  const lastWeekStart=mondayOf(new Date().toISOString()); lastWeekStart.setDate(lastWeekStart.getDate()-7);
+  const lastWeek=isoWeek(lastWeekStart.toISOString());
   const engThisWeek=DATA.engagements.filter(e=>isoWeek(e.eng_date)===thisWeek).length;
+  const engLastWeek=DATA.engagements.filter(e=>isoWeek(e.eng_date)===lastWeek).length;
+  const wowDelta=engThisWeek-engLastWeek;
   const avgOppSize=openOpps.length>0?pipelineVal/openOpps.length:0;
   const overdueFollowups=DATA.engagements.filter(e=>{
     if(String(e.follow_up_done||'').toLowerCase()==='yes') return false;
@@ -982,7 +1098,8 @@ function renderOverview(){
     {label:'Blue sky',value:fmtNum(blueSky.length),sub:fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'amber'},
     {label:'Win rate',value:winRate===null?'—':winRate+'%',sub:`${wins.length} won · ${losses.length} lost`,accent:'green'},
     {label:'Avg opp size',value:fmtMoney(avgOppSize),sub:'open pipeline',accent:'sky'},
-    {label:'This week',value:fmtNum(engThisWeek),sub:weekRangeLabel(new Date()),accent:'amber'},
+    {label:'This week',value:fmtNum(engThisWeek),sub:`${wowDelta>0?'▲':wowDelta<0?'▼':'–'} ${Math.abs(wowDelta)} vs last week`,accent:'amber'},
+    {label:'Last week',value:fmtNum(engLastWeek),sub:weekRangeLabel(lastWeekStart),accent:'sky'},
     {label:'Overdue CTAs',value:fmtNum(overdueFollowups),sub:'follow-up past due date',accent:overdueFollowups>0?'coral':'green'}
   ]);
 
@@ -997,13 +1114,11 @@ function renderOverview(){
       <div class="funnel-val">${counts[i]}</div>
     </div>`).join('');
 
-  // Weekly chart
-  const wkMap={};
-  DATA.engagements.forEach(e=>{const wk=isoWeek(e.eng_date);if(wk)wkMap[wk]=(wkMap[wk]||0)+1;});
-  const last10=Object.keys(wkMap).sort().slice(-10);
+  // Weekly chart — labelled by week-start date, not raw ISO week strings
+  const ovWeekSeries=weeklySeries(DATA.engagements.map(e=>e.eng_date),10);
   destroyChart('ovWeekly');
   const c1=document.getElementById('ov-weekly-chart').getContext('2d');
-  CHARTS.ovWeekly=new Chart(c1,{type:'line',data:{labels:last10,datasets:[{label:'Engagements',data:last10.map(w=>wkMap[w]),borderColor:COLORS.sky,backgroundColor:COLORS.skyPale,fill:true,tension:0.35,pointRadius:3,pointBackgroundColor:COLORS.skyDeep}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
+  CHARTS.ovWeekly=new Chart(c1,{type:'line',data:{labels:ovWeekSeries.map(s=>s.label),datasets:[{label:'Engagements',data:ovWeekSeries.map(s=>s.count),borderColor:COLORS.sky,backgroundColor:COLORS.skyPale,fill:true,tension:0.35,pointRadius:3,pointBackgroundColor:COLORS.skyDeep}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>ovWeekSeries[items[0].dataIndex]?.rangeLabel||''}}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},title:{display:true,text:'Week starting'}}}}});
 
   // Pipeline by company
   const coMap={};
@@ -1226,7 +1341,74 @@ function renderBDFunnel(){
 
 /* ---------- 14. RENDER: CLIENTS ---------- */
 let clFilters={search:'',status:'',company:'',priority:''};
+let clPivotFilters={therapy:''};
+let clPivotExpanded=new Set();
+const STAKEHOLDER_STATUS_ORDER=['Inactive','Prospect','Active business','Active engagement'];
+
+function toggleClPivotExpand(co){
+  if(clPivotExpanded.has(co)) clPivotExpanded.delete(co); else clPivotExpanded.add(co);
+}
+
+// Mirrors the workbook's "Stakeholder List" pivot: Company > Department, by status, with grand totals.
+function renderClientPivot(){
+  const sel=document.getElementById('cl-pivot-therapy');
+  if(sel){
+    const areas=[...new Set(DATA.clients.map(c=>c.therapy_area).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">All therapy areas</option>'+areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+    sel.value=clPivotFilters.therapy;
+  }
+
+  const filtered=DATA.clients.filter(c=>!clPivotFilters.therapy||c.therapy_area===clPivotFilters.therapy);
+  const companies={};
+  filtered.forEach(c=>{
+    const co=(c.company||'Unknown').trim()||'Unknown';
+    const dept=(c.department||'Others').trim()||'Others';
+    if(!companies[co]) companies[co]={depts:{},totals:{Inactive:0,Prospect:0,'Active business':0,'Active engagement':0}};
+    if(!companies[co].depts[dept]) companies[co].depts[dept]={Inactive:0,Prospect:0,'Active business':0,'Active engagement':0};
+    if(STAKEHOLDER_STATUS_ORDER.includes(c.status)){
+      companies[co].depts[dept][c.status]++;
+      companies[co].totals[c.status]++;
+    }
+  });
+  const coNames=Object.keys(companies).sort((a,b)=>a.localeCompare(b));
+  const grand={Inactive:0,Prospect:0,'Active business':0,'Active engagement':0};
+  coNames.forEach(co=>STAKEHOLDER_STATUS_ORDER.forEach(s=>grand[s]+=companies[co].totals[s]));
+  const grandTotal=STAKEHOLDER_STATUS_ORDER.reduce((a,s)=>a+grand[s],0);
+
+  const tbl=document.getElementById('cl-pivot-table');
+  tbl.querySelector('thead').innerHTML=`<tr><th>Company / Department</th>${STAKEHOLDER_STATUS_ORDER.map(s=>`<th class="num">${esc(s)}</th>`).join('')}<th class="num">Grand Total</th></tr>`;
+
+  if(!coNames.length){
+    tbl.querySelector('tbody').innerHTML=`<tr><td colspan="${STAKEHOLDER_STATUS_ORDER.length+2}" class="empty-state">No stakeholders match this filter.</td></tr>`;
+    return;
+  }
+
+  let html='';
+  coNames.forEach(co=>{
+    const t=companies[co].totals;
+    const total=STAKEHOLDER_STATUS_ORDER.reduce((a,s)=>a+t[s],0);
+    const isOpen=clPivotExpanded.has(co);
+    html+=`<tr class="pivot-group${isOpen?' open':''}" onclick="togglePivotGroup(this);toggleClPivotExpand('${esc(co)}')">
+      <td><span class="caret">▶</span> ${esc(co)}</td>
+      ${STAKEHOLDER_STATUS_ORDER.map(s=>`<td class="num">${t[s]||'—'}</td>`).join('')}
+      <td class="num">${total}</td>
+    </tr>`;
+    Object.keys(companies[co].depts).sort().forEach(d=>{
+      const dt=companies[co].depts[d];
+      const dtotal=STAKEHOLDER_STATUS_ORDER.reduce((a,s)=>a+dt[s],0);
+      html+=`<tr class="pivot-child${isOpen?' show':''}">
+        <td>${esc(d)}</td>
+        ${STAKEHOLDER_STATUS_ORDER.map(s=>`<td class="num">${dt[s]||'—'}</td>`).join('')}
+        <td class="num">${dtotal}</td>
+      </tr>`;
+    });
+  });
+  html+=`<tr class="pivot-total"><td>Grand Total</td>${STAKEHOLDER_STATUS_ORDER.map(s=>`<td class="num">${grand[s]}</td>`).join('')}<td class="num">${grandTotal}</td></tr>`;
+  tbl.querySelector('tbody').innerHTML=html;
+}
+
 function renderClients(){
+  renderClientPivot();
   const total=DATA.clients.length;
   const actBiz=DATA.clients.filter(c=>c.status==='Active business').length;
   const actEng=DATA.clients.filter(c=>c.status==='Active engagement').length;
@@ -1303,8 +1485,74 @@ function renderClients(){
 
 /* ---------- 14. RENDER: OPPORTUNITIES ---------- */
 let opFilters={search:'',status:'',company:'',bd:''};
+let opPivotFilters={company:'',dateField:'',month:''};
+// The 4 planning/tracking dates on an opportunity — lets the pivot be filtered by month against any of them,
+// mirroring the workbook's separate date columns (Discussion / Pitch / Proposal / Close).
+const OP_DATE_FIELDS={discussion_date:'Opportunity Discussion Date',pitch_date:'Concept/Pitch Presentation Date',proposal_submission_date:'Proposal Submission Date',expected_close_date:'Expected Close Date'};
+
+// Mirrors the workbook's "Opportunity Tracker" pivot: stage-level count, estimated & weighted value.
+function renderOpportunityPivot(){
+  const sel=document.getElementById('op-pivot-company');
+  if(sel){
+    const cos=[...new Set(DATA.opportunities.map(o=>o.company).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">All companies</option>'+cos.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    sel.value=opPivotFilters.company;
+  }
+  const dfSel=document.getElementById('op-pivot-datefield');
+  if(dfSel) dfSel.value=opPivotFilters.dateField;
+  const moSel=document.getElementById('op-pivot-month');
+  if(moSel){
+    const field=opPivotFilters.dateField;
+    const months=new Set();
+    if(field) DATA.opportunities.forEach(o=>{
+      const dv=o[field]; if(!dv) return;
+      const d=new Date(dv); if(!isNaN(d)) months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    });
+    const sorted=[...months].sort().reverse();
+    moSel.innerHTML='<option value="">All months</option>'+sorted.map(m=>{
+      const [y,mo]=m.split('-');
+      const label=new Date(Number(y),Number(mo)-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+      return `<option value="${m}">${label}</option>`;
+    }).join('');
+    moSel.value=opPivotFilters.month;
+    moSel.disabled=!field;
+  }
+
+  const filtered=DATA.opportunities.filter(o=>{
+    if(opPivotFilters.company&&o.company!==opPivotFilters.company) return false;
+    if(opPivotFilters.dateField&&opPivotFilters.month){
+      const dv=o[opPivotFilters.dateField]; if(!dv) return false;
+      const d=new Date(dv); if(isNaN(d)) return false;
+      if(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`!==opPivotFilters.month) return false;
+    }
+    return true;
+  });
+  const rows=LOOKUPS.opportunityStatus.map(s=>{
+    const list=filtered.filter(o=>o.opportunity_status===s);
+    return {
+      stage:s,count:list.length,
+      est:list.reduce((a,o)=>a+(Number(o.estimated_value_usd)||0),0),
+      weighted:list.reduce((a,o)=>a+(Number(o.probability_weighted_value)||0),0)
+    };
+  }).filter(r=>r.count>0);
+  const grand={
+    count:rows.reduce((a,r)=>a+r.count,0),
+    est:rows.reduce((a,r)=>a+r.est,0),
+    weighted:rows.reduce((a,r)=>a+r.weighted,0)
+  };
+
+  const tbl=document.getElementById('op-pivot-table');
+  tbl.querySelector('thead').innerHTML=`<tr><th>Opportunity Status</th><th class="num">No. of Opportunities</th><th class="num">Estimated Value (USD)</th><th class="num">Probability Weighted Value (USD)</th></tr>`;
+  tbl.querySelector('tbody').innerHTML=rows.length
+    ? rows.map(r=>`<tr>
+        <td><span class="${stageTagClassN(STAGE_NUM(r.stage))}">${esc(r.stage.replace(/^\d+\s/,''))}</span></td>
+        <td class="num">${r.count}</td><td class="num">${fmtMoney(r.est)}</td><td class="num">${fmtMoney(r.weighted)}</td>
+      </tr>`).join('')+`<tr class="pivot-total"><td>Grand Total</td><td class="num">${grand.count}</td><td class="num">${fmtMoney(grand.est)}</td><td class="num">${fmtMoney(grand.weighted)}</td></tr>`
+    : `<tr><td colspan="4" class="empty-state">No opportunities match this filter.</td></tr>`;
+}
 
 function renderOpportunities(){
+  renderOpportunityPivot();
   const open=DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
   const blueSky=DATA.opportunities.filter(o=>String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
   const wins=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
@@ -1398,27 +1646,172 @@ function renderOpportunities(){
 }
 
 /* ---------- 15. RENDER: ENGAGEMENTS ---------- */
-let egFilters={search:'',type:'',company:'',followup:''};
+let egFilters={search:'',type:'',company:'',followup:'',week:''};
+function filterEngByCompany(company){
+  egFilters.company=(egFilters.company===company)?'':company; // toggle off if clicking the same company again
+  renderEngagements();
+  const sel=document.getElementById('eg-filter-company'); if(sel) sel.value=egFilters.company;
+  document.getElementById('eg-table-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function filterEngByWeek(weekKey){
+  egFilters.week=(egFilters.week===weekKey)?'':weekKey; // toggle off if clicking the same week again
+  renderEngagements();
+  document.getElementById('eg-table-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function clearEgWeekFilter(){ egFilters.week=''; renderEngagements(); }
+
+let egPivotFilters={bd:'',month:'',company:'',objective:'',type:''};
+// Trims stray whitespace before comparing/deduping — live SharePoint data has known
+// trailing-space variants (e.g. "Takeda " vs "Takeda"), and an exact === match against
+// a clean canonical string would silently zero out results, which looks like "broken filters".
+function normStr(v){ return String(v==null?'':v).trim(); }
+// Orders a set of actually-present values to match the canonical LOOKUPS order first,
+// then appends anything present in the data but not in LOOKUPS (alphabetically) so nothing is ever hidden.
+function orderByLookup(presentValues,lookupArr){
+  const known=lookupArr.filter(v=>presentValues.includes(v));
+  const unknown=presentValues.filter(v=>!lookupArr.includes(v)).sort();
+  return [...known,...unknown];
+}
+
+// Mirrors the workbook's "Engagement Tracker" pivot: Outcome > Stakeholder Type, cross-tabbed by Engagement Type.
+// Every <select>'s value is always set FROM egPivotFilters (state is the single source of truth) —
+// never read back from the DOM — so a pick can never desync from what's actually applied.
+function renderEngagementPivot(){
+  const bdSel=document.getElementById('eg-pivot-bd');
+  if(bdSel){
+    const bds=[...new Set(DATA.engagements.map(e=>normStr(e.bd_pm)).filter(Boolean))].sort();
+    bdSel.innerHTML='<option value="">All BD/PM</option>'+bds.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('');
+    bdSel.value=egPivotFilters.bd;
+  }
+  const moSel=document.getElementById('eg-pivot-month');
+  if(moSel){
+    const months=new Set();
+    DATA.engagements.forEach(e=>{if(e.eng_date){const d=new Date(e.eng_date);if(!isNaN(d))months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}});
+    const sorted=[...months].sort().reverse();
+    moSel.innerHTML='<option value="">All months</option>'+sorted.map(m=>{
+      const [y,mo]=m.split('-');
+      const label=new Date(Number(y),Number(mo)-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+      return `<option value="${m}">${label}</option>`;
+    }).join('');
+    moSel.value=egPivotFilters.month;
+  }
+  const coSel=document.getElementById('eg-pivot-company');
+  if(coSel){
+    const cos=[...new Set(DATA.engagements.map(e=>normStr(e.company)).filter(Boolean))].sort();
+    coSel.innerHTML='<option value="">All companies</option>'+cos.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    coSel.value=egPivotFilters.company;
+  }
+  const objSel=document.getElementById('eg-pivot-objective');
+  if(objSel){
+    const presentObj=[...new Set(DATA.engagements.map(e=>normStr(e.engagement_objective)).filter(Boolean))];
+    const objectives=orderByLookup(presentObj,LOOKUPS.engagementObjective);
+    objSel.innerHTML='<option value="">All objectives</option>'+objectives.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    objSel.value=egPivotFilters.objective;
+  }
+  const typeSel=document.getElementById('eg-pivot-type');
+  if(typeSel){
+    const presentTypes=[...new Set(DATA.engagements.map(e=>normStr(e.engagement_type)).filter(Boolean))];
+    const typesForFilter=orderByLookup(presentTypes,LOOKUPS.engagementTypes);
+    typeSel.innerHTML='<option value="">All engagement types</option>'+typesForFilter.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+    typeSel.value=egPivotFilters.type;
+  }
+
+  const filtered=DATA.engagements.filter(e=>{
+    if(egPivotFilters.bd&&normStr(e.bd_pm)!==egPivotFilters.bd) return false;
+    if(egPivotFilters.month){
+      if(!e.eng_date) return false;
+      const d=new Date(e.eng_date); if(isNaN(d)) return false;
+      if(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`!==egPivotFilters.month) return false;
+    }
+    if(egPivotFilters.company&&normStr(e.company)!==egPivotFilters.company) return false;
+    if(egPivotFilters.objective&&normStr(e.engagement_objective)!==egPivotFilters.objective) return false;
+    if(egPivotFilters.type&&normStr(e.engagement_type)!==egPivotFilters.type) return false;
+    return true;
+  });
+
+  const presentTypes=[...new Set(filtered.map(e=>normStr(e.engagement_type)).filter(Boolean))];
+  const types=orderByLookup(presentTypes,LOOKUPS.engagementTypes);
+  const presentOutcomes=[...new Set(filtered.map(e=>normStr(e.engagement_outcome)).filter(Boolean))];
+  const outcomeOrder=orderByLookup(presentOutcomes,LOOKUPS.engagementOutcome);
+
+  const tbl=document.getElementById('eg-pivot-table');
+  if(!types.length||!outcomeOrder.length){
+    tbl.querySelector('thead').innerHTML='';
+    tbl.querySelector('tbody').innerHTML='<tr><td class="empty-state">No engagements match these filters.</td></tr>';
+    return;
+  }
+  tbl.querySelector('thead').innerHTML=`<tr><th>Outcome / Stakeholder Type</th>${types.map(t=>`<th class="num">${esc(t)}</th>`).join('')}<th class="num">Grand Total</th></tr>`;
+
+  let html='';
+  const colTotals=types.map(()=>0);
+  let grandTotal=0;
+  outcomeOrder.forEach(outcome=>{
+    const outcomeEngs=filtered.filter(e=>normStr(e.engagement_outcome)===outcome);
+    if(!outcomeEngs.length) return;
+    const stTypes=orderByLookup([...new Set(outcomeEngs.map(e=>normStr(e.stakeholder_type)).filter(Boolean))],LOOKUPS.stakeholderType);
+    const outcomeCounts=types.map(t=>outcomeEngs.filter(e=>normStr(e.engagement_type)===t).length);
+    const outcomeTotal=outcomeCounts.reduce((a,b)=>a+b,0);
+    html+=`<tr class="pivot-group open"><td><span class="caret">▶</span> ${esc(outcome)}</td>${outcomeCounts.map(n=>`<td class="num">${n||'—'}</td>`).join('')}<td class="num">${outcomeTotal}</td></tr>`;
+    stTypes.forEach(st=>{
+      const stEngs=outcomeEngs.filter(e=>normStr(e.stakeholder_type)===st);
+      const stCounts=types.map(t=>stEngs.filter(e=>normStr(e.engagement_type)===t).length);
+      const stTotal=stCounts.reduce((a,b)=>a+b,0);
+      html+=`<tr class="pivot-child show"><td>${esc(st)}</td>${stCounts.map(n=>`<td class="num">${n||'—'}</td>`).join('')}<td class="num">${stTotal}</td></tr>`;
+    });
+    outcomeCounts.forEach((n,i)=>colTotals[i]+=n);
+    grandTotal+=outcomeTotal;
+  });
+  html+=`<tr class="pivot-total"><td>Grand Total</td>${colTotals.map(n=>`<td class="num">${n}</td>`).join('')}<td class="num">${grandTotal}</td></tr>`;
+  tbl.querySelector('tbody').innerHTML=html;
+}
 
 function renderEngagements(){
+  renderEngagementPivot();
   const thisWeek=isoWeek(new Date().toISOString());
+  const lastWeekStart=mondayOf(new Date().toISOString()); lastWeekStart.setDate(lastWeekStart.getDate()-7);
+  const lastWeek=isoWeek(lastWeekStart.toISOString());
   const engThisWeek=DATA.engagements.filter(e=>isoWeek(e.eng_date)===thisWeek).length;
+  const engLastWeek=DATA.engagements.filter(e=>isoWeek(e.eng_date)===lastWeek).length;
+  const wowDelta=engThisWeek-engLastWeek;
   const pending=DATA.engagements.filter(e=>String(e.follow_up_done||'').toLowerCase()!=='yes').length;
   const ledToRfp=DATA.engagements.filter(e=>String(e.engagement_outcome||'').toLowerCase().includes('led to rfp')).length;
   renderKpiCards('eg-kpis',[
     {label:'Total',value:fmtNum(DATA.engagements.length),sub:'logged touchpoints',accent:'sky'},
-    {label:'This week',value:fmtNum(engThisWeek),sub:weekRangeLabel(new Date()),accent:'amber'},
+    {label:'This week',value:fmtNum(engThisWeek),sub:`${wowDelta>0?'▲':wowDelta<0?'▼':'–'} ${Math.abs(wowDelta)} vs last week`,accent:'amber'},
+    {label:'Last week',value:fmtNum(engLastWeek),sub:weekRangeLabel(lastWeekStart),accent:'sky'},
     {label:'Follow-up pending',value:fmtNum(pending),sub:'needs attention',accent:'coral'},
     {label:'Led to RFP',value:fmtNum(ledToRfp),sub:'conversion events',accent:'green'}
   ]);
 
-  // Weekly bar chart
-  const wkMap={};
-  DATA.engagements.forEach(e=>{const wk=isoWeek(e.eng_date);if(wk)wkMap[wk]=(wkMap[wk]||0)+1;});
-  const weeks=Object.keys(wkMap).sort().slice(-12);
+  // Weekly bar chart — labelled by week-start date, not raw ISO week strings. Click a bar to drill into that week.
+  const egWeekSeries=weeklySeries(DATA.engagements.map(e=>e.eng_date),12);
   destroyChart('egWeekly');
   const ctx=document.getElementById('eg-weekly-chart').getContext('2d');
-  CHARTS.egWeekly=new Chart(ctx,{type:'bar',data:{labels:weeks,datasets:[{label:'Engagements',data:weeks.map(w=>wkMap[w]),backgroundColor:COLORS.sky,borderRadius:4,maxBarThickness:36}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}}});
+  CHARTS.egWeekly=new Chart(ctx,{type:'bar',data:{labels:egWeekSeries.map(s=>s.label),datasets:[{label:'Engagements',data:egWeekSeries.map(s=>s.count),backgroundColor:egWeekSeries.map(s=>egFilters.week===s.key?COLORS.skyDeep:COLORS.sky),borderRadius:4,maxBarThickness:36}]},options:{responsive:true,maintainAspectRatio:false,onClick:(evt,elements)=>{if(!elements.length)return;const s=egWeekSeries[elements[0].index];if(s)filterEngByWeek(s.key);},onHover:(evt,elements)=>{if(evt.native?.target) evt.native.target.style.cursor=elements.length?'pointer':'default';},plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>egWeekSeries[items[0].dataIndex]?.rangeLabel||''}}},scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},title:{display:true,text:'Week starting'}}}}});
+
+  // Company-wise breakdown — click a company to drill into its engagements
+  const egCoMap={};
+  DATA.engagements.forEach(e=>{const co=(e.company||'Unknown').trim();egCoMap[co]=(egCoMap[co]||0)+1;});
+  const egCoTop=Object.entries(egCoMap).sort((a,b)=>b[1]-a[1]);
+  const egCoMax=Math.max(1,...egCoTop.map(([,n])=>n));
+  document.getElementById('eg-company-breakdown').innerHTML=egCoTop.length?egCoTop.map(([c,n])=>`
+    <div class="funnel-row" style="grid-template-columns:120px 1fr 30px;cursor:pointer;${egFilters.company===c?'background:var(--sky-pale);border-radius:6px;':''}" onclick="filterEngByCompany('${esc(c)}')" title="Show only ${esc(c)}">
+      <div class="funnel-label" style="overflow:hidden;text-overflow:ellipsis;">${esc(c)}</div>
+      <div class="funnel-track"><div class="funnel-fill" style="width:${(n/egCoMax*100).toFixed(0)}%;background:${COLORS.sky};opacity:.85;"></div></div>
+      <div class="funnel-val">${n}</div>
+    </div>`).join('')
+    :'<div class="empty-state">No engagements logged yet.</div>';
+
+  // Active week-filter chip (set by clicking a bar in the weekly chart above)
+  const weekChipEl=document.getElementById('eg-week-chip');
+  if(weekChipEl){
+    if(egFilters.week){
+      const wkInfo=egWeekSeries.find(s=>s.key===egFilters.week);
+      weekChipEl.innerHTML=`<span class="tag tag-sky" style="cursor:pointer;" onclick="clearEgWeekFilter()" title="Clear week filter">📅 ${esc(wkInfo?wkInfo.rangeLabel:egFilters.week)} ✕</span>`;
+    } else {
+      weekChipEl.innerHTML='';
+    }
+  }
 
   // Company filter alphabetically
   const egCoSel=document.getElementById('eg-filter-company');
@@ -1436,6 +1829,7 @@ function renderEngagements(){
   let rows=DATA.engagements.filter(e=>{
     if(egFilters.type&&e.engagement_type!==egFilters.type) return false;
     if(egFilters.company&&e.company!==egFilters.company) return false;
+    if(egFilters.week&&isoWeek(e.eng_date)!==egFilters.week) return false;
     if(egFilters.followup==='yes'&&String(e.follow_up_done||'').toLowerCase()!=='yes') return false;
     if(egFilters.followup==='no'&&String(e.follow_up_done||'').toLowerCase()==='yes') return false;
     if(egFilters.search){
@@ -1595,6 +1989,7 @@ function comboPick(el,id,val){
   // Trigger company→client cascade if needed
   if(id==='modal-company') updateModalClientOptions(val);
   if(id==='modal-opp-company') updateModalOppClientOptions(val);
+  if(id==='modal-eng-company') updateModalEngClientOptions(val);
 }
 async function comboAddNew(evt,id){
   evt.preventDefault();
@@ -1604,7 +1999,7 @@ async function comboAddNew(evt,id){
   if(!name||!name.trim()) return;
   inp.value=name.trim();
   // If this is the company field, also create a company record in SharePoint
-  if(id==='modal-company'||id==='modal-opp-company'){
+  if(id==='modal-company'||id==='modal-opp-company'||id==='modal-eng-company'){
     const existing=DATA.companies.find(c=>normCo(c.company)===normCo(name));
     if(!existing){
       const r=await insertRecord('companies',{company:name.trim(),onboarding_status:null,notes:null});
@@ -1612,12 +2007,13 @@ async function comboAddNew(evt,id){
     }
     if(id==='modal-company') updateModalClientOptions(name.trim());
     if(id==='modal-opp-company') updateModalOppClientOptions(name.trim());
+    if(id==='modal-eng-company') updateModalEngClientOptions(name.trim());
   }
 }
 
 function updateModalClientOptions(company){
   // Update client name combo options when company changes
-  const listEl=document.getElementById('modal-client-list');
+  const listEl=document.getElementById('modal-client-name-list');
   if(!listEl) return;
   const clients=DATA.clients.filter(c=>normCo(c.company)===normCo(company)).map(c=>c.client_name).filter(Boolean).sort();
   const existing=listEl.querySelectorAll('.combo-opt:not(.add-new)');
@@ -1630,7 +2026,7 @@ function updateModalClientOptions(company){
   });
 }
 function updateModalOppClientOptions(company){
-  const listEl=document.getElementById('modal-opp-client-list');
+  const listEl=document.getElementById('modal-opp-client-name-list');
   if(!listEl) return;
   const clients=DATA.clients.filter(c=>normCo(c.company)===normCo(company)).map(c=>c.client_name).filter(Boolean).sort();
   const existing=listEl.querySelectorAll('.combo-opt:not(.add-new)');
@@ -1671,7 +2067,7 @@ function renderHistoryTimeline(hist){
 const ADD_CONFIGS={
   clients:{title:'Add client',kind:'clients',fields:[
     {name:'modal-company',label:'Company',combo:true,allowNew:true,required:true,comboOpts:()=>uniqueCompanies()},
-    {name:'modal-client-name',label:'Client name',combo:true,allowNew:true,required:true,comboOpts:()=>[],comboId:'modal-client-list',comboDepends:'modal-company'},
+    {name:'modal-client-name',label:'Client name',combo:true,allowNew:true,required:true,comboOpts:()=>[],comboDepends:'modal-company'},
     {name:'designation',label:'Designation',type:'text',required:true},
     {name:'department',label:'Department',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.departments.sort()},
     {name:'therapy_area',label:'Therapy area',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.therapyAreas.sort()},
@@ -1686,7 +2082,7 @@ const ADD_CONFIGS={
   ]},
   opportunities:{title:'Add opportunity',kind:'opportunities',fields:[
     {name:'modal-opp-company',label:'Company',combo:true,required:true,comboOpts:()=>uniqueCompanies()},
-    {name:'modal-opp-client-name',label:'Client name',combo:true,comboOpts:()=>[],comboId:'modal-opp-client-list',comboDepends:'modal-opp-company',required:true},
+    {name:'modal-opp-client-name',label:'Client name',combo:true,comboOpts:()=>[],comboDepends:'modal-opp-company',required:true},
     {name:'opportunity',label:'Opportunity',type:'text',required:true,full:true},
     {name:'opportunity_status',label:'Stage',type:'select',opts:LOOKUPS.opportunityStatus,required:true},
     {name:'bd_owner',label:'BD owner',combo:true,comboOpts:()=>EMPLOYEES,required:true},
@@ -1702,7 +2098,7 @@ const ADD_CONFIGS={
   engagements:{title:'Log engagement',kind:'engagements',fields:[
     {name:'eng_date',label:'Date',type:'date',required:true},
     {name:'modal-eng-company',label:'Company',combo:true,required:true,comboOpts:()=>uniqueCompanies()},
-    {name:'modal-eng-client',label:'Client name',combo:true,comboOpts:()=>[],comboId:'modal-eng-client-list',comboDepends:'modal-eng-company',required:true},
+    {name:'modal-eng-client',label:'Client name',combo:true,comboOpts:()=>[],comboDepends:'modal-eng-company',required:true},
     {name:'designation',label:'Designation',type:'text',required:true},
     {name:'bd_pm',label:'BD / PM',combo:true,comboOpts:()=>EMPLOYEES,required:true},
     {name:'engagement_type',label:'Engagement type',type:'select',opts:LOOKUPS.engagementTypes,required:true},
@@ -1986,45 +2382,64 @@ async function boot(){
 }
 
 /* ---------- 22. EVENT WIRING ---------- */
+// Guarded event binding: a single missing/renamed element logs a console error and is
+// skipped, instead of throwing and silently aborting every wireEvents() call after it
+// (which is exactly the kind of bug that makes unrelated dropdowns look "broken").
+function on(id,event,handler){
+  const el=document.getElementById(id);
+  if(!el){ console.error(`wireEvents: #${id} not found — its ${event} handler was not attached.`); return; }
+  el.addEventListener(event,handler);
+}
+
 function wireEvents(){
-  document.getElementById('login-submit').addEventListener('click',doLogin);
-  document.getElementById('logout-btn').addEventListener('click',doLogout);
-  document.getElementById('refresh-btn').addEventListener('click',refreshAndRenderAll);
+  on('login-submit','click',doLogin);
+  on('logout-btn','click',doLogout);
+  on('refresh-btn','click',refreshAndRenderAll);
 
   document.querySelectorAll('.nav-item').forEach(btn=>{
     btn.addEventListener('click',()=>switchView(btn.dataset.view));
   });
 
-  document.getElementById('add-client-btn').addEventListener('click',()=>openAddModal('clients'));
-  document.getElementById('add-opp-btn').addEventListener('click',()=>openAddModal('opportunities'));
-  document.getElementById('add-eng-btn').addEventListener('click',()=>openAddModal('engagements'));
-  document.getElementById('add-company-btn').addEventListener('click',()=>openAddModal('companies'));
+  on('add-client-btn','click',()=>openAddModal('clients'));
+  on('add-opp-btn','click',()=>openAddModal('opportunities'));
+  on('add-eng-btn','click',()=>openAddModal('engagements'));
+  on('add-company-btn','click',()=>openAddModal('companies'));
 
   // Client filters
-  document.getElementById('cl-search').addEventListener('input',debounce(e=>{clFilters.search=e.target.value;renderClients();},200));
-  document.getElementById('cl-filter-status').addEventListener('change',e=>{clFilters.status=e.target.value;renderClients();});
-  document.getElementById('cl-filter-company').addEventListener('change',e=>{clFilters.company=e.target.value;renderClients();});
-  document.getElementById('cl-filter-priority').addEventListener('change',e=>{clFilters.priority=e.target.value;renderClients();});
-  document.getElementById('cl-clear').addEventListener('click',()=>{clFilters={search:'',status:'',company:'',priority:''};document.getElementById('cl-search').value='';renderClients();});
+  on('cl-search','input',debounce(e=>{clFilters.search=e.target.value;renderClients();},200));
+  on('cl-filter-status','change',e=>{clFilters.status=e.target.value;renderClients();});
+  on('cl-filter-company','change',e=>{clFilters.company=e.target.value;renderClients();});
+  on('cl-filter-priority','change',e=>{clFilters.priority=e.target.value;renderClients();});
+  on('cl-clear','click',()=>{clFilters={search:'',status:'',company:'',priority:''};document.getElementById('cl-search').value='';renderClients();});
+  on('cl-pivot-therapy','change',e=>{clPivotFilters.therapy=e.target.value;renderClientPivot();});
 
   // Opportunity filters
-  document.getElementById('op-search').addEventListener('input',debounce(e=>{opFilters.search=e.target.value;renderOpportunities();},200));
-  document.getElementById('op-filter-status').addEventListener('change',e=>{opFilters.status=e.target.value;renderOpportunities();});
-  document.getElementById('op-filter-company').addEventListener('change',e=>{opFilters.company=e.target.value;renderOpportunities();});
-  document.getElementById('op-filter-bd').addEventListener('change',e=>{opFilters.bd=e.target.value;renderOpportunities();});
-  document.getElementById('op-clear').addEventListener('click',()=>{opFilters={search:'',status:'',company:'',bd:''};document.getElementById('op-search').value='';renderOpportunities();});
+  on('op-search','input',debounce(e=>{opFilters.search=e.target.value;renderOpportunities();},200));
+  on('op-filter-status','change',e=>{opFilters.status=e.target.value;renderOpportunities();});
+  on('op-filter-company','change',e=>{opFilters.company=e.target.value;renderOpportunities();});
+  on('op-filter-bd','change',e=>{opFilters.bd=e.target.value;renderOpportunities();});
+  on('op-clear','click',()=>{opFilters={search:'',status:'',company:'',bd:''};document.getElementById('op-search').value='';renderOpportunities();});
+  on('op-pivot-company','change',e=>{opPivotFilters.company=e.target.value;renderOpportunityPivot();});
+  on('op-pivot-datefield','change',e=>{opPivotFilters.dateField=e.target.value;opPivotFilters.month='';renderOpportunityPivot();});
+  on('op-pivot-month','change',e=>{opPivotFilters.month=e.target.value;renderOpportunityPivot();});
 
   // Engagement filters
-  document.getElementById('eg-search').addEventListener('input',debounce(e=>{egFilters.search=e.target.value;renderEngagements();},200));
-  document.getElementById('eg-filter-type').addEventListener('change',e=>{egFilters.type=e.target.value;renderEngagements();});
-  document.getElementById('eg-filter-company').addEventListener('change',e=>{egFilters.company=e.target.value;renderEngagements();});
-  document.getElementById('eg-filter-followup').addEventListener('change',e=>{egFilters.followup=e.target.value;renderEngagements();});
-  document.getElementById('eg-clear').addEventListener('click',()=>{egFilters={search:'',type:'',company:'',followup:''};document.getElementById('eg-search').value='';renderEngagements();});
+  on('eg-search','input',debounce(e=>{egFilters.search=e.target.value;renderEngagements();},200));
+  on('eg-filter-type','change',e=>{egFilters.type=e.target.value;renderEngagements();});
+  on('eg-filter-company','change',e=>{egFilters.company=e.target.value;renderEngagements();});
+  on('eg-filter-followup','change',e=>{egFilters.followup=e.target.value;renderEngagements();});
+  on('eg-clear','click',()=>{egFilters={search:'',type:'',company:'',followup:'',week:''};document.getElementById('eg-search').value='';renderEngagements();});
+  on('eg-pivot-bd','change',e=>{egPivotFilters.bd=e.target.value;renderEngagementPivot();});
+  on('eg-pivot-month','change',e=>{egPivotFilters.month=e.target.value;renderEngagementPivot();});
+  on('eg-pivot-company','change',e=>{egPivotFilters.company=e.target.value;renderEngagementPivot();});
+  on('eg-pivot-objective','change',e=>{egPivotFilters.objective=e.target.value;renderEngagementPivot();});
+  on('eg-pivot-type','change',e=>{egPivotFilters.type=e.target.value;renderEngagementPivot();});
+  on('eg-pivot-clear','click',()=>{egPivotFilters={bd:'',month:'',company:'',objective:'',type:''};renderEngagementPivot();});
 
   // Company filters
-  document.getElementById('co-search').addEventListener('input',debounce(e=>{coFilters.search=e.target.value;renderCompanies();},200));
-  document.getElementById('co-filter-onboarding').addEventListener('change',e=>{coFilters.onboarding=e.target.value;renderCompanies();});
-  document.getElementById('co-clear').addEventListener('click',()=>{coFilters={search:'',onboarding:''};document.getElementById('co-search').value='';renderCompanies();});
+  on('co-search','input',debounce(e=>{coFilters.search=e.target.value;renderCompanies();},200));
+  on('co-filter-onboarding','change',e=>{coFilters.onboarding=e.target.value;renderCompanies();});
+  on('co-clear','click',()=>{coFilters={search:'',onboarding:''};document.getElementById('co-search').value='';renderCompanies();});
 }
 
 document.addEventListener('DOMContentLoaded',wireEvents);
