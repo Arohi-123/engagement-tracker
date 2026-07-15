@@ -521,10 +521,13 @@ table.pivot tr.pivot-total td{border-bottom:none;color:#fff;}
         <div class="bd-section">
           <div class="bd-section-title" style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <span>Stakeholder List</span>
-            <select id="bd-stake-view" style="padding:3px 8px;border-radius:5px;border:1px solid var(--line);font-size:10.5px;background:#fff;color:var(--ink-soft);font-family:inherit;cursor:pointer;">
-              <option value="total">Show: Totals</option>
-              <option value="active">Show: Active status</option>
-            </select>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="bd-expand-toggle" id="bd-stake-toggle" onclick="toggleBdStakeExpanded()">Show breakdown ▾</button>
+              <select id="bd-stake-view" style="padding:3px 8px;border-radius:5px;border:1px solid var(--line);font-size:10.5px;background:#fff;color:var(--ink-soft);font-family:inherit;cursor:pointer;">
+                <option value="total">Show: Totals</option>
+                <option value="active">Show: Active status</option>
+              </select>
+            </div>
           </div>
           <div class="bd-metric-row" id="bd-s-total"></div>
           <div class="bd-metric-row active" id="bd-s-active" style="display:none;"></div>
@@ -736,6 +739,12 @@ table.pivot tr.pivot-total td{border-bottom:none;color:#fff;}
         </div>
       </div>
       <div class="kpi-grid" id="co-kpis"></div>
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head"><div><h3>Account health matrix</h3><p>Score 1–5 per measure · edit via a company's Edit button</p></div></div>
+        <div class="panel-body" style="padding-top:10px;">
+          <div class="pivot-wrap"><table class="pivot" id="co-health-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
       <div class="panel">
         <div class="panel-body" style="padding-bottom:0;">
           <div class="toolbar">
@@ -747,12 +756,6 @@ table.pivot tr.pivot-total td{border-bottom:none;color:#fff;}
           </div>
         </div>
         <div class="table-wrap"><table id="co-table"><thead></thead><tbody></tbody></table></div>
-      </div>
-      <div class="panel" style="margin-top:16px;">
-        <div class="panel-head"><div><h3>Account health matrix</h3><p>Score 1–5 per measure · edit via a company's Edit button</p></div></div>
-        <div class="panel-body" style="padding-top:10px;">
-          <div class="pivot-wrap"><table class="pivot" id="co-health-table"><thead></thead><tbody></tbody></table></div>
-        </div>
       </div>
     </section>
   </div>
@@ -871,8 +874,10 @@ let DATA = { clients:[], opportunities:[], engagements:[], companies:[] };
 let CHARTS = {};
 let SORT_STATE = {}; // { viewKey: { col, dir } }
 let bdStakeView='total'; // 'total' | 'active' — which Stakeholder List row is visible
+let bdStakeExpanded=false; // collapsed by default: only the Total Clients tile shows until expanded
 let bdEngExpanded=false; // collapsed by default: only the Total tile shows until expanded
 let bdOppExpanded=false;
+function toggleBdStakeExpanded(){ bdStakeExpanded=!bdStakeExpanded; renderBDFunnel(); }
 function toggleBdEngExpanded(){ bdEngExpanded=!bdEngExpanded; renderBDFunnel(); }
 function toggleBdOppExpanded(){ bdOppExpanded=!bdOppExpanded; renderBDFunnel(); }
 
@@ -1513,9 +1518,13 @@ function renderBDFunnel(){
   const activeRowEl=document.getElementById('bd-s-active');
   if(activeRowEl) activeRowEl.style.display=bdStakeView==='active'?'':'none';
 
+  const stakeDepts=bdStakeExpanded?depts:depts.slice(0,1);
+  const stakeToggle=document.getElementById('bd-stake-toggle');
+  if(stakeToggle) stakeToggle.textContent=bdStakeExpanded?'Hide breakdown ▴':'Show breakdown ▾';
+
   const totalEl=document.getElementById('bd-s-total');
   const activeEl=document.getElementById('bd-s-active');
-  if(totalEl) totalEl.innerHTML=depts.map(d=>{
+  if(totalEl) totalEl.innerHTML=stakeDepts.map(d=>{
     const count=d.key?DATA.clients.filter(c=>c.department===d.key).length:DATA.clients.length;
     return `<div class="bd-metric">
       <div class="bd-metric-label">${esc(d.label)}</div>
@@ -1523,7 +1532,7 @@ function renderBDFunnel(){
       <div class="bd-metric-sub">total</div>
     </div>`;
   }).join('');
-  if(activeEl) activeEl.innerHTML=depts.map(d=>{
+  if(activeEl) activeEl.innerHTML=stakeDepts.map(d=>{
     const count=d.key
       ?DATA.clients.filter(c=>c.department===d.key&&isActiveStatus(c)).length
       :DATA.clients.filter(c=>isActiveStatus(c)).length;
@@ -1819,13 +1828,11 @@ function renderOpportunityPivot(){
 function renderOpportunities(){
   renderOpportunityPivot();
   const open=DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
-  const blueSky=DATA.opportunities.filter(o=>String(o.opportunity_status||'').toLowerCase().includes('blue sky'));
   const wins=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
   const losses=DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
   const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
   renderKpiCards('op-kpis',[
     {label:'Total',value:fmtNum(DATA.opportunities.length),sub:`${open.length} open`,accent:'sky'},
-    {label:'Blue sky',value:fmtNum(blueSky.length),sub:fmtMoney(blueSky.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'amber'},
     {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),sub:'estimated USD',accent:'sky'},
     {label:'Weighted',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)),sub:'open pipeline',accent:'sky'},
     {label:'Won',value:fmtNum(wins.length),sub:fmtMoney(wins.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'green'},
@@ -2145,10 +2152,10 @@ function computeCompanyRollup(){
   const map={};
   function ensure(name){
     const norm=normCo(name); if(!norm) return null;
-    if(!map[norm]) map[norm]={company:name.trim(),onboarding_status:null,totalClients:0,activeClients:0,openOpps:0,pipelineValue:0,weightedValue:0,wins:0,winValue:0,toWin:0,toWinValue:0,losses:0,lossValue:0,engagements:0,lastEngagement:null};
+    if(!map[norm]) map[norm]={company:name.trim(),onboarding_status:null,targetRevenue:null,totalClients:0,activeClients:0,openOpps:0,pipelineValue:0,weightedValue:0,wins:0,winValue:0,toWin:0,toWinValue:0,losses:0,lossValue:0,engagements:0,lastEngagement:null};
     return map[norm];
   }
-  DATA.companies.forEach(c=>{const r=ensure(c.company);if(r)r.onboarding_status=c.onboarding_status;});
+  DATA.companies.forEach(c=>{const r=ensure(c.company);if(r){r.onboarding_status=c.onboarding_status;r.targetRevenue=c.target_revenue;}});
   DATA.clients.forEach(c=>{const r=ensure(c.company);if(!r)return;r.totalClients++;if(['active business','active engagement'].includes(String(c.status||'').toLowerCase()))r.activeClients++;});
   DATA.opportunities.forEach(o=>{
     const r=ensure(o.company);if(!r)return;
@@ -2170,12 +2177,11 @@ function renderCompanyHealthMatrix(){
   if(!tbl) return;
   const companies=[...DATA.companies].filter(c=>c.company).sort((a,b)=>a.company.localeCompare(b.company));
   const measures=[
-    {key:'target_revenue',label:'Target Revenue',fmt:v=>v?fmtMoney(v):'—'},
-    {key:'overall_budget_potential',label:'Overall Budget Potential',fmt:v=>v??'—'},
-    {key:'overall_client_relationship',label:'Overall Client Relationship',fmt:v=>v??'—'},
+    {key:'overall_budget_potential',label:'Overall Budget Potential',fmt:v=>v?`${v}/5`:'—'},
+    {key:'overall_client_relationship',label:'Overall Client Relationship',fmt:v=>v?`${v}/5`:'—'},
     {key:'client_perception',label:'Client Perception',fmt:v=>v||'—'},
-    {key:'team_satisfaction',label:'Team Satisfaction',fmt:v=>v??'—'},
-    {key:'degree_of_innovation',label:'Degree of Innovation',fmt:v=>v??'—'}
+    {key:'team_satisfaction',label:'Team Satisfaction',fmt:v=>v?`${v}/5`:'—'},
+    {key:'degree_of_innovation',label:'Degree of Innovation',fmt:v=>v?`${v}/5`:'—'}
   ];
   if(!companies.length){
     tbl.querySelector('thead').innerHTML='';
@@ -2214,6 +2220,7 @@ function renderCompanies(){
 
   const cols=[
     {key:'company',label:'Company'},{key:'onboarding_status',label:'Onboarding'},
+    {key:'targetRevenue',label:'Target Revenue'},
     {key:'totalClients',label:'Clients'},{key:'activeClients',label:'Active'},
     {key:'openOpps',label:'Open Opps'},{key:'pipelineValue',label:'Pipeline'},
     {key:'weightedValue',label:'Weighted'},{key:'wins',label:'Wins'},
@@ -2227,6 +2234,7 @@ function renderCompanies(){
     return `<tr${noEng90?' style="background:rgba(200,84,61,0.04)"':''}>
       <td><strong>${esc(r.company)}</strong></td>
       <td>${r.onboarding_status?`<span class="${onboardingClass(r.onboarding_status)}">${esc(r.onboarding_status)}</span>`:'<span class="tag tag-grey">Not on file</span>'}</td>
+      <td class="num">${r.targetRevenue?fmtMoney(r.targetRevenue):'—'}</td>
       <td class="num">${fmtNum(r.totalClients)}</td>
       <td class="num">${fmtNum(r.activeClients)}</td>
       <td class="num">${fmtNum(r.openOpps)}</td>
@@ -2237,7 +2245,7 @@ function renderCompanies(){
       <td${noEng90?' style="color:var(--coral)"':''}>${r.lastEngagement?fmtDate(r.lastEngagement):'—'}</td>
       <td class="td-actions">${canEdit()?`<button class="btn btn-edit btn-sm" onclick="openCoEditModal('${esc(r.company)}')">Edit</button>`:''}</td>
     </tr>`}).join('')
-    :'<tr><td colspan="11" class="empty-state">No companies match this search.</td></tr>';
+    :'<tr><td colspan="12" class="empty-state">No companies match this search.</td></tr>';
   document.getElementById('co-count').textContent=`${rows.length} of ${rollup.length}`;
 }
 
