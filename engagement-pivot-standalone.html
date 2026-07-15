@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Engagement pivot — standalone test (dummy data)</title>
+<style>
+:root{
+  --ink:#11203A; --ink-soft:#4B5A72; --ink-faint:#8693A6;
+  --paper:#F4F3EE; --paper-raised:#FFFFFF;
+  --sky:#2F7DC0; --sky-deep:#154C7A; --sky-pale:#E4EFF8;
+  --coral:#C8543D; --coral-pale:#FBE6E1;
+  --line:#DEDBD0; --line-soft:#EAE8DF;
+  --shadow:0 1px 2px rgba(17,32,58,0.06), 0 8px 24px -12px rgba(17,32,58,0.18);
+  --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{background:var(--paper);color:var(--ink);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;padding:28px;}
+h1{font-family:'Space Grotesk',sans-serif;font-size:18px;margin:0 0 4px;color:var(--ink);}
+p.sub{font-size:12px;color:var(--ink-soft);margin:0 0 18px;}
+
+.panel{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;max-width:1000px;}
+.panel-head{padding:13px 18px;border-bottom:1px solid var(--line-soft);}
+.panel-head h3{font-size:14px;margin:0;}
+.panel-head p{font-size:11px;color:var(--ink-soft);margin:2px 0 0;}
+.panel-body{padding:16px;}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+.toolbar select{padding:7px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;color:var(--ink);font-family:inherit;}
+.clear-filters{font-size:11.5px;color:var(--coral);cursor:pointer;background:none;border:none;padding:4px 6px;border-radius:5px;}
+.clear-filters:hover{background:var(--coral-pale);}
+
+.empty-state{padding:36px 20px;text-align:center;color:var(--ink-soft);font-size:13px;}
+.pivot-wrap{overflow-x:auto;max-height:440px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:8px;}
+table.pivot{width:100%;border-collapse:collapse;font-size:12px;}
+table.pivot thead th{position:sticky;top:0;background:var(--ink);color:#fff;padding:8px 12px;
+  font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;}
+table.pivot thead th.num{text-align:right;}
+table.pivot td{padding:7px 12px;border-bottom:1px solid var(--line-soft);color:var(--ink);}
+table.pivot td.num{font-family:'IBM Plex Mono',monospace;text-align:right;white-space:nowrap;}
+table.pivot tr.pivot-group{background:var(--sky-pale);}
+table.pivot tr.pivot-group td{font-weight:700;}
+table.pivot tr.pivot-group .caret{display:inline-block;width:12px;font-size:9px;color:var(--sky-deep);}
+table.pivot tr.pivot-child td:first-child{padding-left:30px;color:var(--ink-soft);}
+table.pivot tr.pivot-total{background:var(--ink);color:#fff;font-weight:700;position:sticky;bottom:0;}
+table.pivot tr.pivot-total td{border-bottom:none;color:#fff;}
+
+#log{max-width:1000px;margin-top:10px;font-size:11.5px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;white-space:pre-wrap;}
+</style>
+</head>
+<body>
+
+<h1>Engagement pivot — standalone test</h1>
+<p class="sub">Same filter/render logic as the Engagement Log page, running against hard-coded dummy data (no SharePoint/login). If the dropdowns still don't open or filter here, the bug is in this logic, not in data loading.</p>
+
+<div class="panel">
+  <div class="panel-head"><div><h3>Engagement pivot — outcome &amp; stakeholder type</h3><p>Counts by engagement type. Mirrors the FY26–27 workbook dashboard.</p></div></div>
+  <div class="panel-body" style="padding-top:10px;">
+    <div class="toolbar" style="margin-bottom:12px;">
+      <select id="egp-bd"><option value="">All BD/PM</option></select>
+      <select id="egp-month"><option value="">All months</option></select>
+      <select id="egp-company"><option value="">All companies</option></select>
+      <select id="egp-objective"><option value="">All objectives</option></select>
+      <select id="egp-type"><option value="">All engagement types</option></select>
+      <button class="clear-filters" id="egp-clear">✕ Clear</button>
+    </div>
+    <div class="pivot-wrap"><table class="pivot" id="egp-table"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<div id="log"></div>
+
+<script>
+/* ---------- DUMMY DATA (stand-in for DATA.engagements from SharePoint) ---------- */
+const DATA = { engagements: [
+  {id:'1',  company:'AbbVie',  bd_pm:'Alice Tan',  eng_date:'2026-05-03', engagement_type:'In-Person Meeting',   engagement_outcome:'New opportunities discovered', engagement_objective:'Relationship building',            stakeholder_type:'Existing Stakeholder Engagement'},
+  {id:'2',  company:'AbbVie',  bd_pm:'Alice Tan',  eng_date:'2026-05-10', engagement_type:'Virtual Meeting',      engagement_outcome:'New opportunities discovered', engagement_objective:'Blue sky opportunity discussion',  stakeholder_type:'Existing Stakeholder Engagement'},
+  {id:'3',  company:'Takeda',  bd_pm:'Bob Lee',    eng_date:'2026-05-18', engagement_type:'Virtual Meeting',      engagement_outcome:'Led to RFP',                   engagement_objective:'Discussion on new RFP',             stakeholder_type:'Existing Stakeholder Engagement'},
+  {id:'4',  company:'Takeda',  bd_pm:'Bob Lee',    eng_date:'2026-06-02', engagement_type:'In-Person Meeting',    engagement_outcome:'Led to RFP',                   engagement_objective:'Follow up on ongoing RFP',          stakeholder_type:'New Stakeholder Development'},
+  {id:'5',  company:'Roche',   bd_pm:'Alice Tan',  eng_date:'2026-06-11', engagement_type:'Phone Call/ Whatsapp', engagement_outcome:'Progress on ongoing RFP',      engagement_objective:'Follow up on ongoing RFP',          stakeholder_type:'Existing Stakeholder Engagement'},
+  {id:'6',  company:'Roche',   bd_pm:'Carla Wong', eng_date:'2026-06-20', engagement_type:'Email',                engagement_outcome:'Led to referral',              engagement_objective:'Request for referral',              stakeholder_type:'New Stakeholder Development'},
+  {id:'7',  company:'AbbVie',  bd_pm:'Bob Lee',    eng_date:'2026-06-25', engagement_type:'Conference/Event',     engagement_outcome:'New opportunities discovered', engagement_objective:'Intelligence gathering',            stakeholder_type:'Procurement Engagement'},
+  {id:'8',  company:'Novartis',bd_pm:'Carla Wong', eng_date:'2026-07-01', engagement_type:'Virtual Meeting',      engagement_outcome:'Others (Mentioned in notes)',  engagement_objective:'Other discussion',                  stakeholder_type:'New Stakeholder Development'},
+  {id:'9',  company:'Novartis',bd_pm:'Alice Tan',  eng_date:'2026-07-05', engagement_type:'In-Person Meeting',    engagement_outcome:'Led to RFP',                   engagement_objective:'Capability presentation',           stakeholder_type:'Existing Stakeholder Engagement'},
+  {id:'10', company:'Takeda',  bd_pm:'Carla Wong', eng_date:'2026-07-09', engagement_type:'Others',               engagement_outcome:'New opportunities discovered', engagement_objective:'Identified opportunity discussion', stakeholder_type:'New Stakeholder Development'},
+  // Deliberately messy rows, matching real SharePoint quirks: null date/company, stray whitespace.
+  {id:'11', company:'Takeda ', bd_pm:'Bob Lee',    eng_date:'2026-07-09', engagement_type:'Email',                engagement_outcome:'Progress on ongoing RFP',      engagement_objective:'Follow up on ongoing RFP',          stakeholder_type:'Existing Stakeholder Engagement'},
+  {id:'12', company:null,      bd_pm:'Carla Wong', eng_date:null,         engagement_type:'Email',                engagement_outcome:'Others (Mentioned in notes)',  engagement_objective:null,                                stakeholder_type:null},
+]};
+
+const LOOKUPS = {
+  engagementTypes:['In-Person Meeting','Virtual Meeting','Phone Call/ Whatsapp','Email','Conference/Event','Others'],
+  stakeholderType:['Existing Stakeholder Engagement','Procurement Engagement','New Stakeholder Development'],
+  engagementObjective:['Blue sky opportunity discussion','Identified opportunity discussion','Discussion on new RFP',
+    'Follow up on ongoing RFP','Capability presentation','Request for referral','Intelligence gathering',
+    'Relationship building','Other discussion'],
+  engagementOutcome:['New opportunities discovered','Led to RFP','Progress on ongoing RFP','Led to referral','Others (Mentioned in notes)']
+};
+
+/* ---------- SHARED HELPERS (copied verbatim from index.html) ---------- */
+function esc(str){
+  if(str==null) return '';
+  return String(str).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function normStr(v){ return String(v==null?'':v).trim(); }
+function orderByLookup(presentValues,lookupArr){
+  const known=lookupArr.filter(v=>presentValues.includes(v));
+  const unknown=presentValues.filter(v=>!lookupArr.includes(v)).sort();
+  return [...known,...unknown];
+}
+
+/* ---------- ENGAGEMENT PIVOT LOGIC (copied verbatim from index.html) ---------- */
+const EGP_IDS={bd:'egp-bd',month:'egp-month',company:'egp-company',objective:'egp-objective',type:'egp-type'};
+let egpFilters={bd:'',month:'',company:'',objective:'',type:''};
+
+function egpMonthKey(dateStr){
+  if(!dateStr) return null;
+  const d=new Date(dateStr);
+  return isNaN(d)?null:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function egpMonthLabel(key){
+  const [y,mo]=key.split('-');
+  return new Date(Number(y),Number(mo)-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'});
+}
+function egpFillSelect(id,optionsHtml){
+  const el=document.getElementById(id);
+  if(el) el.innerHTML=optionsHtml;
+}
+
+function populateEngagementPivotFilters(){
+  const engs=DATA.engagements;
+
+  const bds=[...new Set(engs.map(e=>normStr(e.bd_pm)).filter(Boolean))].sort();
+  egpFillSelect(EGP_IDS.bd,'<option value="">All BD/PM</option>'+bds.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join(''));
+
+  const monthKeys=[...new Set(engs.map(e=>egpMonthKey(e.eng_date)).filter(Boolean))].sort().reverse();
+  egpFillSelect(EGP_IDS.month,'<option value="">All months</option>'+monthKeys.map(m=>`<option value="${m}">${egpMonthLabel(m)}</option>`).join(''));
+
+  const cos=[...new Set(engs.map(e=>normStr(e.company)).filter(Boolean))].sort();
+  egpFillSelect(EGP_IDS.company,'<option value="">All companies</option>'+cos.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join(''));
+
+  const objs=orderByLookup([...new Set(engs.map(e=>normStr(e.engagement_objective)).filter(Boolean))],LOOKUPS.engagementObjective);
+  egpFillSelect(EGP_IDS.objective,'<option value="">All objectives</option>'+objs.map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join(''));
+
+  const types=orderByLookup([...new Set(engs.map(e=>normStr(e.engagement_type)).filter(Boolean))],LOOKUPS.engagementTypes);
+  egpFillSelect(EGP_IDS.type,'<option value="">All engagement types</option>'+types.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join(''));
+
+  egpSyncSelectValues();
+}
+
+function egpSyncSelectValues(){
+  Object.entries(EGP_IDS).forEach(([key,id])=>{
+    const el=document.getElementById(id);
+    if(el) el.value=egpFilters[key];
+  });
+}
+
+function egpMatchesFilters(e){
+  if(egpFilters.bd&&normStr(e.bd_pm)!==egpFilters.bd) return false;
+  if(egpFilters.month&&egpMonthKey(e.eng_date)!==egpFilters.month) return false;
+  if(egpFilters.company&&normStr(e.company)!==egpFilters.company) return false;
+  if(egpFilters.objective&&normStr(e.engagement_objective)!==egpFilters.objective) return false;
+  if(egpFilters.type&&normStr(e.engagement_type)!==egpFilters.type) return false;
+  return true;
+}
+
+function renderEngagementPivotTable(){
+  egpSyncSelectValues();
+
+  const tbl=document.getElementById('egp-table');
+  if(!tbl) return;
+
+  const filtered=DATA.engagements.filter(egpMatchesFilters);
+  const types=orderByLookup([...new Set(filtered.map(e=>normStr(e.engagement_type)).filter(Boolean))],LOOKUPS.engagementTypes);
+  const outcomes=orderByLookup([...new Set(filtered.map(e=>normStr(e.engagement_outcome)).filter(Boolean))],LOOKUPS.engagementOutcome);
+
+  if(!types.length||!outcomes.length){
+    tbl.querySelector('thead').innerHTML='';
+    tbl.querySelector('tbody').innerHTML='<tr><td class="empty-state">No engagements match these filters.</td></tr>';
+    return;
+  }
+
+  tbl.querySelector('thead').innerHTML=`<tr><th>Outcome / Stakeholder Type</th>${types.map(t=>`<th class="num">${esc(t)}</th>`).join('')}<th class="num">Grand Total</th></tr>`;
+
+  const colTotals=types.map(()=>0);
+  let grandTotal=0;
+  const rowsHtml=outcomes.map(outcome=>{
+    const outcomeEngs=filtered.filter(e=>normStr(e.engagement_outcome)===outcome);
+    if(!outcomeEngs.length) return '';
+    const stakeholderTypes=orderByLookup([...new Set(outcomeEngs.map(e=>normStr(e.stakeholder_type)).filter(Boolean))],LOOKUPS.stakeholderType);
+    const outcomeCounts=types.map(t=>outcomeEngs.filter(e=>normStr(e.engagement_type)===t).length);
+    const outcomeTotal=outcomeCounts.reduce((a,b)=>a+b,0);
+    outcomeCounts.forEach((n,i)=>colTotals[i]+=n);
+    grandTotal+=outcomeTotal;
+
+    const groupRow=`<tr class="pivot-group open"><td><span class="caret">▶</span> ${esc(outcome)}</td>${outcomeCounts.map(n=>`<td class="num">${n||''}</td>`).join('')}<td class="num">${outcomeTotal}</td></tr>`;
+    const childRows=stakeholderTypes.map(st=>{
+      const stEngs=outcomeEngs.filter(e=>normStr(e.stakeholder_type)===st);
+      const stCounts=types.map(t=>stEngs.filter(e=>normStr(e.engagement_type)===t).length);
+      const stTotal=stCounts.reduce((a,b)=>a+b,0);
+      return `<tr class="pivot-child show"><td>${esc(st)}</td>${stCounts.map(n=>`<td class="num">${n||''}</td>`).join('')}<td class="num">${stTotal}</td></tr>`;
+    }).join('');
+    return groupRow+childRows;
+  }).join('');
+
+  const totalRow=`<tr class="pivot-total"><td>Grand Total</td>${colTotals.map(n=>`<td class="num">${n}</td>`).join('')}<td class="num">${grandTotal}</td></tr>`;
+  tbl.querySelector('tbody').innerHTML=rowsHtml+totalRow;
+}
+
+/* ---------- WIRE UP (mirrors wireEvents() in index.html) ---------- */
+function log(msg){
+  const el=document.getElementById('log');
+  const line=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.textContent = el.textContent ? el.textContent+'\n'+line : line;
+  console.log(line);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('egp-bd').addEventListener('change',e=>{egpFilters.bd=e.target.value;log('bd changed -> '+JSON.stringify(egpFilters.bd));renderEngagementPivotTable();});
+  document.getElementById('egp-month').addEventListener('change',e=>{egpFilters.month=e.target.value;log('month changed -> '+JSON.stringify(egpFilters.month));renderEngagementPivotTable();});
+  document.getElementById('egp-company').addEventListener('change',e=>{egpFilters.company=e.target.value;log('company changed -> '+JSON.stringify(egpFilters.company));renderEngagementPivotTable();});
+  document.getElementById('egp-objective').addEventListener('change',e=>{egpFilters.objective=e.target.value;log('objective changed -> '+JSON.stringify(egpFilters.objective));renderEngagementPivotTable();});
+  document.getElementById('egp-type').addEventListener('change',e=>{egpFilters.type=e.target.value;log('type changed -> '+JSON.stringify(egpFilters.type));renderEngagementPivotTable();});
+  document.getElementById('egp-clear').addEventListener('click',()=>{egpFilters={bd:'',month:'',company:'',objective:'',type:''};log('cleared');renderEngagementPivotTable();});
+
+  populateEngagementPivotFilters();
+  renderEngagementPivotTable();
+  log('Loaded with '+DATA.engagements.length+' dummy engagements. Try each dropdown.');
+});
+</script>
+</body>
+</html>
