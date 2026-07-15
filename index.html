@@ -2220,9 +2220,9 @@ function renderCompanyHealthMatrix(){
     tbl.querySelector('tbody').innerHTML='<tr><td class="empty-state">No companies yet.</td></tr>';
     return;
   }
-  tbl.querySelector('thead').innerHTML=`<tr><th>Measure</th>${companies.map(c=>`<th>${esc(c.company)}</th>`).join('')}</tr>`;
-  tbl.querySelector('tbody').innerHTML=measures.map(m=>`
-    <tr><td>${esc(m.label)}</td>${companies.map(c=>`<td class="num">${esc(String(m.fmt(c[m.key])))}</td>`).join('')}</tr>`).join('');
+  tbl.querySelector('thead').innerHTML=`<tr><th>Company</th>${measures.map(m=>`<th>${esc(m.label)}</th>`).join('')}</tr>`;
+  tbl.querySelector('tbody').innerHTML=companies.map(c=>`
+    <tr><td>${esc(c.company)}</td>${measures.map(m=>`<td class="num">${esc(String(m.fmt(c[m.key])))}</td>`).join('')}</tr>`).join('');
 }
 
 function renderCompanies(){
@@ -2320,12 +2320,14 @@ function comboBlur(inp,delay){
   setTimeout(()=>{
     const list=document.getElementById(inp.id+'-list');if(list)list.classList.remove('open');
     if(inp.id==='modal-eng-client') autofillEngClientFields(inp.value);
+    if(inp.id==='modal-opp-client-name') autofillOppClientFields(inp.value);
   },delay);
 }
 function comboPick(el,id,val){
   const inp=document.getElementById(id); if(inp) inp.value=val;
   const list=document.getElementById(id+'-list'); if(list) list.classList.remove('open');
   if(id==='modal-eng-client') autofillEngClientFields(val);
+  if(id==='modal-opp-client-name') autofillOppClientFields(val);
 }
 
 // Looks up the picked client in the Clients master list and fills in Designation / BD-PM
@@ -2339,6 +2341,18 @@ function autofillEngClientFields(clientName){
   if(!match) return;
   if(match.designation) desigEl.value=match.designation;
   if(match.assigned_bd) bdEl.value=match.assigned_bd;
+}
+
+// Same idea for the opportunity form: once a client's picked, fill BD owner from their
+// assigned BD in the Clients master list, since the opportunity BD is usually whoever
+// already owns that client relationship.
+function autofillOppClientFields(clientName){
+  const coEl=document.getElementById('modal-opp-company');
+  const bdEl=document.getElementById('bd_owner');
+  if(!coEl||!bdEl||!clientName) return;
+  const match=DATA.clients.find(c=>normCo(c.company)===normCo(coEl.value)&&normStr(c.client_name).toLowerCase()===normStr(clientName).toLowerCase());
+  if(!match||!match.assigned_bd) return;
+  bdEl.value=match.assigned_bd;
 }
 async function comboAddNew(evt,id){
   evt.preventDefault();
@@ -2515,6 +2529,14 @@ function openAddModal(kind){
     if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
     const coSel=document.getElementById('modal-opp-company');
     if(coSel) coSel.addEventListener('change',()=>updateModalOppClientOptions(coSel.value));
+    // Default BD owner to whoever's logged in and creating this record — the person
+    // logging an opportunity is almost always its owner. A client-specific match (if one
+    // exists once they pick a client) overrides this, since that's more authoritative.
+    const bdOwnerEl=document.getElementById('bd_owner');
+    if(bdOwnerEl&&!bdOwnerEl.value&&currentUser){
+      const meInList=EMPLOYEES.find(n=>n.toLowerCase()===String(currentUser.name||'').trim().toLowerCase());
+      if(meInList) bdOwnerEl.value=meInList;
+    }
   }
   if(kind==='engagements'){
     const coSel=document.getElementById('modal-eng-company');
