@@ -280,8 +280,11 @@ function onboardingClass(s){
   return 'tag '+(m[(s||'').toLowerCase()]||'tag-grey');
 }
 // Stage colors for Chart.js
-const STAGE_COLORS=['#E4EFF8','#2F7DC0','#00897B','#F57C00','#7B1FA2','#3949AB','#AFB42B','#1F8F62','#C8543D','#8D6E63','#546E7A'];
-const COLORS={ink:'#11203A',sky:'#2F7DC0',skyDeep:'#154C7A',skyPale:'#E4EFF8',amber:'#D98E2B',amberPale:'#FBF0DD',green:'#1F8F62',greenPale:'#E1F3EA',coral:'#C8543D',coralPale:'#FBE6E1',inkSoft:'#4B5A72',line:'#DEDBD0'};
+// Value-only palette update (UI/UX redesign) — colors extracted from Neovation's brand
+// deck and validated for categorical distinguishability (dataviz skill's validate_palette.js:
+// lightness band, chroma floor, CVD-adjacency, contrast all pass). No logic changed below.
+const STAGE_COLORS=['#E3F1FA','#1F5A9C','#5FA8E8','#08588A','#00A6C0','#3E8E4F','#C9A227','#1E6423','#E8836A','#95447F','#3A7DBA'];
+const COLORS={ink:'#0A1E3D',sky:'#0070C0',skyDeep:'#0A4A85',skyPale:'#E3F1FA',amber:'#D98E2B',amberPale:'#FBF0DD',green:'#2E8B57',greenPale:'#E4F3E1',coral:'#D9634A',coralPale:'#FBE7E1',inkSoft:'#4B5C74',line:'#DEE2EA'};
 
 function destroyChart(k){ if(CHARTS[k]){CHARTS[k].destroy();delete CHARTS[k];} }
 
@@ -389,10 +392,11 @@ function showRegionScreen(){
        <div class="region-pick-sub">Open this region's dashboard</div>
      </button>`
   ).join('')+
+  (currentUser&&currentUser.role==='admin'?
   `<button class="region-pick-card" onclick="enterAllRegions()">
      <div class="region-pick-label">🌐 All Regions</div>
      <div class="region-pick-sub">Combined read-only view across every region</div>
-   </button>`;
+   </button>`:'');
   document.getElementById('region-screen').style.display='flex';
 }
 async function enterRegion(key){
@@ -958,6 +962,7 @@ function renderBDFunnel(){
 
 /* ---------- 13b. ALL REGIONS OVERVIEW (admin-only, read-only rollup) ---------- */
 async function enterAllRegions(){
+  if(!currentUser||currentUser.role!=='admin'){ alert('All Regions is only available to admins.'); return; }
   document.getElementById('region-screen').style.display='none';
   document.getElementById('brand-mark').style.display='none';
   document.getElementById('all-regions-screen').style.display='block';

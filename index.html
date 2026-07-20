@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neovation · Client Engagement Tracker</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="styles.css">
@@ -393,16 +390,6 @@
         </div>
       </div>
       <div class="kpi-grid" id="eg-kpis"></div>
-      <div class="grid-2" style="margin-bottom:16px;">
-        <div class="panel">
-          <div class="panel-head"><div><h3>Weekly activity</h3><p>Click a bar to see that week's engagements</p></div></div>
-          <div class="panel-body"><div class="chart-box tall"><canvas id="eg-weekly-chart"></canvas></div></div>
-        </div>
-        <div class="panel">
-          <div class="panel-head"><div><h3>By company</h3><p>Click a company to filter the log below</p></div></div>
-          <div class="panel-body" id="eg-company-breakdown" style="max-height:300px;overflow-y:auto;"></div>
-        </div>
-      </div>
       <div class="panel">
         <div class="panel-head"><div><h3>Engagement pivot — outcome &amp; stakeholder type</h3><p>Counts by engagement type. Mirrors the FY26–27 workbook dashboard.</p></div></div>
         <div class="panel-body" style="padding-top:10px;">
@@ -415,6 +402,16 @@
             <button class="clear-filters" id="egp-clear">✕ Clear</button>
           </div>
           <div class="pivot-wrap"><table class="pivot" id="egp-table"><thead></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="panel">
+          <div class="panel-head"><div><h3>Weekly activity</h3><p>Click a bar to see that week's engagements</p></div></div>
+          <div class="panel-body"><div class="chart-box tall"><canvas id="eg-weekly-chart"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><h3>By company</h3><p>Click a company to filter the log below</p></div></div>
+          <div class="panel-body" id="eg-company-breakdown" style="max-height:300px;overflow-y:auto;"></div>
         </div>
       </div>
       <div class="panel" id="eg-table-panel">
