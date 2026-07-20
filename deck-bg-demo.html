@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neovation Deck — Slide 1 Background</title>
+<style>
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  min-height:100vh;
+  /* Exact render of Neovation External Deck 2026 5.pptx, slide 1's full background
+     design — gradient photo + the triangle/mountain vector shape group — produced
+     by opening a disposable copy of the deck in PowerPoint (COM automation),
+     deleting only the "Picture 38" shape (the NEOVATION wordmark + tagline lockup,
+     which renders in white on a transparent layer) from the layout, and exporting
+     the composited slide as a PNG. Native render is 1920x1080 = 16:9, same as the
+     slide canvas, so background-size:cover reproduces it with no distortion. This
+     is a real PowerPoint render, not a hand-approximated CSS gradient. */
+  background-image:url('neovation-deck-bg-design.png');
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  background-attachment:fixed;
+}
+</style>
+</head>
+<body>
+</body>
+</html>

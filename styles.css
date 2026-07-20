@@ -72,11 +72,14 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
   padding:6px 10px;box-shadow:var(--shadow-md);}
 #brand-mark img{height:26px;width:auto;display:block;}
 
-/* ---- LOGIN / REGION PICKER — the one place a bold brand gradient is earned; it's a
+/* ---- LOGIN / REGION PICKER — the one place a bold brand backdrop is earned; it's a
    momentary entry screen, not the daily-use surface, so it can carry more presence
-   than the dashboard itself. Card is a solid dark panel, not a heavy blur effect. ---- */
+   than the dashboard itself. Card is a solid dark panel, not a heavy blur effect.
+   Same real deck-render background as the main dashboard shell, for one consistent
+   brand identity across every screen. ---- */
 #login-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(155deg,#04102A 0%,#062348 30%,#0A4A85 58%,#00647A 80%,#2E8B57 100%);
+  background-image:url('neovation-deck-bg-design.png');
+  background-size:cover;background-position:center;background-repeat:no-repeat;
   overflow:hidden;}
 .login-card{position:relative;z-index:2;width:min(380px,90vw);background:rgba(6,16,36,.86);
   border:1px solid rgba(255,255,255,.12);border-radius:12px;
@@ -94,7 +97,8 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 
 /* ---- REGION PICKER / ACCESS DENIED (share the login-screen look) ---- */
 #region-screen,#access-denied-screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
-  background:linear-gradient(155deg,#04102A 0%,#062348 30%,#0A4A85 58%,#00647A 80%,#2E8B57 100%);
+  background-image:url('neovation-deck-bg-design.png');
+  background-size:cover;background-position:center;background-repeat:no-repeat;
   overflow:hidden;z-index:50;}
 .region-picker{position:relative;z-index:2;width:min(900px,92vw);text-align:center;}
 .region-picker h1{color:#fff;font-size:23px;margin-bottom:6px;}
@@ -111,21 +115,23 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 /* ---- APP SHELL ---- */
 #app[hidden]{display:none;} #app{display:flex;min-height:100vh;}
 
-/* A quiet, engineered-feeling backdrop — not a gradient wash. A faint dot grid plus one
-   soft brand-colour glow tucked into the top-right corner, largely off-canvas. This is
-   what keeps the background "not plain" without competing with data. */
+/* Backdrop is a real PowerPoint render of the Neovation deck's slide 1 background
+   (gradient + triangle motif, text/logo layer removed) — see neovation-deck-bg-design.png.
+   Applied identically to .main and .sidebar with background-attachment:fixed so the two
+   panes show one continuous image instead of two separately-scaled copies; a white
+   border on the sidebar is the only thing marking the seam between them. */
 .main{
   flex:1;min-width:0;display:flex;flex-direction:column;position:relative;
-  background-color:var(--paper);
-  background-image:
-    radial-gradient(rgba(10,74,133,0.05) 1px,transparent 1px),
-    radial-gradient(ellipse 640px 420px at 105% -8%,rgba(0,160,219,.05),transparent 60%);
-  background-size:22px 22px,100% 100%;
-  background-position:0 0,0 0;
+  background-image:url('neovation-deck-bg-design.png');
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  background-attachment:fixed;
 }
 .sidebar{
   width:224px;flex-shrink:0;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;
-  background:var(--ink);
+  background-image:url('neovation-deck-bg-design.png');
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  background-attachment:fixed;
+  border-right:3px solid #fff;
 }
 .brand{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
 .brand img{width:106px;height:auto;display:block;margin-bottom:14px;background:#fff;border-radius:8px;padding:8px 10px;}
@@ -170,8 +176,8 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 .view{padding:22px 26px 60px;display:none;}
 .view.active{display:block;}
 .view-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap;}
-.view-head h2{font-size:19px;font-weight:700;}
-.view-head p{color:var(--ink-soft);font-size:12.5px;margin-top:3px;}
+.view-head h2{font-size:19px;font-weight:700;color:#fff;}
+.view-head p{color:rgba(255,255,255,.72);font-size:12.5px;margin-top:3px;}
 .view-head-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
 
 /* Buttons — flat, precise, no gradients or glow */
