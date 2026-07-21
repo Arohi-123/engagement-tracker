@@ -42,7 +42,7 @@
 </div>
 
 <!-- ALL REGIONS OVERVIEW (Admin only) — read-only rollup across every region's SharePoint data -->
-<div id="all-regions-screen" style="display:none;min-height:100vh;background:var(--paper);">
+<div id="all-regions-screen" style="display:none;min-height:100vh;background-image:url('neovation-deck-bg-design.png');background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed;">
   <div class="topbar">
     <div class="topbar-left">
       <div class="topbar-title">All Regions Overview</div>
@@ -105,7 +105,7 @@
     </div>
 
     <div class="panel-head" style="border:none;padding:0 0 10px;">
-      <div><h3>Region rollup</h3><p>Engagement activity counted for <span id="ar-period-range"></span> · pipeline figures below are always current, not period-limited</p></div>
+      <div><h3 style="color:#fff;">Region rollup</h3><p style="color:rgba(255,255,255,.72);">Engagement activity counted for <span id="ar-period-range"></span> · pipeline figures below are always current, not period-limited</p></div>
       <select id="ar-period-filter" style="padding:6px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;">
         <option value="weekly">This week (Mon–today)</option>
         <option value="monthly">This month (1st–today)</option>
@@ -171,10 +171,7 @@
 
   <div class="main">
     <div class="topbar">
-      <div class="topbar-left">
-        <div class="topbar-title" id="topbar-title">Overview</div>
-        <div class="topbar-sub" id="topbar-sub">Executive snapshot</div>
-      </div>
+      <div class="topbar-left"></div>
       <div class="topbar-right">
         <select id="currency-select" title="Display currency" style="padding:5px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;color:var(--ink-soft);font-family:inherit;cursor:pointer;">
           <option value="USD">USD $</option>

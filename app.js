@@ -422,18 +422,9 @@ function applyRolePermissions(){
 }
 
 /* ---------- 8. NAV ---------- */
-const VIEW_META={
-  overview:{title:'Executive Overview',sub:'Live snapshot across all data'},
-  clients:{title:'Client Database',sub:'Every stakeholder across all companies'},
-  opportunities:{title:'Opportunity Tracker',sub:'Full lifecycle: blue sky to win/loss'},
-  engagements:{title:'Engagement Log',sub:'Every touchpoint, by week'},
-  companies:{title:'Company Performance',sub:'Roll-up across clients, pipeline and engagement'}
-};
 function switchView(v){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
   document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='view-'+v));
-  document.getElementById('topbar-title').textContent=VIEW_META[v].title;
-  document.getElementById('topbar-sub').textContent=VIEW_META[v].sub;
   document.querySelectorAll('.sidebar').forEach(s=>s.classList.remove('open'));
 }
 
