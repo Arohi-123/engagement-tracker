@@ -2151,23 +2151,15 @@ function updateModalOppClientOptions(company){
   });
 }
 
-function regionDetailOptions(type){
-  if(type==='Regional') return LOOKUPS.regionGroupings.slice().sort();
-  if(type==='Country') return LOOKUPS.countries.slice().sort();
-  return [];
-}
+// Region detail is a manual text field now (was a combo dropdown) — this just toggles
+// its visibility and swaps its label to match whichever type was picked, since "Regional"
+// and "Country" each need their own heading rather than one generic "Region detail".
 function updateRegionDetailUI(type){
   const wrap=document.getElementById('region-detail-wrap');
-  if(wrap) wrap.style.display=(type==='Regional'||type==='Country')?'':'none';
-  const listEl=document.getElementById('region_detail-list');
-  if(!listEl) return;
-  listEl.querySelectorAll('.combo-opt:not(.add-new)').forEach(e=>e.remove());
-  const addNew=listEl.querySelector('.add-new');
-  regionDetailOptions(type).forEach(o=>{
-    const div=document.createElement('div'); div.className='combo-opt';
-    div.textContent=o; div.onmousedown=()=>comboPick(div,'region_detail',o);
-    listEl.insertBefore(div,addNew||null);
-  });
+  if(!wrap) return;
+  wrap.style.display=(type==='Regional'||type==='Country')?'':'none';
+  const label=wrap.querySelector('label');
+  if(label) label.textContent=type==='Country'?'Country detail':'Region detail';
 }
 
 /* ---------- 18. STAGE HISTORY HELPERS ---------- */
@@ -2203,7 +2195,7 @@ const ADD_CONFIGS={
     {name:'department',label:'Department',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.departments.sort()},
     {name:'therapy_area',label:'Therapy area',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.therapyAreas.sort()},
     {name:'region_type',label:'Region',type:'select',required:true,opts:['Global','Regional','Country']},
-    {name:'region_detail',label:'Region detail',combo:true,allowNew:true,comboOpts:()=>[],comboDepends:'region_type',wrapId:'region-detail-wrap'},
+    {name:'region_detail',label:'Region detail',type:'text',wrapId:'region-detail-wrap'},
     {name:'email',label:'Email',type:'text',required:true},
     {name:'phone',label:'Phone',type:'text',required:true},
     {name:'linkedin_url',label:'LinkedIn URL',type:'text'},
