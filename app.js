@@ -80,7 +80,7 @@ const LOOKUPS = {
   departments:['Medical','Market Access/ HEOR','Marketing/ Commercial','Procurement','Digital','Others'],
   regionGroupings:['Gulf','MENA','Intercontinental','MEAR','GCC','META','GEM & Levant','Others'],
   countries:['UAE','KSA','Qatar','Kuwait','Bahrain','Oman','Egypt','Jordan','Lebanon'],
-  clientStatus:['Inactive','Prospect','Active engagement','Active business'],
+  clientStatus:['Active business','Active engagement','Prospect','Inactive'],
   priority:['Low','Medium','High'],
   opportunityStatus:[
     '01 Blue Sky Opportunity','02 Identified Opportunity','03 Concept pitch preparation',
@@ -432,8 +432,8 @@ function switchView(v){
 const GRAPH_BASE='https://graph.microsoft.com/v1.0';
 const FIELD_MAP={
   clients:{client_name:'Title',company:'field_1',designation:'field_2',department:'field_3',therapy_area:'field_4',region:'field_5',email:'field_6',phone:'field_7',linkedin_url:'field_8',status:'field_9',priority:'field_10',assigned_bd:'field_11',notes:'field_12'},
-  opportunities:{opportunity:'Title',rfp_id:'field_1',company:'field_2',client_name:'field_3',opportunity_status:'field_4',discussion_date:'field_5',pitch_date:'field_6',proposal_submission_date:'field_7',expected_close_date:'field_8',bd_owner:'field_9',technical_lead:'field_10',estimated_value_usd:'field_11',probability_pct:'field_12',probability_weighted_value:'field_13',notes:'field_14',stage_history:'StageHistory',identified_date:'IdentifiedDate'},
-  engagements:{client_name:'Title',eng_month:'field_1',eng_date:'field_2',designation:'field_3',company:'field_4',bd_pm:'field_5',engagement_type:'field_6',platform_venue:'field_7',stakeholder_type:'field_8',engagement_objective:'field_9',engagement_outcome:'field_10',discussion_points:'field_11',cta_next_step:'field_12',cta_due_date:'field_13',cta_owner:'field_14',follow_up_done:'field_15',accompanied_by:'AccompaniedBy'},
+  opportunities:{opportunity:'Title',rfp_id:'field_1',company:'field_2',client_name:'field_3',opportunity_status:'field_4',discussion_date:'field_5',pitch_date:'field_6',proposal_submission_date:'field_7',expected_close_date:'field_8',bd_owner:'field_9',supporting_role:'field_10',estimated_value_usd:'field_11',probability_pct:'field_12',probability_weighted_value:'field_13',notes:'field_14',stage_history:'StageHistory',identified_date:'IdentifiedDate'},
+  engagements:{client_name:'Title',eng_month:'field_1',eng_date:'field_2',designation:'field_3',company:'field_4',bd_pm:'field_5',engagement_type:'field_6',stakeholder_type:'field_8',engagement_objective:'field_9',engagement_outcome:'field_10',discussion_points:'field_11',cta_next_step:'field_12',cta_due_date:'field_13',cta_owner:'field_14',follow_up_done:'field_15',accompanied_by:'AccompaniedBy'},
   companies:{company:'Title',onboarding_status:'field_1',notes:'field_2',
     target_revenue:'TargetRevenue',overall_budget_potential:'BudgetPotential',overall_client_relationship:'ClientRelationship',
     client_perception:'ClientPerception',team_satisfaction:'TeamSatisfaction',degree_of_innovation:'DegreeOfInnovation'}
@@ -675,7 +675,7 @@ function renderOverview(){
   renderKpiCards('ov-kpis',[
     {label:'Open pipeline',value:fmtMoney(pipelineVal),sub:`${openOpps.length} opportunities`,accent:'sky'},
     {label:'Weighted pipeline',value:fmtMoney(weightedVal),sub:'probability-adjusted',accent:'sky'},
-    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} won · ${losses.length} lost`,accent:'green'},
+    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} Win · ${losses.length} lost`,accent:'green'},
     {label:'Overdue CTAs',value:fmtNum(overdueFollowups),sub:'follow-up past due date',accent:overdueFollowups>0?'coral':'green'}
   ]);
 
@@ -767,7 +767,7 @@ function renderOverview(){
     return `<div class="alert-row">
       <div class="alert-dot" style="background:${won?'var(--green)':'var(--coral)'}"></div>
       <div><div class="alert-text">${esc(o.opportunity||'')} · ${esc(o.company||'')}</div>
-      <div class="alert-meta">${won?'Won':'Lost'} · ${esc(o.bd_owner||'')} · ${fmtDate(decidedDate)}</div></div>
+      <div class="alert-meta">${won?'Win':'Lost'} · ${esc(o.bd_owner||'')} · ${fmtDate(decidedDate)}</div></div>
       <div class="alert-date">${fmtMoney(o.estimated_value_usd)}</div>
     </div>`}).join('')
     :'<div class="empty-state" style="padding:10px 0">No recent outcomes</div>';
@@ -895,7 +895,7 @@ function renderBDFunnel(){
     {label:'Identified / Discussed',val:opps.filter(o=>stN(o)===2||stN(o)===3).length},
     {label:'Proposals',val:opps.filter(o=>stN(o)===4||stN(o)===5).length},
     {label:'To Win / Active',val:opps.filter(o=>stN(o)===6).length},
-    {label:'Won',val:opps.filter(o=>isWinStage(o.opportunity_status)).length},
+    {label:'Win',val:opps.filter(o=>isWinStage(o.opportunity_status)).length},
     {label:'Lost / Missed',val:opps.filter(o=>stN(o)>=8).length}
   ];
   const oppEl=document.getElementById('bd-opp');
@@ -1136,7 +1136,7 @@ function renderAllRegionsBDFunnel(){
     {label:'Identified / Discussed',val:opps.filter(o=>stN(o)===2||stN(o)===3).length},
     {label:'Proposals',val:opps.filter(o=>stN(o)===4||stN(o)===5).length},
     {label:'To Win / Active',val:opps.filter(o=>stN(o)===6).length},
-    {label:'Won',val:opps.filter(o=>isWinStage(o.opportunity_status)).length},
+    {label:'Win',val:opps.filter(o=>isWinStage(o.opportunity_status)).length},
     {label:'Lost / Missed',val:opps.filter(o=>stN(o)>=8).length}
   ];
   const oppEl=document.getElementById('ar-bd-opp');
@@ -1171,7 +1171,7 @@ function renderAllRegionsKpis(){
   renderKpiCards('ar-kpis',[
     {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),sub:`${open.length} opportunities · all time`,accent:'sky'},
     {label:'Weighted pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)),sub:'across all regions · all time',accent:'sky'},
-    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} won · ${losses.length} lost · all time`,accent:'green'},
+    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} Win · ${losses.length} lost · all time`,accent:'green'},
     {label:'Engagements logged',value:fmtNum(periodEngs.length),sub:'selected period',accent:'amber'}
   ]);
 }
@@ -1300,7 +1300,7 @@ function selectPivotRow(rowEl,key){
   document.querySelectorAll('#cl-pivot-table tr.pivot-row-selected').forEach(r=>r.classList.remove('pivot-row-selected'));
   if(clPivotSelectedKey===key) rowEl.classList.add('pivot-row-selected');
 }
-const STAKEHOLDER_STATUS_ORDER=['Inactive','Prospect','Active business','Active engagement'];
+const STAKEHOLDER_STATUS_ORDER=['Active business','Active engagement','Prospect','Inactive'];
 
 function toggleClPivotExpand(co){
   if(clPivotExpanded.has(co)) clPivotExpanded.delete(co); else clPivotExpanded.add(co);
@@ -1378,7 +1378,7 @@ function renderClients(){
     {label:'Active business',value:fmtNum(actBiz),sub:'signed projects',accent:'green'},
     {label:'Active engagement',value:fmtNum(actEng),sub:'in progress',accent:'sky'},
     {label:'Prospects',value:fmtNum(prospect),sub:'nurturing',accent:'amber'},
-    {label:'Inactive',value:fmtNum(inactive),sub:'no recent touch',accent:'coral'}
+    {label:'Inactive',value:fmtNum(inactive),sub:'No recent touchpoint',accent:'coral'}
   ]);
 
   // Populate filter dropdowns alphabetically
@@ -1510,7 +1510,7 @@ function renderOpportunities(){
     {label:'Total',value:fmtNum(DATA.opportunities.length),sub:`${open.length} open`,accent:'sky'},
     {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),sub:'estimated USD',accent:'sky'},
     {label:'Weighted',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)),sub:'open pipeline',accent:'sky'},
-    {label:'Won',value:fmtNum(wins.length),sub:fmtMoney(wins.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'green'},
+    {label:'Win',value:fmtNum(wins.length),sub:fmtMoney(wins.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'green'},
     {label:'Lost',value:fmtNum(losses.length),sub:fmtMoney(losses.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'coral'},
     {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length}W · ${losses.length}L`,accent:winRate>=50?'green':'coral'}
   ]);
@@ -1545,7 +1545,7 @@ function renderOpportunities(){
 
   const cols=[
     {key:'company',label:'Company'},{key:'client_name',label:'Client'},{key:'opportunity',label:'Opportunity'},
-    {key:'opportunity_status',label:'Stage'},{key:'bd_owner',label:'BD Owner'},{key:'technical_lead',label:'Tech Lead'},
+    {key:'opportunity_status',label:'Stage'},{key:'bd_owner',label:'BD Owner'},{key:'supporting_role',label:'Supporting Role'},
     {key:'estimated_value_usd',label:'Est. Value'},{key:'probability_pct',label:'Prob.'},
     {key:'probability_weighted_value',label:'Weighted'},{key:'expected_close_date',label:'Close Date'},
     {key:'notes',label:'Notes'},{key:'_actions',label:''}
@@ -1560,7 +1560,7 @@ function renderOpportunities(){
       <td>${esc(o.opportunity||'')}</td>
       <td><span class="${stageTagClassN(stageN)}">${esc((o.opportunity_status||'').replace(/^\d+\s/,''))}</span></td>
       <td>${esc(o.bd_owner||'')}</td>
-      <td>${esc(o.technical_lead||'')}</td>
+      <td>${esc(msSelectedFromValue(o.supporting_role).join(', '))}</td>
       <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
       <td class="num">${o.probability_pct!=null?Math.round(o.probability_pct*100)+'%':''}</td>
       <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
@@ -1798,7 +1798,7 @@ function renderEngagements(){
     {key:'eng_date',label:'Date'},{key:'client_name',label:'Client'},{key:'company',label:'Company'},
     {key:'designation',label:'Designation'},{key:'bd_pm',label:'BD / PM'},{key:'accompanied_by',label:'Accompanied By'},
     {key:'engagement_type',label:'Type'},
-    {key:'platform_venue',label:'Platform'},{key:'stakeholder_type',label:'Stakeholder'},
+    {key:'stakeholder_type',label:'Stakeholder'},
     {key:'engagement_objective',label:'Objective'},{key:'engagement_outcome',label:'Outcome'},
     {key:'discussion_points',label:'Discussion'},{key:'cta_next_step',label:'Next Step'},
     {key:'cta_due_date',label:'CTA Due'},{key:'cta_owner',label:'CTA Owner'},
@@ -1815,7 +1815,6 @@ function renderEngagements(){
       <td>${esc(e.bd_pm||'')}</td>
       <td>${esc(msSelectedFromValue(e.accompanied_by).join(', '))}</td>
       <td><span class="${engTypeClass(e.engagement_type)}">${esc(e.engagement_type||'')}</span></td>
-      <td>${esc(e.platform_venue||'')}</td>
       <td>${esc(e.stakeholder_type||'')}</td>
       <td>${esc(e.engagement_objective||'')}</td>
       <td>${esc(e.engagement_outcome||'')}</td>
@@ -1858,6 +1857,35 @@ function computeCompanyRollup(){
 }
 
 // Read-only summary — editing these scores happens through a company's Edit modal, like every other field.
+let coHealthFilters={search:'',onboarding:''};
+
+// Autocomplete dropdown on the health matrix's company search — typing still filters the
+// table live (via renderCompanyHealthMatrix below), this just adds quick-pick suggestions.
+function coHealthSearchOptions(query){
+  const q=(query||'').toLowerCase();
+  const names=[...new Set(DATA.companies.map(c=>c.company).filter(Boolean))].sort();
+  return names.filter(n=>n.toLowerCase().includes(q));
+}
+function coHealthSearchOpen(inp){
+  const list=document.getElementById('co-health-search-list');
+  if(!list) return;
+  list.innerHTML=coHealthSearchOptions(inp.value).map(n=>`<div class="combo-opt" onmousedown="coHealthSearchPick('${esc(n)}')">${esc(n)}</div>`).join('')||'<div class="combo-opt no-match">No matches</div>';
+  list.classList.add('open');
+}
+function coHealthSearchFilter(inp){
+  coHealthFilters.search=inp.value;
+  renderCompanyHealthMatrix();
+  coHealthSearchOpen(inp);
+}
+function coHealthSearchPick(name){
+  const inp=document.getElementById('co-health-search');
+  if(inp) inp.value=name;
+  coHealthFilters.search=name;
+  renderCompanyHealthMatrix();
+  const list=document.getElementById('co-health-search-list');
+  if(list) list.classList.remove('open');
+}
+
 function renderCompanyHealthMatrix(){
   const tbl=document.getElementById('co-health-table');
   if(!tbl) return;
@@ -1869,7 +1897,22 @@ function renderCompanyHealthMatrix(){
     if(!byKey[k]) byKey[k]={...c};
     else Object.keys(c).forEach(f=>{ if(byKey[k][f]==null&&c[f]!=null) byKey[k][f]=c[f]; });
   });
-  const companies=Object.values(byKey).sort((a,b)=>a.company.localeCompare(b.company));
+  let companies=Object.values(byKey).sort((a,b)=>a.company.localeCompare(b.company));
+
+  const onbSel=document.getElementById('co-health-filter-onboarding');
+  if(onbSel){
+    const onbStatuses=[...new Set(DATA.companies.map(c=>c.onboarding_status).filter(Boolean))].sort();
+    onbSel.innerHTML='<option value="">All onboarding statuses</option>'+onbStatuses.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    onbSel.value=coHealthFilters.onboarding;
+  }
+  companies=companies.filter(c=>{
+    if(coHealthFilters.onboarding&&c.onboarding_status!==coHealthFilters.onboarding) return false;
+    if(coHealthFilters.search&&!c.company.toLowerCase().includes(coHealthFilters.search.toLowerCase())) return false;
+    return true;
+  });
+  const countEl=document.getElementById('co-health-count');
+  if(countEl) countEl.textContent=`${companies.length} of ${Object.values(byKey).length}`;
+
   const measures=[
     {key:'overall_budget_potential',label:'Overall Budget Potential',fmt:v=>v?`${v}/5`:''},
     {key:'overall_client_relationship',label:'Overall Client Relationship',fmt:v=>v?`${v}/5`:''},
@@ -1877,14 +1920,10 @@ function renderCompanyHealthMatrix(){
     {key:'team_satisfaction',label:'Team Satisfaction',fmt:v=>v?`${v}/5`:''},
     {key:'degree_of_innovation',label:'Degree of Innovation',fmt:v=>v?`${v}/5`:''}
   ];
-  if(!companies.length){
-    tbl.querySelector('thead').innerHTML='';
-    tbl.querySelector('tbody').innerHTML='<tr><td class="empty-state">No companies yet.</td></tr>';
-    return;
-  }
   tbl.querySelector('thead').innerHTML=`<tr><th>Company</th>${measures.map(m=>`<th>${esc(m.label)}</th>`).join('')}</tr>`;
-  tbl.querySelector('tbody').innerHTML=companies.map(c=>`
-    <tr><td>${esc(c.company)}</td>${measures.map(m=>`<td class="num">${esc(String(m.fmt(c[m.key])))}</td>`).join('')}</tr>`).join('');
+  tbl.querySelector('tbody').innerHTML=companies.length?companies.map(c=>`
+    <tr><td>${esc(c.company)}</td>${measures.map(m=>`<td class="num">${esc(String(m.fmt(c[m.key])))}</td>`).join('')}</tr>`).join('')
+    :'<tr><td class="empty-state">No companies match this search.</td></tr>';
 }
 
 function renderCompanies(){
@@ -1893,7 +1932,7 @@ function renderCompanies(){
   renderKpiCards('co-kpis',[
     {label:'Companies',value:fmtNum(rollup.length),sub:`${withBiz} with active business`,accent:'sky'},
     {label:'Combined pipeline',value:fmtMoney(rollup.reduce((s,r)=>s+r.pipelineValue,0)),sub:'open opportunities',accent:'sky'},
-    {label:'Total wins',value:fmtNum(rollup.reduce((s,r)=>s+r.wins,0)),sub:'closed won',accent:'green'},
+    {label:'Total wins',value:fmtNum(rollup.reduce((s,r)=>s+r.wins,0)),sub:'closed Win',accent:'green'},
     {label:'Onboarding on file',value:fmtNum(DATA.companies.filter(c=>c.onboarding_status).length),sub:`of ${DATA.companies.length} listed`,accent:'amber'}
   ]);
 
@@ -2049,15 +2088,31 @@ function comboPick(el,id,val){
 
 // Looks up the picked client in the Clients master list and fills in Designation / BD-PM
 // from their record, since the person logging the engagement rarely remembers this by heart.
+// Clears and re-enables a client combo (and an optional dependent field, e.g.
+// engagement's designation) after the company changes — the previous pick no longer
+// applies, since it belonged to the old company's client list.
+function resetClientLock(clientId,extraId){
+  const clientEl=document.getElementById(clientId);
+  if(clientEl){clientEl.readOnly=false;clientEl.value='';}
+  if(extraId){
+    const extraEl=document.getElementById(extraId);
+    if(extraEl){extraEl.readOnly=false;extraEl.value='';}
+  }
+}
+
 function autofillEngClientFields(clientName){
   const coEl=document.getElementById('modal-eng-company');
   const desigEl=document.getElementById('designation');
   const bdEl=document.getElementById('bd_pm');
-  if(!coEl||!desigEl||!bdEl||!clientName) return;
+  const clientEl=document.getElementById('modal-eng-client');
+  if(!coEl||!clientName) return;
   const match=DATA.clients.find(c=>normCo(c.company)===normCo(coEl.value)&&normStr(c.client_name).toLowerCase()===normStr(clientName).toLowerCase());
   if(!match) return;
-  if(match.designation) desigEl.value=match.designation;
-  if(match.assigned_bd) bdEl.value=match.assigned_bd;
+  // Designation only locks once it's actually been filled in — if the client record has
+  // none on file, leave it open so the user can type it in themselves (it's required).
+  if(desigEl&&match.designation){desigEl.value=match.designation;desigEl.readOnly=true;}
+  if(bdEl&&match.assigned_bd) bdEl.value=match.assigned_bd;
+  if(clientEl) clientEl.readOnly=true;
 }
 
 // Same idea for the opportunity form: once a client's picked, fill BD owner from their
@@ -2066,10 +2121,12 @@ function autofillEngClientFields(clientName){
 function autofillOppClientFields(clientName){
   const coEl=document.getElementById('modal-opp-company');
   const bdEl=document.getElementById('bd_owner');
-  if(!coEl||!bdEl||!clientName) return;
+  const clientEl=document.getElementById('modal-opp-client-name');
+  if(!coEl||!clientName) return;
   const match=DATA.clients.find(c=>normCo(c.company)===normCo(coEl.value)&&normStr(c.client_name).toLowerCase()===normStr(clientName).toLowerCase());
-  if(!match||!match.assigned_bd) return;
-  bdEl.value=match.assigned_bd;
+  if(!match) return;
+  if(bdEl&&match.assigned_bd) bdEl.value=match.assigned_bd;
+  if(clientEl) clientEl.readOnly=true;
 }
 async function comboAddNew(evt,id){
   evt.preventDefault();
@@ -2161,8 +2218,8 @@ const ADD_CONFIGS={
     {name:'opportunity',label:'Opportunity',type:'text',required:true,full:true},
     {name:'opportunity_status',label:'Stage',type:'select',opts:LOOKUPS.opportunityStatus,required:true},
     {name:'bd_owner',label:'BD owner',combo:true,comboOpts:()=>EMPLOYEES,required:true},
-    {name:'technical_lead',label:'Technical lead',combo:true,comboOpts:()=>EMPLOYEES},
-    {name:'estimated_value_usd',label:'Estimated value (USD)',type:'number',required:true},
+    {name:'supporting_role',label:'Supporting role',type:'multiselect',opts:()=>EMPLOYEES,placeholder:'Supporting team members…'},
+    {name:'estimated_value_usd',label:'Estimated value (USD)',type:'number',required:true,min:0},
     {name:'probability_pct',label:'Probability (%)',type:'number',min:0,max:100},
     {name:'identified_date',label:'Opportunity identified date',type:'date'},
     {name:'discussion_date',label:'Discussion date',type:'date',required:true},
@@ -2179,7 +2236,6 @@ const ADD_CONFIGS={
     {name:'bd_pm',label:'BD / PM',combo:true,comboOpts:()=>EMPLOYEES,required:true},
     {name:'accompanied_by',label:'Accompanied by',type:'multiselect',opts:()=>EMPLOYEES,placeholder:'Other team members at this meeting…'},
     {name:'engagement_type',label:'Engagement type',type:'select',opts:LOOKUPS.engagementTypes,required:true},
-    {name:'platform_venue',label:'Platform / venue',type:'text',required:true},
     {name:'stakeholder_type',label:'Stakeholder type',type:'select',opts:LOOKUPS.stakeholderType,required:true},
     {name:'engagement_objective',label:'Objective',type:'select',opts:LOOKUPS.engagementObjective,required:true},
     {name:'engagement_outcome',label:'Outcome',type:'select',opts:LOOKUPS.engagementOutcome,required:true},
@@ -2211,7 +2267,15 @@ function renderModalField(f,val=''){
     inp=buildCombo({id,value:val,options:f.comboOpts(),placeholder:`Type to search…`,allowNew:!!f.allowNew,required:f.required});
   } else if(f.type==='select'){
     const opts=typeof f.opts==='function'?f.opts():f.opts;
-    inp=`<select name="${f.name}" id="${f.name}" ${f.required?'required':''}><option value="">—</option>${opts.map(o=>`<option value="${esc(o)}"${val===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    // Match case/whitespace-insensitively — SharePoint data entered outside this exact
+    // dropdown (imports, manual list edits) can differ in casing from the option list.
+    // If the stored value still matches nothing, keep it as its own selected option
+    // instead of silently defaulting to blank — that would submit null and wipe out
+    // real data on save without the user ever noticing.
+    const norm=s=>String(s).trim().toLowerCase();
+    const matched=val&&opts.some(o=>norm(o)===norm(val));
+    const extraOpt=(val&&!matched)?`<option value="${esc(val)}" selected>${esc(val)}</option>`:'';
+    inp=`<select name="${f.name}" id="${f.name}" ${f.required?'required':''}><option value="">—</option>${extraOpt}${opts.map(o=>`<option value="${esc(o)}"${norm(o)===norm(val)?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
   } else if(f.type==='multiselect'){
     const opts=typeof f.opts==='function'?f.opts():f.opts;
     inp=buildMultiselect({id:f.name,value:val,options:opts,placeholder:f.placeholder||'Select…',required:f.required});
@@ -2249,7 +2313,7 @@ function openAddModal(kind){
     const stSel=document.getElementById('opportunity_status');
     if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
     const coSel=document.getElementById('modal-opp-company');
-    if(coSel) coSel.addEventListener('change',()=>updateModalOppClientOptions(coSel.value));
+    if(coSel) coSel.addEventListener('change',()=>{resetClientLock('modal-opp-client-name');updateModalOppClientOptions(coSel.value);});
     // Default BD owner to whoever's logged in and creating this record — the person
     // logging an opportunity is almost always its owner. A client-specific match (if one
     // exists once they pick a client) overrides this, since that's more authoritative.
@@ -2261,7 +2325,7 @@ function openAddModal(kind){
   }
   if(kind==='engagements'){
     const coSel=document.getElementById('modal-eng-company');
-    if(coSel) coSel.addEventListener('change',()=>updateModalEngClientOptions(coSel.value));
+    if(coSel) coSel.addEventListener('change',()=>{resetClientLock('modal-eng-client','designation');updateModalEngClientOptions(coSel.value);});
   }
   if(kind==='clients'){
     const rtSel=document.getElementById('region_type');
@@ -2304,6 +2368,18 @@ async function handleAddSubmit(e,kind,cfg){
   });
   if(!valid){alert('Please fill in all required fields marked with *.');return;}
 
+  // Enforce min/max on numeric fields (e.g. Target Revenue can't be negative).
+  let inRange=true;
+  cfg.fields.filter(f=>f.type==='number'&&(f.min!==undefined||f.max!==undefined)).forEach(f=>{
+    const id=f.comboId||f.name;
+    const el=document.getElementById(id);
+    if(!el||!el.value.trim()){if(el) el.classList.remove('invalid');return;}
+    const n=Number(el.value);
+    if((f.min!==undefined&&n<f.min)||(f.max!==undefined&&n>f.max)){el.classList.add('invalid');inRange=false;}
+    else el.classList.remove('invalid');
+  });
+  if(!inRange){alert('Please check the highlighted fields — some values are out of the allowed range.');return;}
+
   saveBtn.disabled=true;saveBtn.textContent='Saving…';
 
   // Build payload
@@ -2329,6 +2405,11 @@ async function handleAddSubmit(e,kind,cfg){
     }
     payload.region=type==='Global'?'Global':(type&&detail?`${type}: ${detail}`:null);
     delete payload.region_type;delete payload.region_detail;
+  }
+  if(kind==='companies'&&DATA.companies.some(c=>normCo(c.company)===normCo(payload.company))){
+    alert(`"${payload.company}" already exists in the Companies list. Edit the existing record instead of adding a duplicate.`);
+    saveBtn.disabled=false;saveBtn.textContent='Save';
+    return;
   }
   if(kind==='opportunities'){
     const pct=payload.probability_pct;
@@ -2418,14 +2499,14 @@ async function openEditModal(kind,id){
     const coCur=document.getElementById('modal-opp-company');
     if(coCur){
       if(coCur.value) updateModalOppClientOptions(coCur.value);
-      coCur.addEventListener('change',()=>updateModalOppClientOptions(coCur.value));
+      coCur.addEventListener('change',()=>{resetClientLock('modal-opp-client-name');updateModalOppClientOptions(coCur.value);});
     }
   }
   if(kind==='engagements'){
     const coCur=document.getElementById('modal-eng-company');
     if(coCur){
       if(coCur.value) updateModalEngClientOptions(coCur.value);
-      coCur.addEventListener('change',()=>updateModalEngClientOptions(coCur.value));
+      coCur.addEventListener('change',()=>{resetClientLock('modal-eng-client','designation');updateModalEngClientOptions(coCur.value);});
     }
   }
   if(kind==='clients'){
@@ -2472,6 +2553,18 @@ async function handleEditSubmit(e,kind,id,original,cfg){
     else if(el) el.classList.remove('invalid');
   });
   if(!valid){alert('Please fill in all required fields marked with *.');return;}
+
+  // Enforce min/max on numeric fields (e.g. Target Revenue can't be negative).
+  let inRange=true;
+  cfg.fields.filter(f=>f.type==='number'&&(f.min!==undefined||f.max!==undefined)).forEach(f=>{
+    const elId=f.comboId||f.name;
+    const el=document.getElementById(elId);
+    if(!el||!el.value.trim()){if(el) el.classList.remove('invalid');return;}
+    const n=Number(el.value);
+    if((f.min!==undefined&&n<f.min)||(f.max!==undefined&&n>f.max)){el.classList.add('invalid');inRange=false;}
+    else el.classList.remove('invalid');
+  });
+  if(!inRange){alert('Please check the highlighted fields — some values are out of the allowed range.');return;}
 
   saveBtn.disabled=true;saveBtn.textContent='Saving…';
 
@@ -2604,6 +2697,11 @@ function wireEvents(){
   on('co-search','input',debounce(e=>{coFilters.search=e.target.value;renderCompanies();},200));
   on('co-filter-onboarding','change',e=>{coFilters.onboarding=e.target.value;renderCompanies();});
   on('co-clear','click',()=>{coFilters={search:'',onboarding:''};document.getElementById('co-search').value='';renderCompanies();});
+
+  // Account health matrix filters — independent of the company table's own filters above.
+  on('co-health-search','input',debounce(e=>{coHealthFilters.search=e.target.value;renderCompanyHealthMatrix();},200));
+  on('co-health-filter-onboarding','change',e=>{coHealthFilters.onboarding=e.target.value;renderCompanyHealthMatrix();});
+  on('co-health-clear','click',()=>{coHealthFilters={search:'',onboarding:''};document.getElementById('co-health-search').value='';renderCompanyHealthMatrix();});
 }
 
 document.addEventListener('DOMContentLoaded',wireEvents);

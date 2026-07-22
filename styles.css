@@ -68,9 +68,9 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 ::-webkit-scrollbar-thumb:hover{background:rgba(10,30,61,0.24);background-clip:padding-box;}
 
 /* ---- BRAND MARK (shown top-left on login/region-picker/access-denied screens) ---- */
-#brand-mark{position:fixed;top:22px;left:24px;z-index:60;background:#fff;border-radius:8px;
-  padding:6px 10px;box-shadow:var(--shadow-md);}
-#brand-mark img{height:26px;width:auto;display:block;}
+#brand-mark{position:fixed;top:22px;left:24px;z-index:60;background:#fff;
+  padding:3px 5px;box-shadow:var(--shadow-md);}
+#brand-mark svg{height:48px;width:auto;display:block;}
 
 /* ---- LOGIN / REGION PICKER — the one place a bold brand backdrop is earned; it's a
    momentary entry screen, not the daily-use surface, so it can carry more presence
@@ -110,7 +110,7 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 .region-pick-label{font-family:'Ortica',serif;font-size:16px;font-weight:600;}
 .region-pick-sub{color:#9CB6CC;font-size:11.5px;margin-top:4px;}
 .region-signout-link{margin-top:24px;background:none;border:none;color:#9CB6CC;font-size:12px;cursor:pointer;text-decoration:underline;}
-.region-chip{font-family:'Ortica',serif;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-faint);}
+.region-chip{font-family:'Ortica',serif;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#000;}
 
 /* ---- APP SHELL ---- */
 #app[hidden]{display:none;} #app{display:flex;min-height:100vh;}
@@ -128,13 +128,18 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 }
 .sidebar{
   width:224px;flex-shrink:0;color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;
-  background-image:url('neovation-deck-bg-design.png');
+  /* Same deck image as .main, with a soft white wash layered on top to lift its
+     brightness a bit — the sidebar reads as a touch lighter/more visible than the
+     main backdrop, without losing the shared continuous-image seam effect. */
+  background-image:
+    linear-gradient(rgba(255,255,255,.16),rgba(255,255,255,.16)),
+    url('neovation-deck-bg-design.png');
   background-size:cover;background-position:center;background-repeat:no-repeat;
   background-attachment:fixed;
   border-right:3px solid #fff;
 }
 .brand{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
-.brand img{width:106px;height:auto;display:block;margin-bottom:14px;background:#fff;border-radius:8px;padding:8px 10px;}
+.brand svg{width:118px;height:auto;display:block;margin-bottom:14px;background:#fff;padding:3px 5px;}
 .brand-eyebrow{font-family:'Ortica',serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7996B3;margin-bottom:4px;}
 .brand h1{color:#fff;font-size:15.5px;line-height:1.25;font-weight:600;}
 .nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:1px;}
@@ -265,7 +270,7 @@ tbody td{padding:10px 14px;border-bottom:1px solid var(--line-soft);color:var(--
 tbody tr{transition:background var(--t-fast) var(--ease);}
 tbody tr:nth-child(even){background:rgba(10,30,61,0.015);}
 tbody tr:hover{background:var(--sky-pale);}
-.num{font-family:'Ortica',serif;text-align:right;font-variant-numeric:tabular-nums;}
+.num{font-family:'Ortica',serif;text-align:center;font-variant-numeric:tabular-nums;}
 .td-actions{white-space:nowrap;}
 
 /* Tags / status badges */
@@ -344,9 +349,11 @@ tbody tr:hover{background:var(--sky-pale);}
 .form-field input[readonly]{background:var(--paper);color:var(--ink-soft);}
 .form-field textarea{resize:vertical;min-height:58px;}
 .form-field input.invalid,.form-field select.invalid,.form-field textarea.invalid{border-color:var(--coral);}
-/* Target Revenue is a manually-typed figure, not a small 1-5 rating — no step arrows. */
-#target_revenue::-webkit-outer-spin-button,#target_revenue::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
-#target_revenue{-moz-appearance:textfield;}
+/* Target Revenue and Estimated Value are manually-typed figures, not small 1-5
+   ratings — no step arrows. */
+#target_revenue::-webkit-outer-spin-button,#target_revenue::-webkit-inner-spin-button,
+#estimated_value_usd::-webkit-outer-spin-button,#estimated_value_usd::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+#target_revenue,#estimated_value_usd{-moz-appearance:textfield;}
 .modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;}
 
 /* Stage history timeline */
@@ -423,9 +430,9 @@ tbody tr:hover{background:var(--sky-pale);}
 table.pivot{width:100%;border-collapse:collapse;font-size:12.5px;}
 table.pivot thead th{position:sticky;top:0;background:var(--ink);color:#fff;padding:8px 14px;
   font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;text-align:left;z-index:2;white-space:nowrap;}
-table.pivot thead th.num{text-align:right;}
+table.pivot thead th.num{text-align:center;}
 table.pivot td{padding:8px 14px;border-bottom:1px solid var(--line-soft);color:var(--ink);}
-table.pivot td.num{font-family:'Ortica',serif;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+table.pivot td.num{font-family:'Ortica',serif;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums;}
 table.pivot tr.pivot-group{cursor:pointer;background:var(--paper);transition:background var(--t-fast) var(--ease);}
 table.pivot tr.pivot-group:hover td{background:var(--sky-pale);}
 table.pivot tr.pivot-group td{font-weight:700;}
