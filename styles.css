@@ -402,6 +402,9 @@ tbody tr:hover{background:var(--sky-pale);}
 /* Probability lock indicator */
 .prob-locked{font-size:11px;color:var(--green);font-weight:600;margin-top:3px;display:none;}
 
+/* Explanatory footnote under a form (e.g. client status definitions) */
+.form-footnote{font-size:11px;color:var(--ink-soft);margin-top:10px;line-height:1.5;padding-top:10px;border-top:1px solid var(--line-soft);}
+
 /* Config banner */
 .config-banner{background:var(--coral-pale);border:1px solid var(--coral);color:#7A2E1D;
   padding:11px 16px;border-radius:var(--radius-sm);font-size:12px;margin:0 26px 16px;display:none;}

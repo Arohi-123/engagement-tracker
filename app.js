@@ -83,9 +83,9 @@ const LOOKUPS = {
   clientStatus:['Active business','Active engagement','Prospect','Inactive'],
   priority:['Low','Medium','High'],
   opportunityStatus:[
-    '01 Blue Sky Opportunity','02 Identified Opportunity','03 Concept pitch preparation',
+    '01 Blue Sky Opportunity','02 Identified Opportunity',
     '04 Proposal preparation','05 Proposal submitted','06 To Win',
-    '07 Win','08 Loss','09 Client not interested','10 Missed to discuss'
+    '07 Win','08 Loss','09 Client not interested','10 Missed Opportunity'
   ],
   engagementTypes:['In-Person Meeting','Virtual Meeting','Phone Call/ Whatsapp','Email','Conference/Event','Others'],
   stakeholderType:['Existing Stakeholder Engagement','Procurement Engagement','New Stakeholder Development'],
@@ -302,7 +302,7 @@ function togglePivotGroup(groupRow){
 
 /* ---------- 6. STAGE LOGIC ---------- */
 function isOpenStage(s){
-  const closed=['07 win','08 loss','09 client not interested','10 missed to discuss'];
+  const closed=['07 win','08 loss','09 client not interested','10 missed opportunity'];
   return s && !closed.includes(String(s).toLowerCase().trim());
 }
 function isWinStage(s){ return String(s||'').toLowerCase().trim()==='07 win'; }
@@ -2220,7 +2220,7 @@ const ADD_CONFIGS={
     {name:'bd_owner',label:'BD owner',combo:true,comboOpts:()=>EMPLOYEES,required:true},
     {name:'supporting_role',label:'Supporting role',type:'multiselect',opts:()=>EMPLOYEES,placeholder:'Supporting team members…'},
     {name:'estimated_value_usd',label:'Estimated value (USD)',type:'number',required:true,min:0},
-    {name:'probability_pct',label:'Probability (%)',type:'number',min:0,max:100},
+    {name:'probability_pct',label:'Probability (%)',type:'select',opts:['10','25','75','100']},
     {name:'identified_date',label:'Opportunity identified date',type:'date'},
     {name:'discussion_date',label:'Discussion date',type:'date',required:true},
     {name:'pitch_date',label:'Pitch date',type:'date'},
@@ -2298,6 +2298,7 @@ function openAddModal(kind){
         <div class="modal-body">
           <div class="form-grid">${cfg.fields.map(f=>renderModalField(f)).join('')}</div>
           ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">🔒 Probability auto-set by stage</div>`:''}
+          ${kind==='clients'?`<div class="form-footnote"><strong>Active business</strong> is for clients with whom we have current active projects.<br><strong>Active engagement</strong> is for clients with whom we are actively engaging in conversations, but there is no current active project.</div>`:''}
         </div>
         <div class="modal-foot">
           <button type="button" class="btn" onclick="closeModal()">Cancel</button>
@@ -2346,11 +2347,20 @@ function handleStageChange(stSel){
   const pctInp=document.getElementById('probability_pct');
   const lockMsg=document.getElementById('prob-lock-msg');
   if(prob!==null&&pctInp){
-    pctInp.value=Math.round(prob*100);
-    pctInp.readOnly=true;
+    const pctVal=String(Math.round(prob*100));
+    // The dropdown only offers 10/25/75/100 as manual choices. Loss locks to 0%, which
+    // isn't one of them — inject it as a one-off option so the lock still displays
+    // correctly instead of silently landing on a blank selection.
+    if(pctInp.tagName==='SELECT'&&![...pctInp.options].some(o=>o.value===pctVal)){
+      const opt=document.createElement('option');
+      opt.value=pctVal;opt.textContent=pctVal;
+      pctInp.insertBefore(opt,pctInp.firstChild);
+    }
+    pctInp.value=pctVal;
+    pctInp.disabled=true;
     if(lockMsg) lockMsg.style.display='block';
   } else if(pctInp){
-    pctInp.readOnly=false;
+    pctInp.disabled=false;
     if(lockMsg) lockMsg.style.display='none';
   }
 }
@@ -2408,6 +2418,19 @@ async function handleAddSubmit(e,kind,cfg){
   }
   if(kind==='companies'&&DATA.companies.some(c=>normCo(c.company)===normCo(payload.company))){
     alert(`"${payload.company}" already exists in the Companies list. Edit the existing record instead of adding a duplicate.`);
+    saveBtn.disabled=false;saveBtn.textContent='Save';
+    return;
+  }
+  if(kind==='clients'&&DATA.clients.some(c=>normCo(c.company)===normCo(payload.company)&&normStr(c.client_name).toLowerCase()===normStr(payload.client_name).toLowerCase())){
+    alert(`"${payload.client_name}" already exists as a client at "${payload.company}". Edit the existing record instead of adding a duplicate.`);
+    saveBtn.disabled=false;saveBtn.textContent='Save';
+    return;
+  }
+  // Opportunities/engagements must attach to a client that's already on file for that
+  // company — the "Client name" field is a free-text combo (autocomplete suggestions,
+  // not a constrained dropdown), so typing past the suggestions has to be blocked here.
+  if((kind==='opportunities'||kind==='engagements')&&!DATA.clients.some(c=>normCo(c.company)===normCo(payload.company)&&normStr(c.client_name).toLowerCase()===normStr(payload.client_name).toLowerCase())){
+    alert(`"${payload.client_name}" is not an existing client at "${payload.company}". Add them on the Clients page first, then pick them here from the dropdown.`);
     saveBtn.disabled=false;saveBtn.textContent='Save';
     return;
   }
@@ -2477,6 +2500,7 @@ async function openEditModal(kind,id){
         <div class="modal-body">
           <div class="form-grid">${cfg.fields.map(f=>renderModalField(f,getVal(f))).join('')}</div>
           ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">🔒 Probability auto-set by stage</div>`:''}
+          ${kind==='clients'?`<div class="form-footnote"><strong>Active business</strong> is for clients with whom we have current active projects.<br><strong>Active engagement</strong> is for clients with whom we are actively engaging in conversations, but there is no current active project.</div>`:''}
           ${histHtml}
         </div>
         <div class="modal-foot">
