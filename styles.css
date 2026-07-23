@@ -436,6 +436,14 @@ table.pivot thead th{position:sticky;top:0;background:var(--ink);color:#fff;padd
 table.pivot thead th.num{text-align:center;}
 table.pivot td{padding:8px 14px;border-bottom:1px solid var(--line-soft);color:var(--ink);}
 table.pivot td.num{font-family:'Ortica',serif;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums;}
+
+/* Overview page tables: equal-width columns instead of sizing to content. */
+#ov-bd-type-table,#ov-bd-dept-table,#ov-account-health-table{table-layout:fixed;}
+#ov-bd-type-table th,#ov-bd-type-table td,
+#ov-bd-dept-table th,#ov-bd-dept-table td,
+#ov-account-health-table th,#ov-account-health-table td{
+  overflow:hidden;text-overflow:ellipsis;
+}
 table.pivot tr.pivot-group{cursor:pointer;background:var(--paper);transition:background var(--t-fast) var(--ease);}
 table.pivot tr.pivot-group:hover td{background:var(--sky-pale);}
 table.pivot tr.pivot-group td{font-weight:700;}
