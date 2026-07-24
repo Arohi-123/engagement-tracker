@@ -75,8 +75,10 @@ const EMPLOYEES = [
 ].sort();
 
 const LOOKUPS = {
-  therapyAreas:['Oncology','CNS','Cardiology','Infectious Disease','Rare Disease','Immunology',
-    'Gastroenterology','Dermatology','Endocrinology','Respiratory','Rheumatology','HEOR','Across TAs','Other'],
+  therapyAreas:['Cardiovascular/ Cardiometabolic','Consumer healthcare','Dermatology','Endocrinology',
+    'Fertility','Gastroenterology','Hematology','Immunology','Infectious Disease','Medical devices',
+    'Nephrology','Neurology/ CNS','Obesity','Oncology','Ophthalmology','Rare Diseases','Respiratory',
+    'Rheumatology','Vaccines and Diagnostics'],
   departments:['Medical','Market Access/ HEOR','Marketing/ Commercial','Procurement','Digital','Others'],
   regionGroupings:['Gulf','MENA','Intercontinental','MEAR','GCC','META','GEM & Levant','Others'],
   countries:['UAE','KSA','Qatar','Kuwait','Bahrain','Oman','Egypt','Jordan','Lebanon'],
@@ -250,6 +252,21 @@ function sortAlpha(arr,key){ return [...arr].sort((a,b)=>(a[key]||'').localeComp
 function uniqueCompanies(){
   const s=new Set();
   DATA.companies.forEach(c=>{if(c.company)s.add(c.company.trim());});
+  return [...s].sort();
+}
+// Department/Therapy area comboboxes allow typing a new value via "Add new…", but that
+// only ever set the value on the record being saved — it never made it back into the
+// static LOOKUPS list, so it silently vanished from the suggestions on every later entry.
+// Merge in whatever's actually been used across the real client data so a custom value,
+// once saved anywhere, becomes a normal pickable suggestion from then on.
+function uniqueDepartments(){
+  const s=new Set(LOOKUPS.departments);
+  DATA.clients.forEach(c=>{if(c.department)s.add(c.department.trim());});
+  return [...s].sort();
+}
+function uniqueTherapyAreas(){
+  const s=new Set(LOOKUPS.therapyAreas);
+  DATA.clients.forEach(c=>{if(c.therapy_area)s.add(c.therapy_area.trim());});
   return [...s].sort();
 }
 
@@ -2135,6 +2152,12 @@ async function comboAddNew(evt,id){
   const name=prompt(`Add new entry for this field:`+(val?` (pre-filled: "${val}")`:''),(val||''));
   if(!name||!name.trim()) return;
   inp.value=name.trim();
+  // Unlike comboPick (a normal suggestion click), this never closed the dropdown —
+  // it stayed open showing the old, now-irrelevant option list, which both looked like
+  // the new entry hadn't taken and made it easy to accidentally click a stale suggestion
+  // right afterward, silently overwriting the value that was just typed in.
+  const list=document.getElementById(id+'-list');
+  if(list) list.classList.remove('open');
 }
 
 function updateModalOppClientOptions(company){
@@ -2192,8 +2215,8 @@ const ADD_CONFIGS={
     {name:'modal-company',label:'Company',type:'select',required:true,opts:()=>uniqueCompanies()},
     {name:'modal-client-name',label:'Client name',type:'text',required:true},
     {name:'designation',label:'Designation',type:'text',required:true},
-    {name:'department',label:'Department',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.departments.sort()},
-    {name:'therapy_area',label:'Therapy area',combo:true,allowNew:true,required:true,comboOpts:()=>LOOKUPS.therapyAreas.sort()},
+    {name:'department',label:'Department',combo:true,allowNew:true,required:true,comboOpts:()=>uniqueDepartments()},
+    {name:'therapy_area',label:'Therapy area',combo:true,allowNew:true,required:true,comboOpts:()=>uniqueTherapyAreas()},
     {name:'region_type',label:'Region',type:'select',required:true,opts:['Global','Regional','Country']},
     {name:'region_detail',label:'Region detail',type:'text',wrapId:'region-detail-wrap'},
     {name:'email',label:'Email',type:'text',required:true},
