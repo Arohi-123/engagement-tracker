@@ -182,10 +182,6 @@
       <div class="topbar-sub">Combined view across every region · read-only</div>
     </div>
     <div class="topbar-right">
-      <select id="ar-currency-select" title="Display currency" style="padding:5px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;color:var(--ink-soft);font-family:inherit;cursor:pointer;">
-        <option value="USD">USD $</option>
-        <option value="SGD">SGD S$</option>
-      </select>
       <button class="refresh-btn" id="ar-refresh-btn" onclick="enterAllRegions()">⟳ Refresh</button>
       <button class="btn" onclick="showRegionScreen()">← Back to regions</button>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
@@ -439,10 +435,6 @@
     <div class="topbar">
       <div class="topbar-left"></div>
       <div class="topbar-right">
-        <select id="currency-select" title="Display currency" style="padding:5px 10px;border-radius:7px;border:1px solid var(--line);font-size:12px;background:#fff;color:var(--ink-soft);font-family:inherit;cursor:pointer;">
-          <option value="USD">USD $</option>
-          <option value="SGD">SGD S$</option>
-        </select>
         <span class="region-chip" id="region-indicator"></span>
         <button class="refresh-btn" id="region-switch-btn" title="Switch region" style="display:none;" onclick="showRegionScreen()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>

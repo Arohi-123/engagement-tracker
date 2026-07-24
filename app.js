@@ -53,11 +53,24 @@ const REGIONS = {
   }
 };
 
+// Every entry-level person enters Opportunity values in their own region's local currency —
+// there's no per-record currency picker, it's just assumed from which region's SharePoint
+// list the record lives in. If a region ever needs to split into more than one currency,
+// this is the one place that changes.
+const REGION_CURRENCY = { ME:'USD', US:'USD', APAC:'SGD', IND:'INR' };
+
 // Small dedicated SharePoint site/list holding Email / Role / Region rows.
 // This is the single source of truth for who can access which region and as what role —
 // add or change a row here to grant/revoke/change access, no code change or redeploy needed.
 const ACCESS_CONTROL_SITE_ID = 'neovationsg.sharepoint.com,2a6704aa-ebec-4ac3-9c90-bb26c7471a7a,9f770810-80a0-43e9-8516-566420d17813';
 const ACCESS_CONTROL_LIST_ID = '9d2f755c-3ebd-49ad-bd07-1ae7cb563606';
+
+// Same lightweight admin site as Access Control, one more list on it: "FX Rates"
+// (Title = currency code, RateToSGD = number). Finance maintains this list directly —
+// it is the single source of truth for every currency conversion in the app, never a
+// live market-rate API. See fetchFxRates() / fxRateFor() for how it's used.
+const FX_RATES_SITE_ID = ACCESS_CONTROL_SITE_ID;
+const FX_RATES_LIST_ID = '5e75b9bf-db6b-41bf-b732-30922f3b95de';
 
 /* ---------- 2. LOOKUP LISTS ---------- */
 const EMPLOYEES = [
@@ -141,62 +154,46 @@ function fmtDate(d){
   const dt=new Date(d); if(isNaN(dt)) return '';
   return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 }
-// All monetary fields in SharePoint are stored in USD. displayCurrency only changes how
-// fmtMoney() *shows* a number — every KPI/table/chart in the app already routes through
-// this one function, so that's the only place a currency toggle needs to touch.
-const CURRENCY_SYMBOLS={USD:'$',SGD:'S$'};
-const FALLBACK_USD_SGD=1.35; // used only if the live rate fetch fails/hasn't completed yet
 // localStorage can throw (not just be undefined) under some browser security contexts —
 // private browsing, strict file:// origin policies, storage disabled by IT policy — and
 // since this runs at the very top of the script, an uncaught throw here would silently
 // kill every function defined after it. Never touch localStorage without this wrapper.
 function safeLsGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
 function safeLsSet(key,val){ try{ localStorage.setItem(key,val); }catch(e){/* ignore */} }
-let displayCurrency=safeLsGet('displayCurrency')||'USD';
-let fxUsdSgd=null;
-let fxFetchedAt=null;
-async function ensureFxRate(){
-  if(fxUsdSgd&&fxFetchedAt&&(Date.now()-fxFetchedAt<12*3600*1000)) return; // already fresh
-  try{
-    const cachedRaw=safeLsGet('fxUsdSgd');
-    if(cachedRaw){
-      const cached=JSON.parse(cachedRaw);
-      if(cached.rate&&Date.now()-cached.at<12*3600*1000){ fxUsdSgd=cached.rate; fxFetchedAt=cached.at; return; }
-    }
-  }catch(e){/* ignore malformed cache */}
-  try{
-    const res=await fetch('https://api.frankfurter.app/latest?from=USD&to=SGD');
-    const j=await res.json();
-    if(j&&j.rates&&j.rates.SGD){
-      fxUsdSgd=j.rates.SGD; fxFetchedAt=Date.now();
-      safeLsSet('fxUsdSgd',JSON.stringify({rate:fxUsdSgd,at:fxFetchedAt}));
-    }
-  }catch(err){
-    console.error('FX rate fetch failed, using fallback rate:',err);
+
+// Every opportunity is entered in its own region's local currency (REGION_CURRENCY) by
+// whoever's closest to the deal. The dashboard always DISPLAYS in SGD — there is no currency
+// toggle — so every figure must be converted before it's summed or shown. FX_RATES{code:rateToSgd} is the
+// live/current rate table, loaded once at login from the "FX Rates" SharePoint list that
+// finance maintains directly (see fetchFxRates()). It is deliberately NOT a market-data API:
+// finance's numbers are the single source of truth everyone else's reporting has to match.
+// fxRateFor()/oppEstSgd()/oppWeightedSgd() below are the only place that rate gets applied —
+// route every opportunity money figure through them, never read estimated_value_usd raw.
+let FX_RATES={SGD:1};
+async function fetchFxRates(){
+  if(FX_RATES_LIST_ID.includes('YOUR_')){
+    console.warn('FX_RATES_LIST_ID is not configured yet — every non-SGD currency will convert at 1:1 until it is set.');
+    return;
   }
-}
-function setDisplayCurrency(cur){
-  displayCurrency=cur;
-  safeLsSet('displayCurrency',cur);
-  syncCurrencySelects();
-  if(document.getElementById('app')&&!document.getElementById('app').hidden) renderAllViews();
-  const arScreen=document.getElementById('all-regions-screen');
-  if(arScreen&&arScreen.style.display!=='none'&&ALL_REGIONS_DATA) renderAllRegionsOverview();
-}
-function syncCurrencySelects(){
-  ['currency-select','ar-currency-select'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.value=displayCurrency;
-  });
+  try{
+    const items=await graphGet(`${GRAPH_BASE}/sites/${FX_RATES_SITE_ID}/lists/${FX_RATES_LIST_ID}/items?expand=fields&$top=999`);
+    const rates={SGD:1};
+    items.forEach(i=>{
+      const code=String((i.fields||{}).Title||'').trim().toUpperCase();
+      const rate=Number((i.fields||{}).RateToSGD);
+      if(code&&!isNaN(rate)) rates[code]=rate;
+    });
+    FX_RATES=rates;
+  }catch(err){
+    console.error('Could not load FX Rates list — conversions will fall back to 1:1 for any currency not already cached.',err);
+  }
 }
 function fmtMoney(n){
   if(n==null||n==='') return '';
   const num=Number(n); if(isNaN(num)) return '';
-  const rate=displayCurrency==='SGD'?(fxUsdSgd||FALLBACK_USD_SGD):1;
-  const converted=num*rate;
-  const sym=CURRENCY_SYMBOLS[displayCurrency]||'$';
-  if(converted>=1000000) return sym+(converted/1000000).toFixed(1)+'M';
-  if(converted>=1000) return sym+(converted/1000).toFixed(0)+'K';
-  return sym+converted.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(num>=1000000) return 'S$'+(num/1000000).toFixed(1)+'M';
+  if(num>=1000) return 'S$'+(num/1000).toFixed(0)+'K';
+  return 'S$'+num.toLocaleString('en-US',{maximumFractionDigits:0});
 }
 function fmtNum(n){ if(n==null||n==='') return ''; return Number(n).toLocaleString('en-US'); }
 function debounce(fn,ms){ let t; return (...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}; }
@@ -330,6 +327,34 @@ function autoProb(status){
   return null; // no auto-set
 }
 
+// Currency isn't a field anyone picks — it's assumed from which region's SharePoint list a
+// record lives in (REGION_CURRENCY). In the normal single-region view that's just
+// activeRegionKey; in the All-Regions rollup, fetchAllRegionsData() tags every record with
+// its own o._region, which takes priority so a merged view still converts each region at
+// its own region's currency.
+function currencyForOpp(o){
+  return REGION_CURRENCY[o._region||activeRegionKey]||'USD';
+}
+// The rate to use for one opportunity's SGD conversion. Open deals float with today's
+// FX_RATES entry (a forecast, not a settled number). Closed deals (Win/Loss) use whatever
+// rate got frozen onto o.fx_rate_locked the moment they closed (see handleAddSubmit/
+// handleEditSubmit) — never today's rate — so two deals closed months apart at different
+// rates each keep their own conversion when summed together.
+function fxRateFor(o){
+  const cur=currencyForOpp(o);
+  if(cur==='SGD') return 1;
+  if(!isOpenStage(o.opportunity_status)&&o.fx_rate_locked!=null&&o.fx_rate_locked!==''){
+    return Number(o.fx_rate_locked);
+  }
+  return FX_RATES[cur]??1;
+}
+function oppEstSgd(o){ return (Number(o.estimated_value_usd)||0)*fxRateFor(o); }
+function oppWeightedSgd(o){ return (Number(o.probability_weighted_value)||0)*fxRateFor(o); }
+// Target Revenue (Companies) has no per-record currency of its own — it's always entered
+// in USD — but still needs to land in SGD for display, at today's rate (it's a forward
+// target, not a closed transaction, so there's nothing to lock).
+function targetRevSgd(usd){ return usd==null||usd===''?null:Number(usd)*(FX_RATES.USD??1); }
+
 /* ---------- 7. AUTH (MSAL) ---------- */
 function initMsal(){
   if(msalInstance) return;
@@ -358,6 +383,7 @@ async function doLogin(){
       return;
     }
     currentUser={username:email,name:currentAccount.name||email,role:access.role,region:access.region||null};
+    await fetchFxRates();
     document.getElementById('login-screen').style.display='none';
     document.getElementById('user-name').textContent=currentUser.name;
     document.getElementById('user-role').textContent=ROLE_LABELS[currentUser.role]||currentUser.role.toUpperCase();
@@ -449,7 +475,7 @@ function switchView(v){
 const GRAPH_BASE='https://graph.microsoft.com/v1.0';
 const FIELD_MAP={
   clients:{client_name:'Title',company:'field_1',designation:'field_2',department:'field_3',therapy_area:'field_4',region:'field_5',email:'field_6',phone:'field_7',linkedin_url:'field_8',status:'field_9',priority:'field_10',assigned_bd:'field_11',notes:'field_12'},
-  opportunities:{opportunity:'Title',rfp_id:'field_1',company:'field_2',client_name:'field_3',opportunity_status:'field_4',discussion_date:'field_5',pitch_date:'field_6',proposal_submission_date:'field_7',expected_close_date:'field_8',bd_owner:'field_9',supporting_role:'field_10',estimated_value_usd:'field_11',probability_pct:'field_12',probability_weighted_value:'field_13',notes:'field_14',stage_history:'StageHistory',identified_date:'IdentifiedDate'},
+  opportunities:{opportunity:'Title',rfp_id:'field_1',company:'field_2',client_name:'field_3',opportunity_status:'field_4',discussion_date:'field_5',pitch_date:'field_6',proposal_submission_date:'field_7',expected_close_date:'field_8',bd_owner:'field_9',supporting_role:'field_10',estimated_value_usd:'field_11',probability_pct:'field_12',probability_weighted_value:'field_13',notes:'field_14',stage_history:'StageHistory',identified_date:'IdentifiedDate',fx_rate_locked:'FXRateLocked'},
   engagements:{client_name:'Title',eng_month:'field_1',eng_date:'field_2',designation:'field_3',company:'field_4',bd_pm:'field_5',engagement_type:'field_6',stakeholder_type:'field_8',engagement_objective:'field_9',engagement_outcome:'field_10',discussion_points:'field_11',cta_next_step:'field_12',cta_due_date:'field_13',cta_owner:'field_14',follow_up_done:'field_15',accompanied_by:'AccompaniedBy'},
   companies:{company:'Title',onboarding_status:'field_1',notes:'field_2',
     target_revenue:'TargetRevenue',overall_budget_potential:'BudgetPotential',overall_client_relationship:'ClientRelationship',
@@ -678,8 +704,8 @@ function renderOverview(){
   populateBDMonthFilter();
   renderBDFunnel();
   const openOpps=DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
-  const pipelineVal=openOpps.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0);
-  const weightedVal=openOpps.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0);
+  const pipelineVal=openOpps.reduce((s,o)=>s+oppEstSgd(o),0);
+  const weightedVal=openOpps.reduce((s,o)=>s+oppWeightedSgd(o),0);
   const wins=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
   const losses=DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
   const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
@@ -702,8 +728,8 @@ function renderOverview(){
   const stages=LOOKUPS.opportunityStatus;
   const stageOpps=stages.map(s=>DATA.opportunities.filter(o=>o.opportunity_status===s));
   const counts=stageOpps.map(list=>list.length);
-  const stageEst=stageOpps.map(list=>list.reduce((a,o)=>a+(Number(o.estimated_value_usd)||0),0));
-  const stageWeighted=stageOpps.map(list=>list.reduce((a,o)=>a+(Number(o.probability_weighted_value)||0),0));
+  const stageEst=stageOpps.map(list=>list.reduce((a,o)=>a+oppEstSgd(o),0));
+  const stageWeighted=stageOpps.map(list=>list.reduce((a,o)=>a+oppWeightedSgd(o),0));
   const maxCount=Math.max(1,...counts);
   const totalOpps=counts.reduce((a,b)=>a+b,0);
   document.getElementById('ov-funnel').innerHTML=
@@ -785,7 +811,7 @@ function renderOverview(){
       <div class="alert-dot" style="background:${won?'var(--green)':'var(--coral)'}"></div>
       <div><div class="alert-text">${esc(o.opportunity||'')} · ${esc(o.company||'')}</div>
       <div class="alert-meta">${won?'Win':'Lost'} · ${esc(o.bd_owner||'')} · ${fmtDate(decidedDate)}</div></div>
-      <div class="alert-date">${fmtMoney(o.estimated_value_usd)}</div>
+      <div class="alert-date">${fmtMoney(oppEstSgd(o))}</div>
     </div>`}).join('')
     :'<div class="empty-state" style="padding:10px 0">No recent outcomes</div>';
 }
@@ -924,7 +950,7 @@ function renderBDFunnel(){
   if(oppToggle) oppToggle.textContent=bdOppExpanded?'Hide breakdown ▴':'Show breakdown ▾';
 
   /* ---- SECTION 4: PIPELINE FUNNEL — the 7 open/won stages, individually, plus a Total ---- */
-  function sumVal(arr){ return arr.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0); }
+  function sumVal(arr){ return arr.reduce((s,o)=>s+oppEstSgd(o),0); }
   const pipCols=[1,2,3,4,5,6,7].map(n=>({
     label:LOOKUPS.opportunityStatus[n-1].replace(/^\d+\s/,''),
     stageNum:n,
@@ -976,8 +1002,6 @@ async function enterAllRegions(){
   document.getElementById('all-regions-screen').style.display='block';
   const loadingEl=document.getElementById('ar-loading');
   if(loadingEl) loadingEl.style.display='block';
-  syncCurrencySelects();
-  ensureFxRate().then(()=>{ syncCurrencySelects(); if(displayCurrency==='SGD'&&ALL_REGIONS_DATA) renderAllRegionsOverview(); });
   try{
     ALL_REGIONS_DATA=await fetchAllRegionsData();
     renderAllRegionsOverview();
@@ -1186,8 +1210,8 @@ function renderAllRegionsKpis(){
   const losses=opps.filter(o=>isLossStage(o.opportunity_status));
   const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
   renderKpiCards('ar-kpis',[
-    {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),sub:`${open.length} opportunities · all time`,accent:'sky'},
-    {label:'Weighted pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)),sub:'across all regions · all time',accent:'sky'},
+    {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+oppEstSgd(o),0)),sub:`${open.length} opportunities · all time`,accent:'sky'},
+    {label:'Weighted pipeline',value:fmtMoney(open.reduce((s,o)=>s+oppWeightedSgd(o),0)),sub:'across all regions · all time',accent:'sky'},
     {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} Win · ${losses.length} lost · all time`,accent:'green'},
     {label:'Engagements logged',value:fmtNum(periodEngs.length),sub:'selected period',accent:'amber'}
   ]);
@@ -1197,8 +1221,8 @@ function renderAllRegionsKpis(){
 function renderAllRegionsCompareChart(){
   const byRegion=ALL_REGIONS_DATA.byRegion;
   const labels=byRegion.map(r=>r.label);
-  const openVals=byRegion.map(r=>r.opportunities.filter(o=>isOpenStage(o.opportunity_status)).reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0));
-  const weightedVals=byRegion.map(r=>r.opportunities.filter(o=>isOpenStage(o.opportunity_status)).reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0));
+  const openVals=byRegion.map(r=>r.opportunities.filter(o=>isOpenStage(o.opportunity_status)).reduce((s,o)=>s+oppEstSgd(o),0));
+  const weightedVals=byRegion.map(r=>r.opportunities.filter(o=>isOpenStage(o.opportunity_status)).reduce((s,o)=>s+oppWeightedSgd(o),0));
   destroyChart('arRegionCompare');
   const ctx=document.getElementById('ar-region-chart').getContext('2d');
   CHARTS.arRegionCompare=new Chart(ctx,{
@@ -1228,8 +1252,8 @@ function renderAllRegionsRegionTable(){
       clients:r.clients.length,
       activeClients:r.clients.filter(c=>['active business','active engagement'].includes(String(c.status||'').toLowerCase())).length,
       openOpps:open.length,
-      pipeline:open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0),
-      weighted:open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0),
+      pipeline:open.reduce((s,o)=>s+oppEstSgd(o),0),
+      weighted:open.reduce((s,o)=>s+oppWeightedSgd(o),0),
       wins:wins.length,
       winRate,
       engagements:periodEngs.length
@@ -1469,8 +1493,8 @@ function renderOpPivotTable(){
     const list=opps.filter(o=>o.opportunity_status===s);
     return {
       stage:s,count:list.length,
-      est:list.reduce((a,o)=>a+(Number(o.estimated_value_usd)||0),0),
-      weighted:list.reduce((a,o)=>a+(Number(o.probability_weighted_value)||0),0)
+      est:list.reduce((a,o)=>a+oppEstSgd(o),0),
+      weighted:list.reduce((a,o)=>a+oppWeightedSgd(o),0)
     };
   }).filter(r=>r.count>0);
   const grand={
@@ -1481,7 +1505,7 @@ function renderOpPivotTable(){
 
   const tbl=document.getElementById('op-pivot-table');
   if(!tbl) return;
-  tbl.querySelector('thead').innerHTML=`<tr><th>Opportunity Status</th><th class="num">No. of Opportunities</th><th class="num">Estimated Value (USD)</th><th class="num">Probability Weighted Value (USD)</th></tr>`;
+  tbl.querySelector('thead').innerHTML=`<tr><th>Opportunity Status</th><th class="num">No. of Opportunities</th><th class="num">Estimated Value (SGD)</th><th class="num">Probability Weighted Value (SGD)</th></tr>`;
   tbl.querySelector('tbody').innerHTML=rows.length
     ? rows.map(r=>`<tr>
         <td><span class="${stageTagClassN(STAGE_NUM(r.stage))}">${esc(r.stage.replace(/^\d+\s/,''))}</span></td>
@@ -1501,7 +1525,7 @@ function renderOpStageChart(){
   const opps=opStageChartCompany?DATA.opportunities.filter(o=>o.company===opStageChartCompany):DATA.opportunities;
   const stages=LOOKUPS.opportunityStatus;
   const stageCounts=stages.map(s=>opps.filter(o=>o.opportunity_status===s).length);
-  const stageVals=stages.map(s=>opps.filter(o=>o.opportunity_status===s).reduce((sum,o)=>sum+(Number(o.probability_weighted_value)||0),0));
+  const stageVals=stages.map(s=>opps.filter(o=>o.opportunity_status===s).reduce((sum,o)=>sum+oppWeightedSgd(o),0));
   destroyChart('opStage');
   const ctx=document.getElementById('op-stage-chart').getContext('2d');
   CHARTS.opStage=new Chart(ctx,{
@@ -1525,10 +1549,10 @@ function renderOpportunities(){
   const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
   renderKpiCards('op-kpis',[
     {label:'Total',value:fmtNum(DATA.opportunities.length),sub:`${open.length} open`,accent:'sky'},
-    {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),sub:'estimated USD',accent:'sky'},
-    {label:'Weighted',value:fmtMoney(open.reduce((s,o)=>s+(Number(o.probability_weighted_value)||0),0)),sub:'open pipeline',accent:'sky'},
-    {label:'Win',value:fmtNum(wins.length),sub:fmtMoney(wins.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'green'},
-    {label:'Lost',value:fmtNum(losses.length),sub:fmtMoney(losses.reduce((s,o)=>s+(Number(o.estimated_value_usd)||0),0)),accent:'coral'},
+    {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+oppEstSgd(o),0)),sub:'estimated, SGD',accent:'sky'},
+    {label:'Weighted',value:fmtMoney(open.reduce((s,o)=>s+oppWeightedSgd(o),0)),sub:'open pipeline',accent:'sky'},
+    {label:'Win',value:fmtNum(wins.length),sub:fmtMoney(wins.reduce((s,o)=>s+oppEstSgd(o),0)),accent:'green'},
+    {label:'Lost',value:fmtNum(losses.length),sub:fmtMoney(losses.reduce((s,o)=>s+oppEstSgd(o),0)),accent:'coral'},
     {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length}W · ${losses.length}L`,accent:winRate>=50?'green':'coral'}
   ]);
 
@@ -1558,13 +1582,17 @@ function renderOpportunities(){
     }
     return true;
   });
+  // Sort/display by the SGD-converted figures, not the raw locally-entered number — rows
+  // are a mix of currencies, so sorting the raw column would order a ₹5,000,000 opportunity
+  // above a $60,000 one purely because the digit count is bigger.
+  rows=rows.map(o=>({...o,_est_sgd:oppEstSgd(o),_weighted_sgd:oppWeightedSgd(o)}));
   rows=applySort(rows,'opportunities','company');
 
   const cols=[
     {key:'company',label:'Company'},{key:'client_name',label:'Client'},{key:'opportunity',label:'Opportunity'},
     {key:'opportunity_status',label:'Stage'},{key:'bd_owner',label:'BD Owner'},{key:'supporting_role',label:'Supporting Role'},
-    {key:'estimated_value_usd',label:'Est. Value'},{key:'probability_pct',label:'Prob.'},
-    {key:'probability_weighted_value',label:'Weighted'},{key:'expected_close_date',label:'Close Date'},
+    {key:'_est_sgd',label:'Est. Value (SGD)'},{key:'probability_pct',label:'Prob.'},
+    {key:'_weighted_sgd',label:'Weighted (SGD)'},{key:'expected_close_date',label:'Close Date'},
     {key:'notes',label:'Notes'},{key:'_actions',label:''}
   ];
   const tbl=document.getElementById('op-table');
@@ -1578,9 +1606,9 @@ function renderOpportunities(){
       <td><span class="${stageTagClassN(stageN)}">${esc((o.opportunity_status||'').replace(/^\d+\s/,''))}</span></td>
       <td>${esc(o.bd_owner||'')}</td>
       <td>${esc(msSelectedFromValue(o.supporting_role).join(', '))}</td>
-      <td class="num">${fmtMoney(o.estimated_value_usd)}</td>
+      <td class="num">${fmtMoney(o._est_sgd)}</td>
       <td class="num">${o.probability_pct!=null?Math.round(o.probability_pct*100)+'%':''}</td>
-      <td class="num">${fmtMoney(o.probability_weighted_value)}</td>
+      <td class="num">${fmtMoney(o._weighted_sgd)}</td>
       <td>${fmtDate(o.expected_close_date)}</td>
       <td style="max-width:160px;white-space:normal">${esc(o.notes||'')}</td>
       <td class="td-actions">${canEdit()?`<button class="btn btn-edit btn-sm" onclick="openEditModal('opportunities','${esc(o.id)}')">Edit</button>`:''}</td>
@@ -1857,13 +1885,13 @@ function computeCompanyRollup(){
     if(!map[norm]) map[norm]={company:name.trim(),onboarding_status:null,targetRevenue:null,totalClients:0,activeClients:0,openOpps:0,pipelineValue:0,weightedValue:0,wins:0,winValue:0,toWin:0,toWinValue:0,losses:0,lossValue:0,engagements:0,lastEngagement:null};
     return map[norm];
   }
-  DATA.companies.forEach(c=>{const r=ensure(c.company);if(r){r.onboarding_status=c.onboarding_status;r.targetRevenue=c.target_revenue;}});
+  DATA.companies.forEach(c=>{const r=ensure(c.company);if(r){r.onboarding_status=c.onboarding_status;r.targetRevenue=targetRevSgd(c.target_revenue);}});
   DATA.clients.forEach(c=>{const r=ensure(c.company);if(!r)return;r.totalClients++;if(['active business','active engagement'].includes(String(c.status||'').toLowerCase()))r.activeClients++;});
   DATA.opportunities.forEach(o=>{
     const r=ensure(o.company);if(!r)return;
-    const val=Number(o.estimated_value_usd)||0;
+    const val=oppEstSgd(o);
     if(isOpenStage(o.opportunity_status)){
-      r.openOpps++;r.pipelineValue+=val;r.weightedValue+=Number(o.probability_weighted_value)||0;
+      r.openOpps++;r.pipelineValue+=val;r.weightedValue+=oppWeightedSgd(o);
       if(STAGE_NUM(o.opportunity_status)===6){r.toWin++;r.toWinValue+=val;}
     }
     if(isWinStage(o.opportunity_status)){r.wins++;r.winValue+=val;}
@@ -1970,7 +1998,7 @@ function renderCompanies(){
 
   const cols=[
     {key:'company',label:'Company'},{key:'onboarding_status',label:'Onboarding'},
-    {key:'targetRevenue',label:'Target Revenue'},
+    {key:'targetRevenue',label:'Target Revenue (SGD)'},
     {key:'totalClients',label:'Clients'},{key:'activeClients',label:'Active'},
     {key:'openOpps',label:'Open Opps'},{key:'pipelineValue',label:'Pipeline'},
     {key:'weightedValue',label:'Weighted'},{key:'wins',label:'Wins'},
@@ -2234,7 +2262,7 @@ const ADD_CONFIGS={
     {name:'opportunity_status',label:'Stage',type:'select',opts:LOOKUPS.opportunityStatus,required:true},
     {name:'bd_owner',label:'BD owner',combo:true,comboOpts:()=>EMPLOYEES,required:true},
     {name:'supporting_role',label:'Supporting role',type:'multiselect',opts:()=>EMPLOYEES,placeholder:'Supporting team members…'},
-    {name:'estimated_value_usd',label:'Estimated value (USD)',type:'number',required:true,min:0},
+    {name:'estimated_value_usd',label:'Estimated value',type:'number',required:true,min:0},
     {name:'probability_pct',label:'Probability (%)',type:'select',opts:['10','25','75','100']},
     {name:'identified_date',label:'Opportunity identified date',type:'date'},
     {name:'discussion_date',label:'Discussion date',type:'date',required:true},
@@ -2272,6 +2300,16 @@ const ADD_CONFIGS={
     {name:'notes',label:'Notes',type:'textarea',full:true}
   ]}
 };
+
+// Estimated value has no currency field of its own — it's whatever REGION_CURRENCY says
+// for the region currently open — so the label spells that out at render time instead.
+function patchEstValueLabel(){
+  const el=document.getElementById('estimated_value_usd');
+  if(!el) return;
+  const label=el.closest('.form-field')?.querySelector('label');
+  const cur=REGION_CURRENCY[activeRegionKey]||'USD';
+  if(label) label.firstChild.textContent=`Estimated value (${cur})`;
+}
 
 function renderModalField(f,val=''){
   const req=f.required?`<span class="req"> *</span>`:'';
@@ -2326,6 +2364,7 @@ function openAddModal(kind){
   document.getElementById('modal-backdrop').addEventListener('click',e=>{if(e.target.id==='modal-backdrop')closeModal();});
 
   if(kind==='opportunities'){
+    patchEstValueLabel();
     const stSel=document.getElementById('opportunity_status');
     if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
     const coSel=document.getElementById('modal-opp-company');
@@ -2455,6 +2494,10 @@ async function handleAddSubmit(e,kind,cfg){
     payload.probability_weighted_value=(pct!==null&&payload.estimated_value_usd!=null)?Number(payload.estimated_value_usd)*(pct/100):null;
     // Start stage history
     payload.stage_history=payload.opportunity_status?JSON.stringify([{stage:payload.opportunity_status,date:new Date().toISOString().slice(0,10),by:currentUser.username}]):null;
+    // A new record created directly in a closed stage (e.g. backfilling a historical Win)
+    // freezes today's rate immediately. Anything created open stays unlocked — it'll float
+    // with FX_RATES until it actually closes (see handleEditSubmit).
+    payload.fx_rate_locked=!isOpenStage(payload.opportunity_status)?(FX_RATES[REGION_CURRENCY[activeRegionKey]||'USD']??1):null;
   }
   if(kind==='engagements'&&payload.eng_date){
     const d=new Date(payload.eng_date);
@@ -2529,6 +2572,7 @@ async function openEditModal(kind,id){
   document.getElementById('modal-backdrop').addEventListener('click',e=>{if(e.target.id==='modal-backdrop')closeModal();});
 
   if(kind==='opportunities'){
+    patchEstValueLabel();
     const stSel=document.getElementById('opportunity_status');
     if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
     // Check current stage
@@ -2640,6 +2684,17 @@ async function handleEditSubmit(e,kind,id,original,cfg){
     } else {
       payload.stage_history=original.stage_history;
     }
+    // FX lock: the moment a deal moves from open into Win/Loss, freeze today's rate onto it
+    // permanently — that's what lets two deals closed months apart at different rates each
+    // keep their own conversion. Reopening a closed deal clears the lock so it floats again.
+    // Editing a deal that's ALREADY closed leaves its locked rate untouched.
+    const wasOpen=isOpenStage(original.opportunity_status);
+    const isNowOpen=isOpenStage(payload.opportunity_status);
+    if(isNowOpen){
+      payload.fx_rate_locked=null;
+    } else if(wasOpen||original.fx_rate_locked==null||original.fx_rate_locked===''){
+      payload.fx_rate_locked=FX_RATES[REGION_CURRENCY[activeRegionKey]||'USD']??1;
+    }
   }
   if(kind==='engagements'&&payload.eng_date){
     const d=new Date(payload.eng_date);
@@ -2663,7 +2718,6 @@ async function boot(){
     document.getElementById('config-banner').style.display='block'; return;
   }
   document.getElementById('config-banner').style.display='none';
-  ensureFxRate().then(()=>{ syncCurrencySelects(); if(displayCurrency==='SGD') renderAllViews(); });
   try{ await refreshAndRenderAll(); }
   catch(err){
     console.error(err);
@@ -2685,12 +2739,9 @@ function wireEvents(){
   on('login-submit','click',doLogin);
   on('logout-btn','click',doLogout);
   on('refresh-btn','click',refreshAndRenderAll);
-  syncCurrencySelects();
   on('bd-stake-view','change',e=>{bdStakeView=e.target.value;renderBDFunnel();});
   on('ar-bd-stake-view','change',e=>{arStakeView=e.target.value;renderAllRegionsBDFunnel();});
   on('ar-period-filter','change',e=>{arPeriod=e.target.value;renderAllRegionsKpis();renderAllRegionsRegionTable();});
-  on('currency-select','change',e=>{setDisplayCurrency(e.target.value);});
-  on('ar-currency-select','change',e=>{setDisplayCurrency(e.target.value);});
   on('ov-period-filter','change',e=>{ovPeriod=e.target.value;renderOverviewBDTables();});
 
   document.querySelectorAll('.nav-item').forEach(btn=>{
