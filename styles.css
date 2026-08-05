@@ -68,9 +68,15 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 ::-webkit-scrollbar-thumb:hover{background:rgba(10,30,61,0.24);background-clip:padding-box;}
 
 /* ---- BRAND MARK (shown top-left on login/region-picker/access-denied screens) ---- */
-#brand-mark{position:fixed;top:22px;left:24px;z-index:60;background:#fff;
-  padding:3px 5px;box-shadow:var(--shadow-md);}
+#brand-mark{position:fixed;top:22px;left:24px;z-index:60;
+  padding:3px 10px 3px 5px;
+  display:flex;align-items:center;gap:9px;}
 #brand-mark svg{height:48px;width:auto;display:block;}
+.brand-mark-divider{width:1px;height:26px;background:var(--line);}
+.brand-mark-wordmark{font-family:'Ortica',serif;font-weight:700;font-size:15px;letter-spacing:.01em;white-space:nowrap;}
+/* Single dark-navy tone, matching the region-picker card's background. */
+.grad-blue{color:#061024;}
+.grad-green{color:#061024;}
 
 /* ---- LOGIN / REGION PICKER — the one place a bold brand backdrop is earned; it's a
    momentary entry screen, not the daily-use surface, so it can carry more presence
@@ -95,6 +101,54 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
   padding:8px 10px;border-radius:8px;font-size:12.5px;margin-bottom:14px;display:none;}
 .login-foot{margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12);font-size:11.5px;color:#8CA0B8;line-height:1.5;}
 
+/* ---- NEOENGAGE ENTRANCE — plays once on page load (the "run" class ships
+   baked into the login-screen markup) and replays on logout via doLogout()
+   toggling it. NeoEngage rises solid (not faded) from below the fold — the
+   clip comes from #login-screen's own overflow:hidden above — settles into
+   its resting size/color, then the subtitle and finally the sign-in card
+   fade in in sequence. ---- */
+.hero-frame{position:relative;width:100%;max-width:500px;display:flex;flex-direction:column;align-items:center;}
+
+.text-group{position:relative;z-index:1;width:100%;display:flex;flex-direction:column;align-items:center;
+  transform:translateY(70vh);}
+.run .text-group{animation:neo-group-in .65s cubic-bezier(.16,.9,.24,1) forwards;}
+@keyframes neo-group-in{from{transform:translateY(70vh);}to{transform:translateY(0);}}
+
+.entrance-heading{position:relative;width:100%;font-family:'Ortica',serif;font-weight:700;line-height:1.05;
+  font-size:46px;letter-spacing:-0.015em;text-align:center;height:1.1em;}
+.heading-layer{position:absolute;left:0;right:0;top:0;text-align:center;white-space:nowrap;}
+.heading-white{color:#fff;opacity:1;}
+.heading-grad{opacity:0;}
+.hero-blue{color:#061024;}
+.hero-green{color:#061024;}
+.run .entrance-heading{animation:neo-heading-shrink .5s var(--ease) .7s forwards;}
+.run .heading-white{animation:neo-white-out .5s var(--ease) .7s forwards;}
+.run .heading-grad{animation:neo-grad-in .5s var(--ease) .7s forwards;}
+@keyframes neo-heading-shrink{from{font-size:46px;}to{font-size:36px;}}
+@keyframes neo-white-out{from{opacity:1;}to{opacity:0;}}
+@keyframes neo-grad-in{from{opacity:0;}to{opacity:1;}}
+
+.entrance-tag{font-family:'Ortica',serif;font-size:16px;font-weight:600;color:#fff;
+  margin-top:8px;opacity:0;transform:translateY(8px);}
+.run .entrance-tag{animation:neo-tag-in .4s var(--ease) .7s forwards;}
+@keyframes neo-tag-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.login-sub-hero{color:#fff;font-weight:600;font-size:15.5px;}
+
+/* Scoped to the login screen's card specifically (not access-denied-screen's,
+   which also uses .login-card but sits outside .hero-frame). */
+.hero-frame .login-card{opacity:0;transform:translateY(14px);margin-top:28px;}
+.hero-frame.run .login-card{animation:neo-card-in .5s var(--ease) 1.5s forwards;}
+@keyframes neo-card-in{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+
+@media (prefers-reduced-motion: reduce){
+  .text-group,.entrance-heading,.entrance-tag,.heading-white,.heading-grad,.hero-frame .login-card{
+    animation:none !important;opacity:1 !important;transform:none !important;}
+  .entrance-heading{font-size:36px !important;}
+  .heading-white{opacity:0 !important;}
+  .heading-grad{opacity:1 !important;}
+}
+
 /* ---- REGION PICKER / ACCESS DENIED (share the login-screen look) ---- */
 #region-screen,#access-denied-screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
   background-image:url('neovation-deck-bg-design.png');
@@ -110,6 +164,12 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 .region-pick-label{font-family:'Ortica',serif;font-size:16px;font-weight:600;}
 .region-pick-sub{color:#9CB6CC;font-size:11.5px;margin-top:4px;}
 .region-signout-link{margin-top:24px;background:none;border:none;color:#9CB6CC;font-size:12px;cursor:pointer;text-decoration:underline;}
+.access-shortcut-bar{position:absolute;top:28px;right:32px;z-index:3;
+  display:inline-flex;align-items:center;height:34px;padding:0 18px;
+  background:rgba(6,16,36,.78);border:1px solid rgba(255,255,255,.16);border-radius:6px;
+  color:#fff;font-family:'Ortica',serif;font-size:12.5px;font-weight:600;letter-spacing:.02em;
+  cursor:pointer;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);}
+.access-shortcut-bar:hover{border-color:rgba(127,194,71,.55);background:rgba(6,16,36,.92);}
 .region-chip{font-family:'Ortica',serif;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#000;}
 
 /* ---- APP SHELL ---- */
@@ -311,6 +371,9 @@ tbody tr:hover{background:var(--sky-pale);}
 .toolbar .spacer{flex:1;}
 .clear-filters{font-size:11.5px;color:var(--coral);cursor:pointer;background:none;border:none;padding:4px 6px;border-radius:5px;transition:background var(--t-fast) var(--ease);}
 .clear-filters:hover{background:var(--coral-pale);}
+
+.export-btn{font-size:11.5px;color:var(--green);cursor:pointer;background:none;border:1px solid var(--green);padding:4px 9px;border-radius:5px;transition:background var(--t-fast) var(--ease),color var(--t-fast) var(--ease);display:inline-flex;align-items:center;gap:4px;}
+.export-btn:hover{background:var(--green);color:#fff;}
 
 /* Insight cards for overview */
 .insight-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;}
@@ -516,6 +579,13 @@ table.pivot tr.pivot-total td{border-bottom:none;color:#fff;}
 .bd-metric-sub{font-family:'Ortica',serif;font-size:10px;color:var(--ink-faint);margin-top:2px;}
 .bd-metric-row.active .bd-metric-val{color:var(--green);}
 .bd-metric-row.engaged .bd-metric-val{color:var(--sky-deep);}
+/* Opportunity breakdown has more items with uneven label lengths (e.g. "Win" vs
+   "Client not interested") — a plain flex row leaves each number at a different
+   height depending on how its label wrapped. Grid + a fixed label height keeps
+   every value aligned on the same line regardless of row/column position. */
+.bd-metric-row.opp-breakdown{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));}
+.bd-metric-row.opp-breakdown .bd-metric{display:flex;flex-direction:column;justify-content:flex-start;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);}
+.bd-metric-row.opp-breakdown .bd-metric-label{min-height:2.6em;display:flex;align-items:center;justify-content:center;}
 
 @media(max-width:860px){
   .bd-metric-val{font-size:18px;}

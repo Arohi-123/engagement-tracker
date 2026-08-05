@@ -6,6 +6,7 @@
 <title>Neovation · Client Engagement Tracker</title>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -21,7 +22,7 @@
       }
 
       .st1 {
-        fill: #58595a;
+        fill: #fff;
         font-family: Nexa-Light, Nexa;
         font-size: 46.7px;
         font-weight: 300;
@@ -61,7 +62,7 @@
       }
 
       .st10 {
-        fill: #02193a;
+        fill: #fff;
       }
 
       .st11 {
@@ -146,25 +147,36 @@
     </g>
   </g>
 </svg>
+  <div class="brand-mark-divider"></div>
+  <div class="brand-mark-wordmark"><span class="grad-green">Neo</span><span class="grad-blue">Engage</span></div>
 </div>
 
 <!-- LOGIN -->
 <div id="login-screen">
-  <div class="login-card">
-    <div class="login-eyebrow">Neovation · Internal</div>
-    <h1>Client Engagement Tracker</h1>
-    <div class="login-sub">FY 2026–27 · Sign in with your Microsoft 365 account</div>
-    <div class="login-error" id="login-error">Sign-in failed.</div>
-    <button class="login-btn" id="login-submit">
-      <svg width="16" height="16" viewBox="0 0 21 21"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
-      Sign in with Microsoft
-    </button>
-    <div class="login-foot">Anyone with a company Microsoft 365 account can view dashboards. Adding or editing records is limited to admins.</div>
+  <div class="hero-frame run" id="login-hero">
+    <div class="text-group">
+      <div class="entrance-heading">
+        <span class="heading-layer heading-white">NeoEngage</span>
+        <span class="heading-layer heading-grad"><span class="hero-green">Neo</span><span class="hero-blue">Engage</span></span>
+      </div>
+      <div class="entrance-tag">Client Engagement Tracker</div>
+    </div>
+    <div class="login-card">
+      <div class="login-eyebrow">Neovation · Internal</div>
+      <div class="login-sub login-sub-hero">FY 2026–27 · Sign in with your Microsoft 365 account</div>
+      <div class="login-error" id="login-error">Sign-in failed.</div>
+      <button class="login-btn" id="login-submit">
+        <svg width="16" height="16" viewBox="0 0 21 21"><rect width="9" height="9" fill="#f25022"/><rect x="11" width="9" height="9" fill="#7fba00"/><rect y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+        Sign in with Microsoft
+      </button>
+      <div class="login-foot">Anyone with a company Microsoft 365 account can view dashboards. Adding or editing records is limited to admins.</div>
+    </div>
   </div>
 </div>
 
 <!-- REGION PICKER (Admin only) -->
 <div id="region-screen">
+  <button class="access-shortcut-bar" id="access-shortcut-btn" style="display:none" onclick="enterAccessScreen()">Manage Access</button>
   <div class="region-picker">
     <div class="login-eyebrow">Neovation · Internal</div>
     <h1>Choose a region</h1>
@@ -229,7 +241,7 @@
           <span>Opportunity Mapping</span>
           <button class="bd-expand-toggle" id="ar-bd-opp-toggle" onclick="toggleArBdOppExpanded()">Show breakdown ▾</button>
         </div>
-        <div class="bd-metric-row" id="ar-bd-opp"></div>
+        <div class="bd-metric-row opp-breakdown" id="ar-bd-opp"></div>
       </div>
     </div>
 
@@ -270,6 +282,36 @@
   </div>
 </div>
 
+<!-- ACCESS CONTROL (Super Admin only) -->
+<div id="access-screen" style="display:none;min-height:100vh;background-image:url('neovation-deck-bg-design.png');background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed;">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Access Control</div>
+      <div class="topbar-sub">Who can sign in, and what they can see or edit</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn" onclick="showRegionScreen()">← Back to regions</button>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </div>
+  <div style="padding:22px 28px 60px;max-width:1200px;margin:0 auto;">
+    <div class="view-head">
+      <div><h2>Access control</h2><p>Who can sign in, and what they can see or edit. Visible only to Super Admin.</p></div>
+      <div class="view-head-actions">
+        <button class="btn btn-primary" id="add-access-btn">+ Grant access</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-body" style="padding-bottom:0;">
+        <div class="toolbar">
+          <span style="font-size:11px;color:var(--ink-faint);" id="access-count"></span>
+        </div>
+      </div>
+      <div class="table-wrap"><table id="access-table"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+</div>
+
 <!-- ACCESS DENIED -->
 <div id="access-denied-screen">
   <div class="login-card">
@@ -293,7 +335,7 @@
       }
 
       .st1 {
-        fill: #58595a;
+        fill: #fff;
         font-family: Nexa-Light, Nexa;
         font-size: 46.7px;
         font-weight: 300;
@@ -333,7 +375,7 @@
       }
 
       .st10 {
-        fill: #02193a;
+        fill: #fff;
       }
 
       .st11 {
@@ -504,7 +546,7 @@
             <span>Opportunity Mapping</span>
             <button class="bd-expand-toggle" id="bd-opp-toggle" onclick="toggleBdOppExpanded()">Show breakdown ▾</button>
           </div>
-          <div class="bd-metric-row" id="bd-opp"></div>
+          <div class="bd-metric-row opp-breakdown" id="bd-opp"></div>
         </div>
 
       </div>
@@ -586,6 +628,7 @@
             <select id="cl-filter-department"><option value="">All departments</option></select>
             <select id="cl-filter-priority"><option value="">All priorities</option></select>
             <button class="clear-filters" id="cl-clear">✕ Clear</button>
+            <button class="export-btn" onclick="exportView('clients')">⬇ Export</button>
             <span class="spacer"></span>
             <span style="font-size:11px;color:var(--ink-faint);" id="cl-count"></span>
           </div>
@@ -628,6 +671,7 @@
             <select id="op-filter-company"><option value="">All companies</option></select>
             <select id="op-filter-bd"><option value="">All BD owners</option></select>
             <button class="clear-filters" id="op-clear">✕ Clear</button>
+            <button class="export-btn" onclick="exportView('opportunities')">⬇ Export</button>
             <span class="spacer"></span>
             <span style="font-size:11px;color:var(--ink-faint);" id="op-count"></span>
           </div>
@@ -679,6 +723,7 @@
             <select id="eg-filter-followup"><option value="">Follow-up: any</option><option value="yes">Done</option><option value="no">Pending</option></select>
             <span id="eg-week-chip"></span>
             <button class="clear-filters" id="eg-clear">✕ Clear</button>
+            <button class="export-btn" onclick="exportView('engagements')">⬇ Export</button>
             <span class="spacer"></span>
             <span style="font-size:11px;color:var(--ink-faint);" id="eg-count"></span>
           </div>
@@ -719,6 +764,7 @@
             <input type="search" id="co-search" placeholder="Search company…">
             <select id="co-filter-onboarding"><option value="">All onboarding statuses</option></select>
             <button class="clear-filters" id="co-clear">✕ Clear</button>
+            <button class="export-btn" onclick="exportView('companies')">⬇ Export</button>
             <span class="spacer"></span>
             <span style="font-size:11px;color:var(--ink-faint);" id="co-count"></span>
           </div>

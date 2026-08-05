@@ -6,6 +6,9 @@
 const MSAL_CLIENT_ID   = '997ad661-b120-4f9e-bc6f-f672a0339206';
 const MSAL_TENANT_ID   = 'e1a8eec3-eb6b-4aba-bbca-c2512937361f';
 const GRAPH_SCOPES  = ['User.Read','Sites.ReadWrite.All'];
+// All data (SharePoint reads/writes, access-control, FX rates) now goes through this
+// backend instead of the browser calling Graph directly — see engagement-tracker/backend/.
+const API_BASE = 'https://neoengage-backend.azurewebsites.net/api';
 
 // One SharePoint site + list set per business region. To onboard a new region,
 // create its SharePoint site (same 4 lists, same columns as the others) and add
@@ -102,7 +105,7 @@ const LOOKUPS = {
     '04 Proposal preparation','05 Proposal submitted','06 To Win',
     '07 Win','08 Loss','09 Client not interested','10 Missed Opportunity'
   ],
-  engagementTypes:['In-Person Meeting','Virtual Meeting','Phone Call/ Whatsapp','Email','Conference/Event','Others'],
+  engagementTypes:['In-Person Meeting','Virtual Meeting','Phone Call/ Whatsapp','Conference/Event'],
   stakeholderType:['Existing Stakeholder Engagement','Procurement Engagement','New Stakeholder Development'],
   engagementObjective:['Blue sky opportunity discussion','Identified opportunity discussion','Discussion on new RFP',
     'Follow up on ongoing RFP','Capability presentation','Request for referral','Intelligence gathering',
@@ -116,10 +119,22 @@ const LOOKUPS = {
 /* ---------- 3. STATE ---------- */
 let msalInstance = null;
 let currentAccount = null;
-let currentUser = null; // {username,name,role:'admin'|'regional_admin'|'regional_viewer',region:string|null}
+let currentUser = null; // {username,name,role:'SuperAdmin'|'GlobalUser'|'GlobalViewer'|'RegionalUser'|'RegionalViewer',region:string|null}
 let activeRegionKey = null; // key into REGIONS for whichever region's data is currently loaded
 function activeRegion(){ return REGIONS[activeRegionKey]; }
-const ROLE_LABELS = {admin:'ADMIN', regional_admin:'REGIONAL ADMIN', regional_viewer:'VIEWER'};
+const ROLE_LABELS = {SuperAdmin:'SUPER ADMIN', GlobalUser:'GLOBAL USER', GlobalViewer:'GLOBAL VIEWER', RegionalUser:'REGIONAL USER', RegionalViewer:'REGIONAL VIEWER'};
+// SuperAdmin/GlobalUser/GlobalViewer can switch between regions and see the All-Regions
+// Overview; RegionalUser/RegionalViewer are locked to whichever region(s) they were
+// assigned (now possibly more than one — see currentUser.regions).
+function isGlobalRole(role){ return role==='SuperAdmin'||role==='GlobalUser'||role==='GlobalViewer'; }
+// The regions this signed-in user is allowed into — every region for global roles,
+// otherwise whatever's in their own assigned list (filtered to regions that actually exist).
+function userRegionKeys(){
+  if(!currentUser) return [];
+  if(isGlobalRole(currentUser.role)) return Object.keys(REGIONS);
+  return (currentUser.regions||[]).filter(r=>REGIONS[r]);
+}
+function canSwitchRegions(){ return !!currentUser&&(isGlobalRole(currentUser.role)||userRegionKeys().length>1); }
 let DATA = { clients:[], opportunities:[], engagements:[], companies:[] };
 let CHARTS = {};
 let SORT_STATE = {}; // { viewKey: { col, dir } }
@@ -171,21 +186,10 @@ function safeLsSet(key,val){ try{ localStorage.setItem(key,val); }catch(e){/* ig
 // route every opportunity money figure through them, never read estimated_value_usd raw.
 let FX_RATES={SGD:1};
 async function fetchFxRates(){
-  if(FX_RATES_LIST_ID.includes('YOUR_')){
-    console.warn('FX_RATES_LIST_ID is not configured yet — every non-SGD currency will convert at 1:1 until it is set.');
-    return;
-  }
   try{
-    const items=await graphGet(`${GRAPH_BASE}/sites/${FX_RATES_SITE_ID}/lists/${FX_RATES_LIST_ID}/items?expand=fields&$top=999`);
-    const rates={SGD:1};
-    items.forEach(i=>{
-      const code=String((i.fields||{}).Title||'').trim().toUpperCase();
-      const rate=Number((i.fields||{}).RateToSGD);
-      if(code&&!isNaN(rate)) rates[code]=rate;
-    });
-    FX_RATES=rates;
+    FX_RATES=await backendGet('/fxrates');
   }catch(err){
-    console.error('Could not load FX Rates list — conversions will fall back to 1:1 for any currency not already cached.',err);
+    console.error('Could not load FX Rates — conversions will fall back to 1:1 for any currency not already cached.',err);
   }
 }
 function fmtMoney(n){
@@ -321,9 +325,11 @@ function isOpenStage(s){
 }
 function isWinStage(s){ return String(s||'').toLowerCase().trim()==='07 win'; }
 function isLossStage(s){ const v=String(s||'').toLowerCase().trim(); return v==='08 loss'||v==='09 client not interested'; }
+function isProposalSubmitted(o){ return !!o.proposal_submission_date; }
 function autoProb(status){
   if(isWinStage(status)) return 1;
   if(isLossStage(status)) return 0;
+  if(STAGE_NUM(status)===10) return 0; // Missed Opportunity — same 0% auto-set as Loss/Client Not Interested
   return null; // no auto-set
 }
 
@@ -366,7 +372,7 @@ function initMsal(){
 async function doLogin(){
   const errEl=document.getElementById('login-error');
   errEl.style.display='none';
-  if(MSAL_CLIENT_ID.includes('YOUR_')||MSAL_TENANT_ID.includes('YOUR_')||ACCESS_CONTROL_SITE_ID.includes('YOUR_')||ACCESS_CONTROL_LIST_ID.includes('YOUR_')){
+  if(MSAL_CLIENT_ID.includes('YOUR_')||MSAL_TENANT_ID.includes('YOUR_')){
     errEl.textContent='Not connected to Microsoft 365. See SHAREPOINT_SETUP_GUIDE.md.';
     errEl.style.display='block'; return;
   }
@@ -382,21 +388,26 @@ async function doLogin(){
       showAccessDeniedScreen('No access configured for this account. Contact an admin to be added to the Access Control list.');
       return;
     }
-    currentUser={username:email,name:currentAccount.name||email,role:access.role,region:access.region||null};
+    currentUser={username:email,name:currentAccount.name||email,role:access.role,regions:access.regions||[]};
     await fetchFxRates();
     document.getElementById('login-screen').style.display='none';
     document.getElementById('user-name').textContent=currentUser.name;
     document.getElementById('user-role').textContent=ROLE_LABELS[currentUser.role]||currentUser.role.toUpperCase();
     document.getElementById('user-avatar').textContent=initials(currentUser.name);
     applyRolePermissions();
-    if(currentUser.role==='admin'){
+    if(isGlobalRole(currentUser.role)){
       showRegionScreen();
     }else{
-      if(!REGIONS[currentUser.region]){
-        showAccessDeniedScreen('Your assigned region is not configured yet. Contact an admin.');
+      const myRegions=userRegionKeys();
+      if(!myRegions.length){
+        showAccessDeniedScreen('No region assigned yet. Contact an admin.');
         return;
       }
-      await enterRegion(currentUser.region);
+      if(myRegions.length===1){
+        await enterRegion(myRegions[0]);
+      }else{
+        showRegionScreen();
+      }
     }
   }catch(err){
     console.error(err);
@@ -410,10 +421,24 @@ function doLogout(){
   document.getElementById('region-screen').style.display='none';
   const arScreen=document.getElementById('all-regions-screen');
   if(arScreen) arScreen.style.display='none';
+  const accessScreen=document.getElementById('access-screen');
+  if(accessScreen) accessScreen.style.display='none';
   document.getElementById('access-denied-screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
-  document.getElementById('brand-mark').style.display='block';
+  document.getElementById('brand-mark').style.display='flex';
+  replayLoginEntrance();
   if(msalInstance&&msalInstance.getActiveAccount()) msalInstance.logoutPopup().catch(()=>{});
+}
+// Replays the NeoEngage entrance (rise, settle, card fade-in) — it only
+// plays via CSS on the "run" class, which is baked into the markup for the
+// very first page load; this retriggers it each time doLogout() returns to
+// the login screen, so it doesn't look frozen in its settled state.
+function replayLoginEntrance(){
+  const hero=document.getElementById('login-hero');
+  if(!hero) return;
+  hero.classList.remove('run');
+  void hero.offsetWidth;
+  hero.classList.add('run');
 }
 function showAccessDeniedScreen(msg){
   document.getElementById('login-screen').style.display='none';
@@ -421,26 +446,38 @@ function showAccessDeniedScreen(msg){
   document.getElementById('app').hidden=true;
   document.getElementById('access-denied-msg').textContent=msg;
   document.getElementById('access-denied-screen').style.display='flex';
-  document.getElementById('brand-mark').style.display='block';
+  document.getElementById('brand-mark').style.display='flex';
 }
 function showRegionScreen(){
   document.getElementById('app').hidden=true;
   const arScreen=document.getElementById('all-regions-screen');
   if(arScreen) arScreen.style.display='none';
-  document.getElementById('brand-mark').style.display='block';
+  const accessScreen=document.getElementById('access-screen');
+  if(accessScreen) accessScreen.style.display='none';
+  document.getElementById('brand-mark').style.display='flex';
   const grid=document.getElementById('region-screen-grid');
-  grid.innerHTML=Object.entries(REGIONS).map(([key,r])=>
+  grid.innerHTML=userRegionKeys().map(key=>
     `<button class="region-pick-card" onclick="enterRegion('${esc(key)}')">
-       <div class="region-pick-label">${esc(r.label)}</div>
+       <div class="region-pick-label">${esc(REGIONS[key].label)}</div>
        <div class="region-pick-sub">Open this region's dashboard</div>
      </button>`
   ).join('')+
-  (currentUser&&currentUser.role==='admin'?
+  (currentUser&&isGlobalRole(currentUser.role)?
   `<button class="region-pick-card" onclick="enterAllRegions()">
      <div class="region-pick-label">🌐 All Regions</div>
      <div class="region-pick-sub">Combined read-only view across every region</div>
    </button>`:'');
+  const accessBtn=document.getElementById('access-shortcut-btn');
+  if(accessBtn) accessBtn.style.display=(currentUser&&currentUser.role==='SuperAdmin')?'inline-flex':'none';
   document.getElementById('region-screen').style.display='flex';
+}
+// Access control isn't tied to any one region, so it's its own top-level screen
+// (like All Regions Overview), not a tab inside a region's dashboard shell.
+async function enterAccessScreen(){
+  document.getElementById('region-screen').style.display='none';
+  document.getElementById('brand-mark').style.display='none';
+  document.getElementById('access-screen').style.display='block';
+  await renderAccessTab();
 }
 async function enterRegion(key){
   activeRegionKey=key;
@@ -448,7 +485,7 @@ async function enterRegion(key){
   document.getElementById('app').hidden=false;
   document.getElementById('brand-mark').style.display='none';
   document.getElementById('region-indicator').textContent=activeRegion().label;
-  document.getElementById('region-switch-btn').style.display=(currentUser.role==='admin')?'inline-flex':'none';
+  document.getElementById('region-switch-btn').style.display=canSwitchRegions()?'inline-flex':'none';
   await boot();
 }
 async function getGraphToken(){
@@ -456,7 +493,39 @@ async function getGraphToken(){
   try{ return (await msalInstance.acquireTokenSilent({scopes:GRAPH_SCOPES,account:currentAccount})).accessToken; }
   catch(e){ return (await msalInstance.acquireTokenPopup({scopes:GRAPH_SCOPES})).accessToken; }
 }
-function canEdit(){ return !!currentUser && (currentUser.role==='admin' || currentUser.role==='regional_admin'); }
+// The backend (neoengage-backend) authenticates callers using the ID token MSAL issues
+// for sign-in (aud === our own app's client ID), not a Graph-scoped access token — see
+// backend/src/lib/verifyToken.js. Same silent-then-popup fallback as getGraphToken().
+async function getBackendToken(){
+  initMsal();
+  try{ return (await msalInstance.acquireTokenSilent({scopes:GRAPH_SCOPES,account:currentAccount})).idToken; }
+  catch(e){ return (await msalInstance.acquireTokenPopup({scopes:GRAPH_SCOPES})).idToken; }
+}
+async function backendGet(path){
+  const token=await getBackendToken();
+  const r=await fetch(`${API_BASE}${path}`,{headers:{Authorization:`Bearer ${token}`}});
+  if(!r.ok){const b=await r.text();throw new Error(`Backend GET ${path} ${r.status}: ${b}`);}
+  return r.json();
+}
+async function backendPost(path,body){
+  const token=await getBackendToken();
+  const r=await fetch(`${API_BASE}${path}`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const b=await r.text();throw new Error(`Backend POST ${path} ${r.status}: ${b}`);}
+  return r.json();
+}
+async function backendPatch(path,body){
+  const token=await getBackendToken();
+  const r=await fetch(`${API_BASE}${path}`,{method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const b=await r.text();throw new Error(`Backend PATCH ${path} ${r.status}: ${b}`);}
+  return r.json();
+}
+async function backendDelete(path){
+  const token=await getBackendToken();
+  const r=await fetch(`${API_BASE}${path}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});
+  if(!r.ok){const b=await r.text();throw new Error(`Backend DELETE ${path} ${r.status}: ${b}`);}
+  return r.json();
+}
+function canEdit(){ return !!currentUser && (currentUser.role==='SuperAdmin' || currentUser.role==='GlobalUser' || currentUser.role==='RegionalUser'); }
 function applyRolePermissions(){
   const v=!canEdit();
   ['add-client-btn','add-opp-btn','add-eng-btn','add-company-btn'].forEach(id=>{
@@ -535,46 +604,31 @@ async function graphPatch(url,body){
   return r.json();
 }
 
-// Reads the Access-Control list (Email/Role/Region columns) and returns this user's
-// {role,region}, or null if they have no row. This is the single source of truth for
-// who can sign in as what — managed entirely in SharePoint, never in code.
+// Resolves this user's {role,region} via the backend's /api/me — the backend looks it
+// up server-side from the AccessControl table and returns only the caller's own row,
+// never the full list. Returns null (no access) if the backend reports no role.
 async function fetchAccessControl(email){
-  const items=await graphGet(`${GRAPH_BASE}/sites/${ACCESS_CONTROL_SITE_ID}/lists/${ACCESS_CONTROL_LIST_ID}/items?expand=fields&$top=999`);
-  const row=items.find(i=>String(i.fields.Email||'').toLowerCase()===email);
-  if(!row) return null;
-  return {
-    role: String(row.fields.Role||'').toLowerCase().replace(/\s+/g,'_'),
-    region: row.fields.Region||null
-  };
+  const access=await backendGet('/me');
+  if(!access||!access.role) return null;
+  return { role:access.role, regions:access.regions||[] };
 }
 
 async function fetchAll(){
-  const r=activeRegion();
-  const [c,o,e,co]=await Promise.all([
-    graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.clients}/items?expand=fields&$top=500`),
-    graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.opportunities}/items?expand=fields&$top=500`),
-    graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.engagements}/items?expand=fields&$top=500`),
-    graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.companies}/items?expand=fields&$top=500`)
-  ]);
-  DATA.clients=c.map(i=>spItemToRecord('clients',i));
-  DATA.opportunities=o.map(i=>spItemToRecord('opportunities',i));
-  DATA.engagements=e.map(i=>spItemToRecord('engagements',i));
-  DATA.companies=co.map(i=>spItemToRecord('companies',i));
+  const data=await backendGet(`/data/${activeRegionKey}`);
+  DATA.clients=data.clients;
+  DATA.opportunities=data.opportunities;
+  DATA.engagements=data.engagements;
+  DATA.companies=data.companies;
 }
 
 async function insertRecord(kind,payload){
   try{
-    const r=activeRegion();
-    const fields=recordToSpFields(kind,payload);
-    const j=await graphPost(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds[kind]}/items`,{fields});
-    return spItemToRecord(kind,j);
+    return await backendPost(`/data/${activeRegionKey}/${kind}`,payload);
   }catch(err){alert('Could not save: '+err.message);return null;}
 }
 async function updateRecord(kind,id,payload){
   try{
-    const r=activeRegion();
-    const fields=recordToSpFields(kind,payload);
-    await graphPatch(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds[kind]}/items/${id}/fields`,fields);
+    await backendPatch(`/data/${activeRegionKey}/${kind}/${id}`,payload);
     return true;
   }catch(err){alert('Could not update: '+err.message);return false;}
 }
@@ -618,6 +672,42 @@ function applySort(rows,viewKey,defaultKey){
     const cmp = typeof av==='number'?av-bv:String(av).localeCompare(String(bv));
     return dir==='asc'?cmp:-cmp;
   });
+}
+
+/* ---------- 10b. EXPORT TO EXCEL ---------- */
+// Each render*() function caches its final filtered+sorted {cols,rows} here the moment it
+// builds the on-screen table, so "Export" always downloads exactly what's currently visible
+// — same filters, same search, same sort — with zero risk of the export logic drifting from
+// what the user is actually looking at.
+let EXPORT_CACHE={};
+const EXPORT_DATE_KEYS=new Set([...DATE_FIELDS.clients,...DATE_FIELDS.opportunities,...DATE_FIELDS.engagements,...DATE_FIELDS.companies,'lastEngagement']);
+// A few columns store something other than a plain displayable value — surface the real
+// meaning (a percentage, a readable name list) instead of the raw stored form (a fraction, a
+// multiselect-encoded string) so the exported file is actually useful, not just a data dump.
+const EXPORT_TRANSFORMS={
+  probability_pct:v=>v!=null&&v!==''?Math.round(Number(v)*100)+'%':'',
+  accompanied_by:v=>msSelectedFromValue(v).join(', '),
+  supporting_role:v=>msSelectedFromValue(v).join(', ')
+};
+function exportView(kind){
+  const cache=EXPORT_CACHE[kind];
+  if(!cache||!cache.rows.length){alert('No rows to export — adjust your filters or search first.');return;}
+  const cols=cache.cols.filter(c=>c.key!=='_actions');
+  const aoa=[cols.map(c=>c.label)];
+  cache.rows.forEach(r=>{
+    aoa.push(cols.map(c=>{
+      const v=r[c.key];
+      if(v==null||v==='') return '';
+      if(EXPORT_TRANSFORMS[c.key]) return EXPORT_TRANSFORMS[c.key](v);
+      if(EXPORT_DATE_KEYS.has(c.key)) return fmtDate(v);
+      return v;
+    }));
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=cols.map(c=>({wch:Math.max(12,c.label.length+2)}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,kind.charAt(0).toUpperCase()+kind.slice(1));
+  XLSX.writeFile(wb,`${kind}-${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 /* ---------- 11. KPI CARDS ---------- */
@@ -707,8 +797,8 @@ function renderOverview(){
   const pipelineVal=openOpps.reduce((s,o)=>s+oppEstSgd(o),0);
   const weightedVal=openOpps.reduce((s,o)=>s+oppWeightedSgd(o),0);
   const wins=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
-  const losses=DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
-  const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
+  const submitted=DATA.opportunities.filter(isProposalSubmitted);
+  const winRate=submitted.length>0?Math.round((wins.length/submitted.length)*100):null;
   const overdueFollowups=DATA.engagements.filter(e=>{
     if(String(e.follow_up_done||'').toLowerCase()==='yes') return false;
     if(!e.cta_due_date) return false;
@@ -718,7 +808,7 @@ function renderOverview(){
   renderKpiCards('ov-kpis',[
     {label:'Open pipeline',value:fmtMoney(pipelineVal),sub:`${openOpps.length} opportunities`,accent:'sky'},
     {label:'Weighted pipeline',value:fmtMoney(weightedVal),sub:'probability-adjusted',accent:'sky'},
-    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} Win · ${losses.length} lost`,accent:'green'},
+    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} won of ${submitted.length} submitted`,accent:'green'},
     {label:'Overdue CTAs',value:fmtNum(overdueFollowups),sub:'follow-up past due date',accent:overdueFollowups>0?'coral':'green'}
   ]);
 
@@ -934,12 +1024,10 @@ function renderBDFunnel(){
   const stN=o=>STAGE_NUM(o.opportunity_status);
   const oppMetrics=[
     {label:'Total Mapped',val:opps.length},
-    {label:'Blue Sky',val:opps.filter(o=>stN(o)===1).length},
-    {label:'Identified / Discussed',val:opps.filter(o=>stN(o)===2||stN(o)===3).length},
-    {label:'Proposals',val:opps.filter(o=>stN(o)===4||stN(o)===5).length},
-    {label:'To Win / Active',val:opps.filter(o=>stN(o)===6).length},
-    {label:'Win',val:opps.filter(o=>isWinStage(o.opportunity_status)).length},
-    {label:'Lost / Missed',val:opps.filter(o=>stN(o)>=8).length}
+    ...LOOKUPS.opportunityStatus.map(s=>{
+      const n=STAGE_NUM(s);
+      return {label:s.replace(/^\d+\s/,''),val:opps.filter(o=>stN(o)===n).length};
+    })
   ];
   const oppEl=document.getElementById('bd-opp');
   if(oppEl) oppEl.innerHTML=(bdOppExpanded?oppMetrics:oppMetrics.slice(0,1)).map(m=>`<div class="bd-metric">
@@ -996,7 +1084,7 @@ function renderBDFunnel(){
 
 /* ---------- 13b. ALL REGIONS OVERVIEW (admin-only, read-only rollup) ---------- */
 async function enterAllRegions(){
-  if(!currentUser||currentUser.role!=='admin'){ alert('All Regions is only available to admins.'); return; }
+  if(!currentUser||!isGlobalRole(currentUser.role)){ alert('All Regions is only available to Super Admin, Global User and Global Viewer roles.'); return; }
   document.getElementById('region-screen').style.display='none';
   document.getElementById('brand-mark').style.display='none';
   document.getElementById('all-regions-screen').style.display='block';
@@ -1019,19 +1107,15 @@ async function enterAllRegions(){
 async function fetchAllRegionsData(){
   const entries=Object.entries(REGIONS);
   const byRegion=await Promise.all(entries.map(async ([key,r])=>{
-    const [c,o,e,co]=await Promise.all([
-      graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.clients}/items?expand=fields&$top=500`),
-      graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.opportunities}/items?expand=fields&$top=500`),
-      graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.engagements}/items?expand=fields&$top=500`),
-      graphGet(`${GRAPH_BASE}/sites/${r.siteId}/lists/${r.listIds.companies}/items?expand=fields&$top=500`)
-    ]);
+    const data=await backendGet(`/data/${key}`);
+    const {clients:c,opportunities:o,engagements:e,companies:co}=data;
     const tag=rec=>({...rec,_region:key,_regionLabel:r.label});
     return {
       key, label:r.label,
-      clients:c.map(i=>spItemToRecord('clients',i)).map(tag),
-      opportunities:o.map(i=>spItemToRecord('opportunities',i)).map(tag),
-      engagements:e.map(i=>spItemToRecord('engagements',i)).map(tag),
-      companies:co.map(i=>spItemToRecord('companies',i)).map(tag)
+      clients:c.map(tag),
+      opportunities:o.map(tag),
+      engagements:e.map(tag),
+      companies:co.map(tag)
     };
   }));
   const merged={
@@ -1173,12 +1257,10 @@ function renderAllRegionsBDFunnel(){
   const stN=o=>STAGE_NUM(o.opportunity_status);
   const oppMetrics=[
     {label:'Total Mapped',val:opps.length},
-    {label:'Blue Sky',val:opps.filter(o=>stN(o)===1).length},
-    {label:'Identified / Discussed',val:opps.filter(o=>stN(o)===2||stN(o)===3).length},
-    {label:'Proposals',val:opps.filter(o=>stN(o)===4||stN(o)===5).length},
-    {label:'To Win / Active',val:opps.filter(o=>stN(o)===6).length},
-    {label:'Win',val:opps.filter(o=>isWinStage(o.opportunity_status)).length},
-    {label:'Lost / Missed',val:opps.filter(o=>stN(o)>=8).length}
+    ...LOOKUPS.opportunityStatus.map(s=>{
+      const n=STAGE_NUM(s);
+      return {label:s.replace(/^\d+\s/,''),val:opps.filter(o=>stN(o)===n).length};
+    })
   ];
   const oppEl=document.getElementById('ar-bd-opp');
   if(oppEl) oppEl.innerHTML=(arOppExpanded?oppMetrics:oppMetrics.slice(0,1)).map(m=>`<div class="bd-metric">
@@ -1207,12 +1289,12 @@ function renderAllRegionsKpis(){
 
   const open=opps.filter(o=>isOpenStage(o.opportunity_status));
   const wins=opps.filter(o=>isWinStage(o.opportunity_status));
-  const losses=opps.filter(o=>isLossStage(o.opportunity_status));
-  const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
+  const submitted=opps.filter(isProposalSubmitted);
+  const winRate=submitted.length>0?Math.round((wins.length/submitted.length)*100):null;
   renderKpiCards('ar-kpis',[
     {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+oppEstSgd(o),0)),sub:`${open.length} opportunities · all time`,accent:'sky'},
     {label:'Weighted pipeline',value:fmtMoney(open.reduce((s,o)=>s+oppWeightedSgd(o),0)),sub:'across all regions · all time',accent:'sky'},
-    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} Win · ${losses.length} lost · all time`,accent:'green'},
+    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} won of ${submitted.length} submitted · all time`,accent:'green'},
     {label:'Engagements logged',value:fmtNum(periodEngs.length),sub:'selected period',accent:'amber'}
   ]);
 }
@@ -1244,8 +1326,8 @@ function renderAllRegionsRegionTable(){
   const rows=byRegion.map(r=>{
     const open=r.opportunities.filter(o=>isOpenStage(o.opportunity_status));
     const wins=r.opportunities.filter(o=>isWinStage(o.opportunity_status));
-    const losses=r.opportunities.filter(o=>isLossStage(o.opportunity_status));
-    const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
+    const submitted=r.opportunities.filter(isProposalSubmitted);
+    const winRate=submitted.length>0?Math.round((wins.length/submitted.length)*100):null;
     const periodEngs=r.engagements.filter(e=>e.eng_date&&new Date(e.eng_date)>=start);
     return {
       label:r.label,
@@ -1459,6 +1541,7 @@ function renderClients(){
     {key:'email',label:'Email'},{key:'phone',label:'Phone'},{key:'linkedin_url',label:'LinkedIn'},{key:'notes',label:'Notes'},
     {key:'_actions',label:''}
   ];
+  EXPORT_CACHE.clients={cols,rows};
   const tbl=document.getElementById('cl-table');
   makeSortableHeaders(tbl.querySelector('thead'),cols,'clients',renderClients);
   tbl.querySelector('tbody').innerHTML=rows.length?rows.map(c=>`
@@ -1546,14 +1629,15 @@ function renderOpportunities(){
   const open=DATA.opportunities.filter(o=>isOpenStage(o.opportunity_status));
   const wins=DATA.opportunities.filter(o=>isWinStage(o.opportunity_status));
   const losses=DATA.opportunities.filter(o=>isLossStage(o.opportunity_status));
-  const winRate=(wins.length+losses.length)>0?Math.round((wins.length/(wins.length+losses.length))*100):null;
+  const submitted=DATA.opportunities.filter(isProposalSubmitted);
+  const winRate=submitted.length>0?Math.round((wins.length/submitted.length)*100):null;
   renderKpiCards('op-kpis',[
     {label:'Total',value:fmtNum(DATA.opportunities.length),sub:`${open.length} open`,accent:'sky'},
     {label:'Open pipeline',value:fmtMoney(open.reduce((s,o)=>s+oppEstSgd(o),0)),sub:'estimated, SGD',accent:'sky'},
     {label:'Weighted',value:fmtMoney(open.reduce((s,o)=>s+oppWeightedSgd(o),0)),sub:'open pipeline',accent:'sky'},
     {label:'Win',value:fmtNum(wins.length),sub:fmtMoney(wins.reduce((s,o)=>s+oppEstSgd(o),0)),accent:'green'},
     {label:'Lost',value:fmtNum(losses.length),sub:fmtMoney(losses.reduce((s,o)=>s+oppEstSgd(o),0)),accent:'coral'},
-    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length}W · ${losses.length}L`,accent:winRate>=50?'green':'coral'}
+    {label:'Win rate',value:winRate===null?'':winRate+'%',sub:`${wins.length} won of ${submitted.length} submitted`,accent:winRate>=50?'green':'coral'}
   ]);
 
   // Populate filters alphabetically
@@ -1569,7 +1653,7 @@ function renderOpportunities(){
 
   const stSel=document.getElementById('op-filter-status');
   stSel.innerHTML='<option value="">All stages</option>'+
-    LOOKUPS.opportunityStatus.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    LOOKUPS.opportunityStatus.map(s=>`<option value="${esc(s)}">${esc(s.replace(/^\d+\s/,''))}</option>`).join('');
   stSel.value=opFilters.status;
 
   let rows=DATA.opportunities.filter(o=>{
@@ -1595,6 +1679,7 @@ function renderOpportunities(){
     {key:'_weighted_sgd',label:'Weighted (SGD)'},{key:'expected_close_date',label:'Close Date'},
     {key:'notes',label:'Notes'},{key:'_actions',label:''}
   ];
+  EXPORT_CACHE.opportunities={cols,rows};
   const tbl=document.getElementById('op-table');
   makeSortableHeaders(tbl.querySelector('thead'),cols,'opportunities',renderOpportunities);
   tbl.querySelector('tbody').innerHTML=rows.length?rows.map(o=>{
@@ -1849,6 +1934,7 @@ function renderEngagements(){
     {key:'cta_due_date',label:'CTA Due'},{key:'cta_owner',label:'CTA Owner'},
     {key:'follow_up_done',label:'Follow-up'},{key:'_actions',label:''}
   ];
+  EXPORT_CACHE.engagements={cols,rows};
   const tbl=document.getElementById('eg-table');
   makeSortableHeaders(tbl.querySelector('thead'),cols,'engagements',renderEngagements);
   tbl.querySelector('tbody').innerHTML=rows.length?rows.map(e=>`
@@ -2005,6 +2091,7 @@ function renderCompanies(){
     {key:'engagements',label:'Engagements'},{key:'lastEngagement',label:'Last Engagement'},
     {key:'_actions',label:''}
   ];
+  EXPORT_CACHE.companies={cols,rows};
   const tbl=document.getElementById('co-table');
   makeSortableHeaders(tbl.querySelector('thead'),cols,'companies',renderCompanies);
   tbl.querySelector('tbody').innerHTML=rows.length?rows.map(r=>{
@@ -2240,7 +2327,7 @@ function renderHistoryTimeline(hist){
 /* ---------- 19. MODAL: ADD ---------- */
 const ADD_CONFIGS={
   clients:{title:'Add client',kind:'clients',fields:[
-    {name:'modal-company',label:'Company',type:'select',required:true,opts:()=>uniqueCompanies()},
+    {name:'modal-company',label:'Company',type:'select',required:true,opts:()=>uniqueCompanies(),allowAddNew:'companies'},
     {name:'modal-client-name',label:'Client name',type:'text',required:true},
     {name:'designation',label:'Designation',type:'text',required:true},
     {name:'department',label:'Department',combo:true,allowNew:true,required:true,comboOpts:()=>uniqueDepartments()},
@@ -2327,8 +2414,9 @@ function renderModalField(f,val=''){
     // real data on save without the user ever noticing.
     const norm=s=>String(s).trim().toLowerCase();
     const matched=val&&opts.some(o=>norm(o)===norm(val));
-    const extraOpt=(val&&!matched)?`<option value="${esc(val)}" selected>${esc(val)}</option>`:'';
-    inp=`<select name="${f.name}" id="${f.name}" ${f.required?'required':''}><option value="">—</option>${extraOpt}${opts.map(o=>`<option value="${esc(o)}"${norm(o)===norm(val)?' selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    const extraOpt=(val&&!matched)?`<option value="${esc(val)}" selected>${esc(val.replace(/^\d+\s/,''))}</option>`:'';
+    const addNewOpt=f.allowAddNew?`<option value="__ADD_NEW__">+ Add new ${f.allowAddNew==='companies'?'company':f.allowAddNew}</option>`:'';
+    inp=`<select name="${f.name}" id="${f.name}" ${f.required?'required':''}><option value="">—</option>${extraOpt}${opts.map(o=>`<option value="${esc(o)}"${norm(o)===norm(val)?' selected':''}>${esc(o.replace(/^\d+\s/,''))}</option>`).join('')}${addNewOpt}</select>`;
   } else if(f.type==='multiselect'){
     const opts=typeof f.opts==='function'?f.opts():f.opts;
     inp=buildMultiselect({id:f.name,value:val,options:opts,placeholder:f.placeholder||'Select…',required:f.required});
@@ -2391,6 +2479,13 @@ function openAddModal(kind){
         const detInp=document.getElementById('region_detail'); if(detInp) detInp.value='';
       });
     }
+    const coSel=document.getElementById('modal-company');
+    if(coSel) coSel.addEventListener('change',()=>{
+      if(coSel.value==='__ADD_NEW__'){
+        closeModal();
+        openAddModal('companies');
+      }
+    });
   }
 
   document.getElementById('modal-form').addEventListener('submit',e=>handleAddSubmit(e,kind,cfg));
@@ -2710,6 +2805,123 @@ async function handleEditSubmit(e,kind,id,original,cfg){
 
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 
+/* ---------- 20b. ACCESS CONTROL (Super Admin panel) ---------- */
+// Manages the backend's AccessControl table via /api/users — this is what replaced
+// manually editing a SharePoint list. Visible/usable only for role==='SuperAdmin'
+// (enforced both here, in the nav, and server-side in backend/src/functions/users.js).
+const ACCESS_ROLES=['SuperAdmin','GlobalUser','GlobalViewer','RegionalUser','RegionalViewer'];
+const ACCESS_REGIONAL_ROLES=['RegionalUser','RegionalViewer'];
+let ACCESS_ROWS=[];
+
+function accessRoleClass(role){
+  const m={SuperAdmin:'tag-coral',GlobalUser:'tag-sky',GlobalViewer:'tag-grey',RegionalUser:'tag-green',RegionalViewer:'tag-amber'};
+  return 'tag '+(m[role]||'tag-grey');
+}
+
+async function renderAccessTab(){
+  const tbl=document.getElementById('access-table');
+  if(!tbl) return;
+  try{
+    ACCESS_ROWS=await backendGet('/users');
+  }catch(err){
+    alert('Could not load access list: '+err.message);
+    return;
+  }
+  tbl.querySelector('thead').innerHTML=`<tr><th>Email</th><th>Role</th><th>Region(s)</th><th></th></tr>`;
+  tbl.querySelector('tbody').innerHTML=ACCESS_ROWS.length?ACCESS_ROWS.map(r=>`
+    <tr>
+      <td>${esc(r.email)}</td>
+      <td><span class="${accessRoleClass(r.role)}">${esc(ROLE_LABELS[r.role]||r.role)}</span></td>
+      <td>${esc((r.regions&&r.regions.length)?r.regions.join(', '):'All regions')}</td>
+      <td class="td-actions">
+        <button class="btn btn-edit btn-sm" onclick="openAccessModal('${esc(r.email)}')">Edit</button>
+        <button class="btn btn-sm" style="border-color:var(--coral);color:var(--coral)" onclick="removeAccessRow('${esc(r.email)}')">Remove</button>
+      </td>
+    </tr>`).join('')
+    :'<tr><td colspan="4" class="empty-state">No one has access yet.</td></tr>';
+  const countEl=document.getElementById('access-count');
+  if(countEl) countEl.textContent=`${ACCESS_ROWS.length} ${ACCESS_ROWS.length===1?'person':'people'} with access`;
+}
+
+function openAccessModal(email){
+  const existing=email?ACCESS_ROWS.find(r=>r.email===email):null;
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`<div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal">
+      <div class="modal-head"><h3>${existing?'Edit access · '+esc(existing.email):'Grant access'}</h3><button class="modal-close" onclick="closeModal()">×</button></div>
+      <form id="access-form" novalidate>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-field full">
+              <label>Email <span class="req">*</span></label>
+              <input type="email" id="access-email" required ${existing?'disabled':''} value="${existing?esc(existing.email):''}" placeholder="firstname.lastname@neovation.sg">
+            </div>
+            <div class="form-field">
+              <label>Role <span class="req">*</span></label>
+              <select id="access-role" required>
+                ${ACCESS_ROLES.map(r=>`<option value="${r}" ${existing&&existing.role===r?'selected':''}>${esc(ROLE_LABELS[r])}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-field full" id="access-region-wrap">
+              <label>Region(s) <span class="req">*</span></label>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;padding:6px 0 2px;">
+                ${Object.entries(REGIONS).map(([k,r])=>`
+                  <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:400;color:var(--ink);cursor:pointer;margin:0;">
+                    <input type="checkbox" class="access-region-cb" value="${k}" ${existing&&existing.regions&&existing.regions.includes(k)?'checked':''}>
+                    ${esc(r.label)}
+                  </label>`).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="access-save">${existing?'Save changes':'Grant access'}</button>
+        </div>
+      </form>
+    </div>
+  </div>`;
+  document.getElementById('modal-backdrop').addEventListener('click',e=>{if(e.target.id==='modal-backdrop')closeModal();});
+  const roleSel=document.getElementById('access-role');
+  const toggleRegion=()=>{
+    document.getElementById('access-region-wrap').style.display=ACCESS_REGIONAL_ROLES.includes(roleSel.value)?'':'none';
+  };
+  roleSel.addEventListener('change',toggleRegion);
+  toggleRegion();
+  document.getElementById('access-form').addEventListener('submit',e=>handleAccessSubmit(e,existing));
+}
+
+async function handleAccessSubmit(e,existing){
+  e.preventDefault();
+  const email=document.getElementById('access-email').value.trim().toLowerCase();
+  const role=document.getElementById('access-role').value;
+  const regions=ACCESS_REGIONAL_ROLES.includes(role)
+    ?[...document.querySelectorAll('.access-region-cb:checked')].map(cb=>cb.value)
+    :[];
+  if(!email||!email.includes('@')){alert('Enter a valid email.');return;}
+  if(ACCESS_REGIONAL_ROLES.includes(role)&&!regions.length){alert('Select at least one region.');return;}
+  const saveBtn=document.getElementById('access-save');
+  saveBtn.disabled=true;saveBtn.textContent='Saving…';
+  try{
+    await backendPost('/users',{email,role,regions});
+    closeModal();
+    await renderAccessTab();
+  }catch(err){
+    alert('Could not save: '+err.message);
+    saveBtn.disabled=false;saveBtn.textContent=existing?'Save changes':'Grant access';
+  }
+}
+
+async function removeAccessRow(email){
+  if(!confirm(`Remove access for ${email}? They will no longer be able to sign in.`)) return;
+  try{
+    await backendDelete(`/users/${encodeURIComponent(email)}`);
+    await renderAccessTab();
+  }catch(err){
+    alert('Could not remove access: '+err.message);
+  }
+}
+
 /* ---------- 21. BOOT ---------- */
 async function boot(){
   const r=activeRegion();
@@ -2752,6 +2964,7 @@ function wireEvents(){
   on('add-opp-btn','click',()=>openAddModal('opportunities'));
   on('add-eng-btn','click',()=>openAddModal('engagements'));
   on('add-company-btn','click',()=>openAddModal('companies'));
+  on('add-access-btn','click',()=>openAccessModal());
 
   // Client filters
   on('cl-filter-status','change',e=>{clFilters.status=e.target.value;renderClients();});
