@@ -506,7 +506,7 @@ function showRegionScreen(){
   ).join('')+
   (currentUser&&isGlobalRole(currentUser.role)?
   `<button class="region-pick-card" onclick="enterAllRegions()">
-     <div class="region-pick-label">🌐 All Regions</div>
+     <div class="region-pick-label">All Regions</div>
      <div class="region-pick-sub">Combined read-only view across every region</div>
    </button>`:'');
   const accessBtn=document.getElementById('access-shortcut-btn');
@@ -924,7 +924,7 @@ function renderOverview(){
       <div class="alert-meta">${esc(e.cta_next_step||'')}</div></div>
       <div class="alert-date">${fmtDate(e.cta_due_date)}</div>
     </div>`}).join('')
-    :'<div class="empty-state" style="padding:10px 0">No follow-ups due this week 🎉</div>';
+    :'<div class="empty-state" style="padding:10px 0">No follow-ups due this week</div>';
 
   // Recent outcomes — the 10 most recent wins/losses, ranked by the date the stage
   // actually changed to Win/Loss (from stage_history), falling back to expected close date.
@@ -1924,7 +1924,7 @@ function renderEngagements(){
   if(weekChipEl){
     if(egFilters.week){
       const wkInfo=egWeekSeries.find(s=>s.key===egFilters.week);
-      weekChipEl.innerHTML=`<span class="tag tag-sky" style="cursor:pointer;" onclick="clearEgWeekFilter()" title="Clear week filter">📅 ${esc(wkInfo?wkInfo.rangeLabel:egFilters.week)} ✕</span>`;
+      weekChipEl.innerHTML=`<span class="tag tag-sky" style="cursor:pointer;" onclick="clearEgWeekFilter()" title="Clear week filter">${esc(wkInfo?wkInfo.rangeLabel:egFilters.week)} ✕</span>`;
     } else {
       weekChipEl.innerHTML='';
     }
@@ -2473,7 +2473,7 @@ function openAddModal(kind){
       <form id="modal-form" novalidate>
         <div class="modal-body">
           <div class="form-grid">${cfg.fields.map(f=>renderModalField(f)).join('')}</div>
-          ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">🔒 Probability auto-set by stage</div>`:''}
+          ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">Probability auto-set by stage</div>`:''}
           ${kind==='clients'?`<div class="form-footnote"><strong>Active business</strong> is for clients with whom we have current active projects.<br><strong>Active engagement</strong> is for clients with whom we are actively engaging in conversations, but there is no current active project.</div>`:''}
         </div>
         <div class="modal-foot">
@@ -2686,7 +2686,7 @@ async function openEditModal(kind,id){
       <form id="modal-form" novalidate>
         <div class="modal-body">
           <div class="form-grid">${cfg.fields.map(f=>renderModalField(f,getVal(f))).join('')}</div>
-          ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">🔒 Probability auto-set by stage</div>`:''}
+          ${kind==='opportunities'?`<div id="prob-lock-msg" class="prob-locked" style="display:none">Probability auto-set by stage</div>`:''}
           ${kind==='clients'?`<div class="form-footnote"><strong>Active business</strong> is for clients with whom we have current active projects.<br><strong>Active engagement</strong> is for clients with whom we are actively engaging in conversations, but there is no current active project.</div>`:''}
           ${histHtml}
         </div>

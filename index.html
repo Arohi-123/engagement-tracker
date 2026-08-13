@@ -201,7 +201,10 @@
       <div class="topbar-sub">Combined view across every region · read-only</div>
     </div>
     <div class="topbar-right">
-      <button class="refresh-btn" id="ar-refresh-btn" onclick="enterAllRegions()">⟳ Refresh</button>
+      <button class="refresh-btn" id="ar-refresh-btn" onclick="enterAllRegions()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        Refresh
+      </button>
       <button class="btn" onclick="showRegionScreen()">← Back to regions</button>
       <div class="user-pill">
         <span class="user-avatar" id="ar-user-avatar">A</span>
@@ -216,7 +219,7 @@
 
     <div class="bd-tracker" id="ar-bd-tracker">
       <div class="bd-tracker-header">
-        <span class="bd-tracker-title">📊 BD Sales Funnel Tracker — All Regions</span>
+        <span class="bd-tracker-title">BD Sales Funnel Tracker — All Regions</span>
         <div class="bd-month-filter">
           <span>Engagement filter:</span>
           <select id="ar-bd-month-sel" onchange="renderAllRegionsBDFunnel()">
@@ -524,7 +527,7 @@
       <!-- BD SALES FUNNEL TRACKER (mirrors original dashboard sheet, now fully live) -->
       <div class="bd-tracker" id="bd-tracker">
         <div class="bd-tracker-header">
-          <span class="bd-tracker-title">📊 BD Sales Funnel Tracker</span>
+          <span class="bd-tracker-title">BD Sales Funnel Tracker</span>
           <div class="bd-month-filter">
             <span>Engagement filter:</span>
             <select id="bd-month-sel" onchange="renderBDFunnel()">
@@ -608,11 +611,11 @@
       </div>
       <div class="grid-2" style="margin-bottom:16px;">
         <div class="panel">
-          <div class="panel-head"><div><h3>⚠️ Follow-ups due / overdue</h3><p>CTAs requiring attention</p></div></div>
+          <div class="panel-head"><div><h3>Follow-ups due / overdue</h3><p>CTAs requiring attention</p></div></div>
           <div class="panel-body" style="padding:0 0 2px;"><div id="ov-followup-list" style="padding:6px 16px;"></div></div>
         </div>
         <div class="panel">
-          <div class="panel-head"><div><h3>🏆 Recently Win & 📉 lost</h3><p>10 most recent outcomes</p></div></div>
+          <div class="panel-head"><div><h3>Recently won & lost</h3><p>10 most recent outcomes</p></div></div>
           <div class="panel-body" style="padding:0 0 2px;"><div id="ov-outcomes-list" style="padding:6px 16px;"></div></div>
         </div>
       </div>
@@ -794,6 +797,6 @@
 </div>
 <div id="modal-root"></div>
 
-<script src="app.js?v=20260811b"></script>
+<script src="app.js?v=20260813"></script>
 </body>
 </html>
