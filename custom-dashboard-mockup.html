@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Dashboard — Mockup</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* ---- Mockup-only additions — everything else below reuses styles.css as-is ---- */
+  .mock-banner{position:sticky;top:0;z-index:100;background:#1a1300;color:#F5C563;
+    padding:9px 20px;font-size:12.5px;font-weight:600;text-align:center;
+    border-bottom:2px solid #F5C563;}
+  .mock-banner span{font-weight:400;color:#E8DCC0;}
+
+  /* "My Dashboards" gallery */
+  .cdash-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:26px;}
+  .cdash-card{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;box-shadow:var(--shadow);cursor:pointer;
+    transition:border-color var(--t) var(--ease),box-shadow var(--t) var(--ease);}
+  .cdash-card:hover{border-color:var(--sky);box-shadow:var(--shadow-md);}
+  .cdash-card-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:15px;margin-bottom:10px;}
+  .cdash-card-title{font-family:'Ortica',serif;font-weight:700;font-size:13.5px;color:var(--ink);margin-bottom:3px;}
+  .cdash-card-sub{font-size:11px;color:var(--ink-faint);}
+  .cdash-card.new{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border-style:dashed;color:var(--ink-faint);text-align:center;min-height:104px;}
+  .cdash-card.new:hover{color:var(--sky-deep);border-color:var(--sky);}
+  .cdash-card.new .plus{font-size:22px;line-height:1;margin-bottom:4px;}
+
+  .cdash-divider{display:flex;align-items:center;gap:12px;margin:8px 0 20px;color:var(--ink-faint);font-size:11px;
+    text-transform:uppercase;letter-spacing:.06em;}
+  .cdash-divider::before,.cdash-divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  /* Builder */
+  .builder-grid{display:grid;grid-template-columns:340px 1fr;gap:16px;align-items:start;}
+  @media(max-width:900px){.builder-grid{grid-template-columns:1fr;}}
+  .measure-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:10px;}
+  .measure-row .form-field{flex:1;margin-bottom:0;}
+  .measure-remove{border:1px solid var(--line);background:#fff;color:var(--ink-faint);border-radius:7px;
+    width:34px;height:34px;flex-shrink:0;cursor:pointer;font-size:15px;line-height:1;}
+  .measure-remove:hover{border-color:var(--coral);color:var(--coral);}
+  .add-measure-link{background:none;border:none;color:var(--sky-deep);font-size:12px;font-weight:600;
+    cursor:pointer;padding:2px 0;margin-bottom:16px;}
+  .add-measure-link:hover{text-decoration:underline;}
+  .add-measure-link[disabled]{color:var(--ink-faint);cursor:not-allowed;text-decoration:none;}
+
+  .chart-type-row{display:flex;gap:8px;margin-bottom:6px;}
+  .chart-type-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;
+    padding:10px 6px 8px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;
+    cursor:pointer;font-size:10.5px;font-weight:600;color:var(--ink-soft);
+    transition:border-color var(--t-fast) var(--ease),background var(--t-fast) var(--ease),color var(--t-fast) var(--ease);}
+  .chart-type-btn svg{width:20px;height:20px;}
+  .chart-type-btn:hover:not([disabled]){border-color:var(--sky);color:var(--sky-deep);}
+  .chart-type-btn.active{background:var(--sky-pale);border-color:var(--sky);color:var(--sky-deep);}
+  .chart-type-btn[disabled]{opacity:.38;cursor:not-allowed;}
+  .guardrail-note{font-size:11px;color:var(--ink-faint);line-height:1.5;margin-bottom:16px;min-height:32px;}
+  .guardrail-note strong{color:var(--amber);}
+
+  .save-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px;
+    padding-top:14px;border-top:1px solid var(--line-soft);}
+  .personal-note{font-size:11px;color:var(--ink-faint);display:flex;align-items:center;gap:5px;}
+
+  .preview-panel{background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px 18px;}
+  .preview-title{font-family:'Ortica',serif;font-weight:700;font-size:14px;color:var(--ink);margin-bottom:2px;}
+  .preview-sub{font-size:11.5px;color:var(--ink-soft);margin-bottom:14px;}
+
+  .annot{background:var(--sky-pale);border:1px solid var(--sky);border-radius:var(--radius-sm);
+    padding:10px 14px;font-size:11.5px;color:var(--sky-deep);line-height:1.6;margin-top:16px;}
+  .annot strong{color:var(--ink);}
+
+  .role-note{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+    letter-spacing:.05em;text-transform:uppercase;color:var(--amber);background:var(--amber-pale);
+    padding:3px 8px;border-radius:999px;margin-left:8px;vertical-align:middle;}
+</style>
+</head>
+<body>
+
+<div class="mock-banner">🛠 MOCKUP — <span>this is a design preview only. Nothing here is wired to real data or saved anywhere. No existing file was changed to build this.</span></div>
+
+<div id="app" style="min-height:calc(100vh - 37px);">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 1000 400" style="width:118px;height:auto;display:block;margin-bottom:8px;">
+        <defs><style>.mk-navy{fill:#fff;}.mk-green{fill:#7fc247;}.mk-blue{fill:#009fda;}</style></defs>
+        <polygon class="mk-green" points="535.6 127.8 523.5 100.8 471.6 215.9 495.1 215.9 522.8 155.9 535.6 127.8"/>
+        <polygon class="mk-green" points="535.6 127.8 523.3 154.8 550.4 215.9 575.1 215.9 535.6 127.8"/>
+        <polygon class="mk-blue" points="461.7 103.9 461.6 103.9 421.1 192 433.2 219 473.4 130.6 461.7 103.9"/>
+        <polygon class="mk-blue" points="433.5 165 406.3 103.9 381.6 103.9 421.1 192 433.5 165"/>
+      </svg>
+      <div class="brand-name">NeoEngage</div>
+      <div class="brand-eyebrow">FY 2026–27</div>
+      <h1>Client Engagement Tracker</h1>
+    </div>
+    <nav class="nav">
+      <button class="nav-item"><span class="dot"></span>Overview</button>
+      <button class="nav-item"><span class="dot"></span>Companies</button>
+      <button class="nav-item"><span class="dot"></span>Client Database</button>
+      <button class="nav-item"><span class="dot"></span>Opportunity Tracker</button>
+      <button class="nav-item"><span class="dot"></span>Engagement Log</button>
+      <button class="nav-item active"><span class="dot"></span>Custom Dashboard</button>
+    </nav>
+    <div class="sidebar-foot">Data in SharePoint · shared live<br>Custom Dashboard is personal to you</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left"></div>
+      <div class="topbar-right">
+        <span class="region-chip">APAC</span>
+        <button class="refresh-btn" title="Refresh data">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Refresh
+        </button>
+        <div class="user-pill">
+          <span class="user-avatar">AJ</span>
+          <span>Arohi Jain</span>
+          <span class="role-badge">SUPER ADMIN</span>
+        </div>
+        <button class="logout-btn">Sign out</button>
+      </div>
+    </div>
+
+    <section class="view active">
+      <div class="view-head">
+        <div>
+          <h2 style="display:flex;align-items:center;">Custom Dashboard<span class="role-note">Super Admin · Global User only</span></h2>
+          <p>Build your own chart from the data you have access to. Only you can see what you build here — nobody else's account shows it.</p>
+        </div>
+      </div>
+
+      <!-- ===== MY DASHBOARDS ===== -->
+      <div class="cdash-gallery">
+        <div class="cdash-card">
+          <div class="cdash-card-icon" style="background:var(--sky-pale);color:var(--sky-deep);">📊</div>
+          <div class="cdash-card-title">Meetings vs. Wins by BD Owner</div>
+          <div class="cdash-card-sub">Bar · APAC · saved 3 days ago</div>
+        </div>
+        <div class="cdash-card">
+          <div class="cdash-card-icon" style="background:var(--green-pale);color:var(--green);">📈</div>
+          <div class="cdash-card-title">Pipeline value trend by month</div>
+          <div class="cdash-card-sub">Line · All Regions · saved 1 week ago</div>
+        </div>
+        <div class="cdash-card">
+          <div class="cdash-card-icon" style="background:var(--amber-pale);color:var(--amber);">🥧</div>
+          <div class="cdash-card-title">Open pipeline by stage</div>
+          <div class="cdash-card-sub">Pie · IND · saved 2 weeks ago</div>
+        </div>
+        <div class="cdash-card new">
+          <div class="plus">+</div>
+          New dashboard
+        </div>
+      </div>
+
+      <div class="cdash-divider">Editing "Meetings vs. Wins by BD Owner"</div>
+
+      <!-- ===== BUILDER ===== -->
+      <div class="builder-grid">
+        <!-- Config panel -->
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-head"><div><h3>Configure</h3></div></div>
+          <div class="panel-body">
+            <div class="form-field">
+              <label>Dashboard name</label>
+              <input type="text" id="cd-name" value="Meetings vs. Wins by BD Owner">
+            </div>
+
+            <div class="form-field">
+              <label>Compare by <span style="font-weight:400;color:var(--ink-faint);">(X-axis)</span></label>
+              <select id="cd-dimension">
+                <option>BD Owner</option>
+                <option>Region</option>
+                <option>Company</option>
+                <option>Opportunity Stage</option>
+                <option>Engagement Type</option>
+                <option>Month</option>
+              </select>
+            </div>
+
+            <label style="display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:4px;">Measure(s) <span style="font-weight:400;color:var(--ink-faint);">(Y-axis)</span></label>
+            <div id="cd-measures">
+              <div class="measure-row" data-idx="0">
+                <div class="form-field">
+                  <select class="cd-measure-select">
+                    <option>Count of Engagements</option>
+                    <option>Count of Opportunities</option>
+                    <option selected>Count of Wins</option>
+                    <option>Sum of Estimated Value (SGD)</option>
+                    <option>Sum of Weighted Pipeline (SGD)</option>
+                    <option>Avg. Probability (%)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="measure-row" data-idx="1">
+                <div class="form-field">
+                  <select class="cd-measure-select">
+                    <option selected>Count of Engagements</option>
+                    <option>Count of Opportunities</option>
+                    <option>Count of Wins</option>
+                    <option>Sum of Estimated Value (SGD)</option>
+                    <option>Sum of Weighted Pipeline (SGD)</option>
+                    <option>Avg. Probability (%)</option>
+                  </select>
+                </div>
+                <button class="measure-remove" onclick="cdRemoveMeasure(this)" title="Remove this measure">×</button>
+              </div>
+            </div>
+            <button class="add-measure-link" id="cd-add-measure" onclick="cdAddMeasure()">+ Compare a second measure</button>
+
+            <label style="display:block;font-size:11.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px;">Chart type</label>
+            <div class="chart-type-row" id="cd-chart-types">
+              <button class="chart-type-btn" data-type="bar" onclick="cdSetChartType('bar')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+                Bar
+              </button>
+              <button class="chart-type-btn" data-type="line" onclick="cdSetChartType('line')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-9"/></svg>
+                Line
+              </button>
+              <button class="chart-type-btn" data-type="pie" onclick="cdSetChartType('pie')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM12 2v10l7 7"/></svg>
+                Pie
+              </button>
+            </div>
+            <div class="guardrail-note" id="cd-guardrail-note"></div>
+
+            <div class="form-field">
+              <label>Scope</label>
+              <select id="cd-scope">
+                <option>ME</option>
+                <option>US</option>
+                <option selected>APAC</option>
+                <option>IND</option>
+                <option>🌐 All Regions</option>
+              </select>
+            </div>
+
+            <div class="save-row">
+              <button class="btn btn-primary">Save dashboard</button>
+              <span class="personal-note">🔒 Only visible to you</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live preview -->
+        <div class="preview-panel">
+          <div class="preview-title" id="cd-preview-title">Meetings vs. Wins by BD Owner</div>
+          <div class="preview-sub" id="cd-preview-sub">Count of Wins, Count of Engagements — by BD Owner · APAC</div>
+          <div class="chart-box tall"><canvas id="cd-preview-chart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="annot">
+        <strong>What's real here vs. what's mocked:</strong> the layout, the measure/dimension split, the
+        chart-type guardrails (try adding/removing the second measure above — Pie disables itself and
+        explains why), and the "personal, only visible to you" framing are all exactly what I'd build.
+        The chart itself is redrawing live from made-up numbers — in the real version it would run off
+        an actual group-and-aggregate pass over <code>DATA</code> (or the merged all-region dataset, if
+        Scope = All Regions), computed fresh every time you change a control.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   Everything below is mockup wiring only — realistic enough to demonstrate the
+   guardrail behavior interactively, not a real implementation. Example data is
+   hand-picked to look plausible, not computed from anything.
+   ============================================================================ */
+const DIM_DATA = {
+  'BD Owner':          {labels:['Priya Joshi','Sakshi Sharma','Kapil Vats','Manila Pasricha','Santosh Jha'],
+    'Count of Engagements':[24,19,31,15,22], 'Count of Opportunities':[9,7,12,5,8], 'Count of Wins':[4,2,6,1,3],
+    'Sum of Estimated Value (SGD)':[182000,95000,241000,64000,138000], 'Sum of Weighted Pipeline (SGD)':[91000,42000,133000,28000,71000],
+    'Avg. Probability (%)':[52,38,61,29,47]},
+  'Region':            {labels:['ME','US','APAC','IND'],
+    'Count of Engagements':[42,38,51,29], 'Count of Opportunities':[16,14,21,11], 'Count of Wins':[6,5,9,3],
+    'Sum of Estimated Value (SGD)':[410000,395000,520000,210000], 'Sum of Weighted Pipeline (SGD)':[205000,180000,260000,95000],
+    'Avg. Probability (%)':[44,41,49,36]},
+  'Company':           {labels:['AbbVie','Pfizer','Roche','Novartis','Sanofi'],
+    'Count of Engagements':[18,14,21,9,12], 'Count of Opportunities':[6,5,8,3,4], 'Count of Wins':[3,1,4,1,2],
+    'Sum of Estimated Value (SGD)':[145000,88000,210000,52000,97000], 'Sum of Weighted Pipeline (SGD)':[72000,39000,118000,22000,48000],
+    'Avg. Probability (%)':[55,33,58,31,44]},
+  'Opportunity Stage': {labels:['Blue Sky','Identified','Proposal prep','Proposal submitted','To Win','Win'],
+    'Count of Engagements':[8,11,14,9,6,4], 'Count of Opportunities':[14,10,7,5,3,4], 'Count of Wins':[0,0,0,0,0,4],
+    'Sum of Estimated Value (SGD)':[210000,165000,140000,98000,71000,84000], 'Sum of Weighted Pipeline (SGD)':[21000,41000,105000,74000,71000,84000],
+    'Avg. Probability (%)':[10,25,75,75,100,100]},
+  'Engagement Type':   {labels:['In-Person Meeting','Virtual Meeting','Phone Call/ Whatsapp','Conference/Event'],
+    'Count of Engagements':[46,58,33,14], 'Count of Opportunities':[19,22,11,6], 'Count of Wins':[7,8,3,2],
+    'Sum of Estimated Value (SGD)':[380000,410000,190000,120000], 'Sum of Weighted Pipeline (SGD)':[190000,205000,95000,60000],
+    'Avg. Probability (%)':[48,45,39,42]},
+  'Month':             {labels:['Mar','Apr','May','Jun','Jul','Aug'],
+    'Count of Engagements':[19,24,21,28,25,17], 'Count of Opportunities':[7,9,8,11,10,6], 'Count of Wins':[1,2,3,2,4,2],
+    'Sum of Estimated Value (SGD)':[120000,145000,138000,175000,162000,110000], 'Sum of Weighted Pipeline (SGD)':[55000,68000,64000,88000,80000,52000],
+    'Avg. Probability (%)':[38,41,44,47,50,49]}
+};
+const MEASURE_COLORS = {
+  'Count of Engagements':'#0070C0','Count of Opportunities':'#D98E2B','Count of Wins':'#2E8B57',
+  'Sum of Estimated Value (SGD)':'#00A6C0','Sum of Weighted Pipeline (SGD)':'#95447F','Avg. Probability (%)':'#C9A227'
+};
+
+let cdChart=null, cdChartType='bar', cdMeasureIdx=2;
+
+function cdMeasures(){ return [...document.querySelectorAll('.cd-measure-select')].map(s=>s.value); }
+function cdDimension(){ return document.getElementById('cd-dimension').value; }
+
+function cdAddMeasure(){
+  if(document.querySelectorAll('.measure-row').length>=2) return;
+  const wrap=document.getElementById('cd-measures');
+  const row=document.createElement('div');
+  row.className='measure-row'; row.dataset.idx=cdMeasureIdx++;
+  row.innerHTML=`<div class="form-field"><select class="cd-measure-select" onchange="cdRender()">
+      <option>Count of Engagements</option><option>Count of Opportunities</option><option>Count of Wins</option>
+      <option>Sum of Estimated Value (SGD)</option><option>Sum of Weighted Pipeline (SGD)</option><option>Avg. Probability (%)</option>
+    </select></div>
+    <button class="measure-remove" onclick="cdRemoveMeasure(this)" title="Remove this measure">×</button>`;
+  wrap.appendChild(row);
+  cdRender();
+}
+function cdRemoveMeasure(btn){
+  const rows=document.querySelectorAll('.measure-row');
+  if(rows.length<=1) return;
+  btn.closest('.measure-row').remove();
+  cdRender();
+}
+function cdSetChartType(type){
+  cdChartType=type;
+  cdRender();
+}
+
+function cdRender(){
+  const dim=cdDimension();
+  const measures=cdMeasures();
+  const nMeasures=measures.length;
+
+  // ---- guardrails ----
+  const addBtn=document.getElementById('cd-add-measure');
+  addBtn.disabled=nMeasures>=2;
+  addBtn.style.display=nMeasures>=2?'none':'inline-block';
+
+  const pieOk=nMeasures===1;
+  document.querySelectorAll('.chart-type-btn').forEach(b=>{
+    const t=b.dataset.type;
+    const disabled=(t==='pie'&&!pieOk);
+    b.disabled=disabled;
+    b.classList.toggle('active',t===cdChartType);
+  });
+  if(cdChartType==='pie'&&!pieOk){ cdChartType='bar'; document.querySelector('.chart-type-btn[data-type="bar"]').classList.add('active'); document.querySelector('.chart-type-btn[data-type="pie"]').classList.remove('active'); }
+
+  const noteEl=document.getElementById('cd-guardrail-note');
+  if(!pieOk) noteEl.innerHTML='<strong>Pie</strong> is turned off — it only works with exactly one measure. Remove a measure to use it.';
+  else if(dim==='Month') noteEl.innerHTML='Comparing over time — <strong>Line</strong> is usually the clearest choice here.';
+  else noteEl.innerHTML='';
+
+  // ---- preview title/sub ----
+  document.getElementById('cd-preview-title').textContent=document.getElementById('cd-name').value||'Untitled dashboard';
+  const scopeVal=document.getElementById('cd-scope').value;
+  document.getElementById('cd-preview-sub').textContent=`${measures.join(', ')} — by ${dim} · ${scopeVal}`;
+
+  // ---- chart ----
+  const d=DIM_DATA[dim];
+  const datasets=measures.map(m=>({
+    label:m,
+    data:d[m],
+    backgroundColor:cdChartType==='pie'?['#0070C0','#D98E2B','#2E8B57','#00A6C0','#95447F','#C9A227'].slice(0,d.labels.length):MEASURE_COLORS[m],
+    borderColor:MEASURE_COLORS[m],
+    borderRadius:cdChartType==='bar'?5:0,
+    tension:0.35, fill:false, maxBarThickness:40
+  }));
+
+  if(cdChart) cdChart.destroy();
+  const ctx=document.getElementById('cd-preview-chart').getContext('2d');
+  cdChart=new Chart(ctx,{
+    type:cdChartType,
+    data:{labels:d.labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:nMeasures>1||cdChartType==='pie',position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+      scales:cdChartType==='pie'?{}:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false}}}
+    }
+  });
+}
+
+document.getElementById('cd-dimension').addEventListener('change',cdRender);
+document.getElementById('cd-scope').addEventListener('change',cdRender);
+document.getElementById('cd-name').addEventListener('input',cdRender);
+document.querySelectorAll('.cd-measure-select').forEach(s=>s.addEventListener('change',cdRender));
+document.querySelector('.chart-type-btn[data-type="bar"]').classList.add('active');
+cdRender();
+</script>
+
+</body>
+</html>
