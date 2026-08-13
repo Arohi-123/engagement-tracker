@@ -163,9 +163,8 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
 .region-pick-card:hover{border-color:rgba(127,194,71,.55);background:rgba(6,16,36,.92);}
 .region-pick-label{font-family:'Ortica',serif;font-size:16px;font-weight:600;}
 .region-pick-sub{color:#9CB6CC;font-size:11.5px;margin-top:4px;}
-.region-signout-link{margin-top:24px;background:none;border:none;color:#9CB6CC;font-size:12px;cursor:pointer;text-decoration:underline;}
-.access-shortcut-bar{position:absolute;top:28px;right:32px;z-index:3;
-  display:inline-flex;align-items:center;height:34px;padding:0 18px;
+.region-screen-topright{position:fixed;top:22px;right:24px;z-index:3;display:flex;align-items:center;gap:10px;}
+.access-shortcut-bar{display:inline-flex;align-items:center;height:34px;padding:0 18px;
   background:rgba(6,16,36,.78);border:1px solid rgba(255,255,255,.16);border-radius:6px;
   color:#fff;font-family:'Ortica',serif;font-size:12.5px;font-weight:600;letter-spacing:.02em;
   cursor:pointer;transition:border-color var(--t) var(--ease),background var(--t) var(--ease);}
@@ -199,7 +198,8 @@ a{color:inherit;} button{font-family:inherit;} ::selection{background:var(--sky-
   border-right:3px solid #fff;
 }
 .brand{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
-.brand svg{width:118px;height:auto;display:block;margin-bottom:14px;background:#fff;padding:3px 5px;}
+.brand svg{width:118px;height:auto;display:block;margin-bottom:8px;}
+.brand-name{color:#061024;font-family:'Ortica',serif;font-weight:700;font-size:15px;letter-spacing:.01em;margin-bottom:12px;}
 .brand-eyebrow{font-family:'Ortica',serif;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7996B3;margin-bottom:4px;}
 .brand h1{color:#fff;font-size:15.5px;line-height:1.25;font-weight:600;}
 .nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:1px;}

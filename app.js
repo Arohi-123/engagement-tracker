@@ -101,9 +101,9 @@ const LOOKUPS = {
   clientStatus:['Active business','Active engagement','Prospect','Inactive'],
   priority:['Low','Medium','High'],
   opportunityStatus:[
-    '01 Blue Sky Opportunity','02 Identified Opportunity',
-    '04 Proposal preparation','05 Proposal submitted','06 To Win',
-    '07 Win','08 Loss','09 Client not interested','10 Missed Opportunity'
+    'Blue Sky Opportunity','Identified Opportunity',
+    'Proposal preparation','Proposal submitted','To Win',
+    'Win','Loss','Client not interested','Missed Opportunity'
   ],
   engagementTypes:['In-Person Meeting','Virtual Meeting','Phone Call/ Whatsapp','Conference/Event'],
   stakeholderType:['Existing Stakeholder Engagement','Procurement Engagement','New Stakeholder Development'],
@@ -176,14 +176,17 @@ function fmtDate(d){
 function safeLsGet(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } }
 function safeLsSet(key,val){ try{ localStorage.setItem(key,val); }catch(e){/* ignore */} }
 
-// Every opportunity is entered in its own region's local currency (REGION_CURRENCY) by
-// whoever's closest to the deal. The dashboard always DISPLAYS in SGD — there is no currency
-// toggle — so every figure must be converted before it's summed or shown. FX_RATES{code:rateToSgd} is the
-// live/current rate table, loaded once at login from the "FX Rates" SharePoint list that
-// finance maintains directly (see fetchFxRates()). It is deliberately NOT a market-data API:
-// finance's numbers are the single source of truth everyone else's reporting has to match.
-// fxRateFor()/oppEstSgd()/oppWeightedSgd() below are the only place that rate gets applied —
-// route every opportunity money figure through them, never read estimated_value_usd raw.
+// Estimated Value and Target Revenue are both entered directly in SGD everywhere now — no
+// per-region local-currency assumption, no conversion on entry. Route every opportunity money
+// figure through oppEstSgd()/oppWeightedSgd() (and targetRevSgd() for Target Revenue) rather
+// than reading estimated_value_usd/target_revenue raw, so there's one place to change if that
+// ever needs to become currency-aware again.
+//
+// FX_RATES/fetchFxRates()/REGION_CURRENCY/fxRateFor()/currencyForOpp() below, and the
+// fx_rate_locked field written on Win/Loss, are leftover infrastructure from when opportunity
+// values WERE entered per-region and converted — they're no longer read by any money
+// calculation, just still present/harmless. Safe to remove in a follow-up cleanup if this
+// currency model sticks; left in place for now since removing them wasn't part of this change.
 let FX_RATES={SGD:1};
 async function fetchFxRates(){
   try{
@@ -245,6 +248,25 @@ function weeklySeries(dateList,count){
   });
 }
 function initials(n){ return (n||'?').split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+// Every top-level screen (region picker, region dashboard, All Regions Overview, Access
+// Control) has its own topbar/corner with its own user-pill (name/role/avatar) — separate
+// elements/IDs per screen since they're all sibling top-level <div>s, not one shared topbar.
+// Call this once right after login so whichever screen the user lands on already shows
+// who's signed in, instead of only the region-dashboard topbar knowing it.
+function renderUserPill(){
+  if(!currentUser) return;
+  const roleLabel=ROLE_LABELS[currentUser.role]||currentUser.role.toUpperCase();
+  const ini=initials(currentUser.name);
+  [['user-name','user-role','user-avatar'],
+   ['ar-user-name','ar-user-role','ar-user-avatar'],
+   ['ac-user-name','ac-user-role','ac-user-avatar'],
+   ['rs-user-name','rs-user-role','rs-user-avatar']
+  ].forEach(([nameId,roleId,avatarId])=>{
+    const nameEl=document.getElementById(nameId); if(nameEl) nameEl.textContent=currentUser.name;
+    const roleEl=document.getElementById(roleId); if(roleEl) roleEl.textContent=roleLabel;
+    const avatarEl=document.getElementById(avatarId); if(avatarEl) avatarEl.textContent=ini;
+  });
+}
 function daysAgo(dateStr){
   if(!dateStr) return null;
   return Math.floor((Date.now()-new Date(dateStr))/(1000*60*60*24));
@@ -272,7 +294,18 @@ function uniqueTherapyAreas(){
 }
 
 /* ---------- 5. COLOUR HELPERS ---------- */
-const STAGE_NUM = s => { const m=(s||'').match(/^(\d+)/); return m?Number(m[1]):0; };
+// Stage names shown to users no longer carry a leading number (LOOKUPS.opportunityStatus
+// is bare words now), but stage ORDER/colour/win-loss logic below still runs off a number,
+// so this map preserves the original internal numbering (stage "03" was retired long ago,
+// hence the gap; "Missed Opportunity" stays 10) purely for that internal use.
+// String(s||'').replace(...) also transparently handles any already-stored legacy value
+// that still has an old "NN " prefix on it (pre-existing records), stripping it before lookup.
+const STAGE_ORDER={
+  'Blue Sky Opportunity':1,'Identified Opportunity':2,
+  'Proposal preparation':4,'Proposal submitted':5,'To Win':6,
+  'Win':7,'Loss':8,'Client not interested':9,'Missed Opportunity':10
+};
+const STAGE_NUM = s => STAGE_ORDER[String(s||'').replace(/^\d+\s*/,'').trim()]||0;
 function stageTagClass(status){
   const n=STAGE_NUM(status);
   return n>=1&&n<=10 ? `tag stage-0${n<10?'0'+n:n}`.replace('stage-010','stage-10') : 'tag tag-grey';
@@ -319,15 +352,25 @@ function togglePivotGroup(groupRow){
 }
 
 /* ---------- 6. STAGE LOGIC ---------- */
+// .replace strips a legacy "NN " prefix if one is still stored (see STAGE_NUM above) so
+// these match both old and newly-saved (bare) stage values.
+function stripStageNum(s){ return String(s||'').toLowerCase().replace(/^\d+\s*/,'').trim(); }
 function isOpenStage(s){
-  const closed=['07 win','08 loss','09 client not interested','10 missed opportunity'];
-  return s && !closed.includes(String(s).toLowerCase().trim());
+  const closed=['win','loss','client not interested','missed opportunity'];
+  return s && !closed.includes(stripStageNum(s));
 }
-function isWinStage(s){ return String(s||'').toLowerCase().trim()==='07 win'; }
-function isLossStage(s){ const v=String(s||'').toLowerCase().trim(); return v==='08 loss'||v==='09 client not interested'; }
+function isWinStage(s){ return stripStageNum(s)==='win'; }
+function isLossStage(s){ const v=stripStageNum(s); return v==='loss'||v==='client not interested'; }
+// Same "NN " strip as stripStageNum, but case-preserving — used to normalize the actual
+// opportunity_status VALUE (not just for a boolean check) on records coming from the backend
+// that still have the old numbered format stored, so every dropdown/filter/pivot/export
+// downstream sees the same bare name the tool now saves for new/edited records.
+function normalizeStage(s){ return String(s||'').replace(/^\d+\s*/,'').trim(); }
+function normalizeOppStage(o){ if(o&&o.opportunity_status) o.opportunity_status=normalizeStage(o.opportunity_status); return o; }
 function isProposalSubmitted(o){ return !!o.proposal_submission_date; }
 function autoProb(status){
   if(isWinStage(status)) return 1;
+  if(STAGE_NUM(status)===6) return 1; // To Win — same 100% auto-set as Win itself
   if(isLossStage(status)) return 0;
   if(STAGE_NUM(status)===10) return 0; // Missed Opportunity — same 0% auto-set as Loss/Client Not Interested
   return null; // no auto-set
@@ -354,12 +397,12 @@ function fxRateFor(o){
   }
   return FX_RATES[cur]??1;
 }
-function oppEstSgd(o){ return (Number(o.estimated_value_usd)||0)*fxRateFor(o); }
-function oppWeightedSgd(o){ return (Number(o.probability_weighted_value)||0)*fxRateFor(o); }
-// Target Revenue (Companies) has no per-record currency of its own — it's always entered
-// in USD — but still needs to land in SGD for display, at today's rate (it's a forward
-// target, not a closed transaction, so there's nothing to lock).
-function targetRevSgd(usd){ return usd==null||usd===''?null:Number(usd)*(FX_RATES.USD??1); }
+// Both entered directly in SGD now (see the comment above FX_RATES) — no conversion applied.
+// Still routed through named functions, not read raw, so every display/rollup call site
+// stays untouched if a currency-aware model ever comes back.
+function oppEstSgd(o){ return Number(o.estimated_value_usd)||0; }
+function oppWeightedSgd(o){ return Number(o.probability_weighted_value)||0; }
+function targetRevSgd(sgd){ return sgd==null||sgd===''?null:Number(sgd); }
 
 /* ---------- 7. AUTH (MSAL) ---------- */
 function initMsal(){
@@ -391,9 +434,7 @@ async function doLogin(){
     currentUser={username:email,name:currentAccount.name||email,role:access.role,regions:access.regions||[]};
     await fetchFxRates();
     document.getElementById('login-screen').style.display='none';
-    document.getElementById('user-name').textContent=currentUser.name;
-    document.getElementById('user-role').textContent=ROLE_LABELS[currentUser.role]||currentUser.role.toUpperCase();
-    document.getElementById('user-avatar').textContent=initials(currentUser.name);
+    renderUserPill();
     applyRolePermissions();
     if(isGlobalRole(currentUser.role)){
       showRegionScreen();
@@ -456,7 +497,8 @@ function showRegionScreen(){
   if(accessScreen) accessScreen.style.display='none';
   document.getElementById('brand-mark').style.display='flex';
   const grid=document.getElementById('region-screen-grid');
-  grid.innerHTML=userRegionKeys().map(key=>
+  const sortedKeys=[...userRegionKeys()].sort((a,b)=>REGIONS[a].label.localeCompare(REGIONS[b].label));
+  grid.innerHTML=sortedKeys.map(key=>
     `<button class="region-pick-card" onclick="enterRegion('${esc(key)}')">
        <div class="region-pick-label">${esc(REGIONS[key].label)}</div>
        <div class="region-pick-sub">Open this region's dashboard</div>
@@ -616,7 +658,7 @@ async function fetchAccessControl(email){
 async function fetchAll(){
   const data=await backendGet(`/data/${activeRegionKey}`);
   DATA.clients=data.clients;
-  DATA.opportunities=data.opportunities;
+  DATA.opportunities=data.opportunities.map(normalizeOppStage);
   DATA.engagements=data.engagements;
   DATA.companies=data.companies;
 }
@@ -1037,20 +1079,22 @@ function renderBDFunnel(){
   const oppToggle=document.getElementById('bd-opp-toggle');
   if(oppToggle) oppToggle.textContent=bdOppExpanded?'Hide breakdown ▴':'Show breakdown ▾';
 
-  /* ---- SECTION 4: PIPELINE FUNNEL — the 7 open/won stages, individually, plus a Total ---- */
+  /* ---- SECTION 4: PIPELINE FUNNEL — the 6 open-or-won stages, individually, plus a Total ----
+     Columns are matched by exact stage NAME (not a derived stage number) so this can never
+     drift out of sync with LOOKUPS.opportunityStatus — a prior version built columns from
+     [1..7] and indexed LOOKUPS.opportunityStatus[n-1], which silently mismatched every
+     column from "Proposal submitted" onward once stage "03" was retired (STAGE_NUM has a
+     gap there — see its own comment), including "Win" quietly showing "To Win" numbers. */
   function sumVal(arr){ return arr.reduce((s,o)=>s+oppEstSgd(o),0); }
-  const pipCols=[1,2,3,4,5,6,7].map(n=>({
-    label:LOOKUPS.opportunityStatus[n-1].replace(/^\d+\s/,''),
-    stageNum:n,
-    color:STAGE_COLORS[n]
-  }));
-  const pipBuckets=pipCols.map(col=>opps.filter(o=>stN(o)===col.stageNum));
+  const pipStageNames=LOOKUPS.opportunityStatus.slice(0,6); // Blue Sky … Win
+  const pipCols=pipStageNames.map(name=>({label:name,color:STAGE_COLORS[STAGE_NUM(name)]}));
+  const pipBuckets=pipCols.map(col=>opps.filter(o=>o.opportunity_status===col.label));
   const totalBucket=pipBuckets.flat();
   const pipEl=document.getElementById('bd-pipeline');
   if(pipEl){
     const stageColsHtml=pipCols.map((col,i)=>{
       const bucket=pipBuckets[i];
-      const isWin=col.stageNum===7;
+      const isWin=col.label==='Win';
       return `<div class="bd-pipeline-col">
         <div class="bd-pipeline-col-head" style="background:${col.color};">${esc(col.label)}</div>
         <div class="bd-pipeline-row">
@@ -1113,7 +1157,7 @@ async function fetchAllRegionsData(){
     return {
       key, label:r.label,
       clients:c.map(tag),
-      opportunities:o.map(tag),
+      opportunities:o.map(normalizeOppStage).map(tag),
       engagements:e.map(tag),
       companies:co.map(tag)
     };
@@ -1370,17 +1414,17 @@ function renderAllRegionsRegionTable(){
       <td class="num">${grand.wins}</td><td class="num"></td><td class="num">${grand.engagements}</td></tr>`;
 }
 
-// Region x Stage — counts only, mirrors the single-region Pipeline Funnel's 7 open/won stages.
+// Region x Stage — counts only, mirrors the single-region Pipeline Funnel's 6 open-or-won
+// stages, matched by exact stage NAME for the same reason (see that function's comment).
 function renderAllRegionsStageTable(){
   const byRegion=ALL_REGIONS_DATA.byRegion;
-  const stN=o=>STAGE_NUM(o.opportunity_status);
-  const stageCols=[1,2,3,4,5,6,7].map(n=>LOOKUPS.opportunityStatus[n-1].replace(/^\d+\s/,''));
+  const stageCols=LOOKUPS.opportunityStatus.slice(0,6); // Blue Sky … Win
   const tbl=document.getElementById('ar-stage-table');
   tbl.querySelector('thead').innerHTML=`<tr><th>Region</th>${stageCols.map(l=>`<th class="num">${esc(l)}</th>`).join('')}<th class="num">Total</th></tr>`;
   const colTotals=stageCols.map(()=>0);
   let grandTotal=0;
   const rowsHtml=byRegion.map(r=>{
-    const counts=[1,2,3,4,5,6,7].map(n=>r.opportunities.filter(o=>stN(o)===n).length);
+    const counts=stageCols.map(name=>r.opportunities.filter(o=>o.opportunity_status===name).length);
     counts.forEach((n,i)=>colTotals[i]+=n);
     const total=counts.reduce((a,b)=>a+b,0);
     grandTotal+=total;
@@ -2349,7 +2393,7 @@ const ADD_CONFIGS={
     {name:'opportunity_status',label:'Stage',type:'select',opts:LOOKUPS.opportunityStatus,required:true},
     {name:'bd_owner',label:'BD owner',combo:true,comboOpts:()=>EMPLOYEES,required:true},
     {name:'supporting_role',label:'Supporting role',type:'multiselect',opts:()=>EMPLOYEES,placeholder:'Supporting team members…'},
-    {name:'estimated_value_usd',label:'Estimated value',type:'number',required:true,min:0},
+    {name:'estimated_value_usd',label:'Estimated value (SGD)',type:'number',required:true,min:0},
     {name:'probability_pct',label:'Probability (%)',type:'select',opts:['10','25','75','100']},
     {name:'identified_date',label:'Opportunity identified date',type:'date'},
     {name:'discussion_date',label:'Discussion date',type:'date',required:true},
@@ -2378,7 +2422,7 @@ const ADD_CONFIGS={
   companies:{title:'Add company',kind:'companies',fields:[
     {name:'company',label:'Company name',type:'text',required:true},
     {name:'onboarding_status',label:'Onboarding status',type:'select',opts:LOOKUPS.onboardingStatus},
-    {name:'target_revenue',label:'Target Revenue (USD)',type:'number',min:0},
+    {name:'target_revenue',label:'Target Revenue (SGD)',type:'number',min:0},
     {name:'overall_budget_potential',label:'Overall Budget Potential',type:'number',min:1,max:5},
     {name:'overall_client_relationship',label:'Overall Client Relationship',type:'number',min:1,max:5},
     {name:'client_perception',label:'Client Perception',type:'select',opts:LOOKUPS.clientPerception},
@@ -2388,15 +2432,6 @@ const ADD_CONFIGS={
   ]}
 };
 
-// Estimated value has no currency field of its own — it's whatever REGION_CURRENCY says
-// for the region currently open — so the label spells that out at render time instead.
-function patchEstValueLabel(){
-  const el=document.getElementById('estimated_value_usd');
-  if(!el) return;
-  const label=el.closest('.form-field')?.querySelector('label');
-  const cur=REGION_CURRENCY[activeRegionKey]||'USD';
-  if(label) label.firstChild.textContent=`Estimated value (${cur})`;
-}
 
 function renderModalField(f,val=''){
   const req=f.required?`<span class="req"> *</span>`:'';
@@ -2452,7 +2487,6 @@ function openAddModal(kind){
   document.getElementById('modal-backdrop').addEventListener('click',e=>{if(e.target.id==='modal-backdrop')closeModal();});
 
   if(kind==='opportunities'){
-    patchEstValueLabel();
     const stSel=document.getElementById('opportunity_status');
     if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
     const coSel=document.getElementById('modal-opp-company');
@@ -2667,7 +2701,6 @@ async function openEditModal(kind,id){
   document.getElementById('modal-backdrop').addEventListener('click',e=>{if(e.target.id==='modal-backdrop')closeModal();});
 
   if(kind==='opportunities'){
-    patchEstValueLabel();
     const stSel=document.getElementById('opportunity_status');
     if(stSel) stSel.addEventListener('change',()=>handleStageChange(stSel));
     // Check current stage

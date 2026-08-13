@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3/lib/msal-browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=20260810">
 </head>
 <body>
 
@@ -141,8 +141,8 @@
           </g>
         </g>
         <text class="st1" transform="translate(50 288.2)"><tspan class="st11" x="0" y="0">MEDICA</tspan><tspan class="st0" x="198.8" y="0">L</tspan><tspan class="st2" x="226.3" y="0" xml:space="preserve">       </tspan><tspan class="st11" x="330" y="0">MARKETIN</tspan><tspan class="st4" x="587.8" y="0">G</tspan><tspan class="st2" x="623.6" y="0" xml:space="preserve">        </tspan><tspan class="st11" x="742.2" y="0">MEDI</tspan><tspan class="st0" x="868.5" y="0">A</tspan></text>
-        <circle cx="327.1" cy="271.9" r="5.6"/>
-        <circle cx="727.9" cy="271.9" r="5.6"/>
+        <circle class="st10" cx="327.1" cy="271.9" r="5.6"/>
+        <circle class="st10" cx="727.9" cy="271.9" r="5.6"/>
       </g>
     </g>
   </g>
@@ -176,13 +176,20 @@
 
 <!-- REGION PICKER (Admin only) -->
 <div id="region-screen">
-  <button class="access-shortcut-bar" id="access-shortcut-btn" style="display:none" onclick="enterAccessScreen()">Manage Access</button>
+  <div class="region-screen-topright">
+    <button class="access-shortcut-bar" id="access-shortcut-btn" style="display:none" onclick="enterAccessScreen()">Manage Access</button>
+    <div class="user-pill">
+      <span class="user-avatar" id="rs-user-avatar">A</span>
+      <span id="rs-user-name">User</span>
+      <span class="role-badge" id="rs-user-role">VIEWER</span>
+    </div>
+    <button class="logout-btn" id="region-signout" onclick="doLogout()">Sign out</button>
+  </div>
   <div class="region-picker">
     <div class="login-eyebrow">Neovation · Internal</div>
     <h1>Choose a region</h1>
     <div class="login-sub">Select which region's dashboard to open. You can switch anytime from the top bar.</div>
     <div class="region-card-grid" id="region-screen-grid"></div>
-    <button class="region-signout-link" id="region-signout" onclick="doLogout()">Sign out</button>
   </div>
 </div>
 
@@ -196,6 +203,11 @@
     <div class="topbar-right">
       <button class="refresh-btn" id="ar-refresh-btn" onclick="enterAllRegions()">⟳ Refresh</button>
       <button class="btn" onclick="showRegionScreen()">← Back to regions</button>
+      <div class="user-pill">
+        <span class="user-avatar" id="ar-user-avatar">A</span>
+        <span id="ar-user-name">User</span>
+        <span class="role-badge" id="ar-user-role">VIEWER</span>
+      </div>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
@@ -291,6 +303,11 @@
     </div>
     <div class="topbar-right">
       <button class="btn" onclick="showRegionScreen()">← Back to regions</button>
+      <div class="user-pill">
+        <span class="user-avatar" id="ac-user-avatar">A</span>
+        <span id="ac-user-name">User</span>
+        <span class="role-badge" id="ac-user-role">VIEWER</span>
+      </div>
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
@@ -454,12 +471,13 @@
           </g>
         </g>
         <text class="st1" transform="translate(50 288.2)"><tspan class="st11" x="0" y="0">MEDICA</tspan><tspan class="st0" x="198.8" y="0">L</tspan><tspan class="st2" x="226.3" y="0" xml:space="preserve">       </tspan><tspan class="st11" x="330" y="0">MARKETIN</tspan><tspan class="st4" x="587.8" y="0">G</tspan><tspan class="st2" x="623.6" y="0" xml:space="preserve">        </tspan><tspan class="st11" x="742.2" y="0">MEDI</tspan><tspan class="st0" x="868.5" y="0">A</tspan></text>
-        <circle cx="327.1" cy="271.9" r="5.6"/>
-        <circle cx="727.9" cy="271.9" r="5.6"/>
+        <circle class="st10" cx="327.1" cy="271.9" r="5.6"/>
+        <circle class="st10" cx="727.9" cy="271.9" r="5.6"/>
       </g>
     </g>
   </g>
 </svg>
+      <div class="brand-name">NeoEngage</div>
       <div class="brand-eyebrow">FY 2026–27</div>
       <h1>Client Engagement Tracker</h1>
     </div>
@@ -776,6 +794,6 @@
 </div>
 <div id="modal-root"></div>
 
-<script src="app.js"></script>
+<script src="app.js?v=20260811b"></script>
 </body>
 </html>
